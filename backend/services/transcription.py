@@ -75,6 +75,6 @@ async def transcribe(audio_path: str) -> Dict[str, Any]:
             "words": [{"word": str, "start": float, "end": float, "probability": float}]
         }
     """
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     result = await loop.run_in_executor(None, _sync_transcribe, audio_path)
     return result

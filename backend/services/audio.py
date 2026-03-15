@@ -5,6 +5,7 @@ import os
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import aiofiles
 from fastapi import UploadFile
 
 logger = logging.getLogger(__name__)
@@ -30,12 +31,12 @@ async def save_audio(
 
     dest = audio_path / f"{attempt_id}.webm"
 
-    with open(dest, "wb") as f:
+    async with aiofiles.open(dest, "wb") as f:
         while True:
             chunk = await upload_file.read(CHUNK_SIZE)
             if not chunk:
                 break
-            f.write(chunk)
+            await f.write(chunk)
 
     logger.info("Saved audio for attempt %d to %s", attempt_id, dest)
     return str(dest)

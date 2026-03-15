@@ -86,7 +86,10 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             result = await session.execute(
                 select(Attempt).where(Attempt.id == attempt_id)
             )
-            attempt = result.scalar_one()
+            attempt = result.scalar_one_or_none()
+            if attempt is None:
+                logger.error("Attempt %d not found during pipeline, aborting.", attempt_id)
+                return
             attempt.transcript = transcript
             attempt.word_timestamps = word_timestamps_json
             attempt.duration_seconds = duration_seconds
@@ -143,10 +146,10 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
 
             stats.total_attempts += 1
 
-            # Recalculate streak: count consecutive days ending today
+            # Recalculate streak: count consecutive days ending today (capped at 1000)
             streak = 0
             check_date = today
-            while True:
+            while streak < 1000:
                 day_result = await session.execute(
                     select(DailyActivity).where(DailyActivity.date == check_date)
                 )
