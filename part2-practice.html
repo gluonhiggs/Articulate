@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Language Learning Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<style data-purpose="custom-styles">
+        body {
+            background-color: #0b1120;
+            color: #94a3b8;
+        }
+        
+        .glow-border-cyan {
+            border: 1px solid rgba(34, 211, 238, 0.5);
+            box-shadow: 0 0 10px rgba(34, 211, 238, 0.2), inset 0 0 10px rgba(34, 211, 238, 0.1);
+        }
+        
+        .glow-text-cyan {
+            color: #22d3ee;
+            text-shadow: 0 0 8px rgba(34, 211, 238, 0.4);
+        }
+
+        .gradient-border-card {
+            position: relative;
+            background-color: #0f172a;
+            border-radius: 0.5rem;
+            z-index: 1;
+        }
+        
+        .gradient-border-card::before {
+            content: "";
+            position: absolute;
+            inset: -1px;
+            border-radius: 0.6rem;
+            background: linear-gradient(135deg, rgba(34,211,238,0.5) 0%, rgba(168,85,247,0.5) 100%);
+            z-index: -1;
+            opacity: 0.7;
+        }
+
+        .gradient-border-card-2::before {
+             background: linear-gradient(135deg, rgba(34,211,238,0.3) 0%, rgba(168,85,247,0.3) 100%);
+        }
+
+        /* Custom Scrollbar for columns */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="h-screen w-full flex overflow-hidden font-sans text-sm">
+<!-- BEGIN: Sidebar -->
+<aside class="w-64 bg-[#0f172a] border-r border-slate-800 flex flex-col flex-shrink-0" data-purpose="sidebar">
+<!-- Logo Area -->
+<div class="p-6 flex items-center gap-3">
+<div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">
+<!-- Icon Placeholder -->
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</div>
+<div>
+<div class="text-xs text-slate-400">Level PT</div>
+<div class="text-white font-semibold text-base">Luyện Nói</div>
+</div>
+</div>
+<!-- Main Navigation -->
+<nav class="flex-1 overflow-y-auto px-4 py-2 custom-scrollbar">
+<ul class="space-y-1">
+<li>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-md transition-colors" href="#">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+                        Trang chủ
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 text-cyan-400 bg-slate-800/50 rounded-md transition-colors font-medium" href="#">
+<svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+                        Luyện theo câu
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-md transition-colors" href="#">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+                        Thi thử
+                    </a>
+</li>
+</ul>
+<!-- Nested List -->
+<div class="mt-4 pl-11 pr-2 relative">
+<!-- Vertical Line -->
+<div class="absolute left-6 top-2 bottom-2 w-px bg-slate-700"></div>
+<ul class="space-y-3 text-xs text-slate-400">
+<li class="relative flex items-center">
+<div class="absolute -left-6 w-2 h-2 rounded-full bg-slate-600 border-2 border-[#0f172a]"></div>
+                        Daily Routine
+                    </li>
+<li class="relative flex items-center">
+<div class="absolute -left-6 w-2 h-2 rounded-full bg-slate-600 border-2 border-[#0f172a]"></div>
+                        Views
+                    </li>
+<li class="relative flex items-center">
+<div class="absolute -left-6 w-2 h-2 rounded-full bg-slate-600 border-2 border-[#0f172a]"></div>
+                        Building
+                    </li>
+<li class="relative flex items-center">
+<div class="absolute -left-6 w-2 h-2 rounded-full bg-slate-600 border-2 border-[#0f172a]"></div>
+                        Suitritions
+                    </li>
+<li class="relative flex items-center">
+<div class="absolute -left-6 w-2 h-2 rounded-full bg-slate-600 border-2 border-[#0f172a]"></div>
+                        Regional/Reontiny
+                    </li>
+<li class="relative flex items-center">
+<div class="absolute -left-6 w-2 h-2 rounded-full bg-slate-600 border-2 border-[#0f172a]"></div>
+                        Repard's Positions
+                    </li>
+<li class="relative flex items-center">
+<div class="absolute -left-6 w-2 h-2 rounded-full bg-slate-600 border-2 border-[#0f172a]"></div>
+                        County Topics
+                    </li>
+<li class="relative flex items-center">
+<div class="absolute -left-6 w-2 h-2 rounded-full bg-slate-600 border-2 border-[#0f172a]"></div>
+                        Daily Routine
+                    </li>
+<li class="relative flex items-center">
+<div class="absolute -left-6 w-2 h-2 rounded-full bg-slate-600 border-2 border-[#0f172a]"></div>
+                        Malesiness
+                    </li>
+<li class="relative flex items-center">
+<div class="absolute -left-6 w-2 h-2 rounded-full bg-slate-600 border-2 border-[#0f172a]"></div>
+                        More Contact
+                    </li>
+</ul>
+</div>
+</nav>
+<!-- Sidebar Bottom -->
+<div class="p-4 border-t border-slate-800 space-y-4">
+<div class="text-xs text-slate-500 bg-slate-800/50 inline-block px-2 py-1 rounded-full">0 lts</div>
+<button class="w-full py-2 px-4 border border-slate-700 rounded-full text-slate-300 hover:bg-slate-800 transition-colors">
+                Moe Aln
+            </button>
+<div class="flex items-center justify-between text-slate-300 cursor-pointer hover:text-white">
+<div class="flex items-center gap-2">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+                    Tài khoản
+                </div>
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</div>
+</div>
+</aside>
+<!-- END: Sidebar -->
+<!-- BEGIN: Main Content -->
+<main class="flex-1 flex flex-col min-w-0" data-purpose="main-content">
+<!-- Header Controls -->
+<header class="h-20 px-8 flex items-center justify-between border-b border-slate-800 flex-shrink-0">
+<!-- Part Selectors -->
+<div class="flex gap-4">
+<button class="px-6 py-2 rounded-full border border-slate-700 text-slate-400 hover:bg-slate-800 transition-colors">Part 1</button>
+<button class="px-6 py-2 rounded-full border text-cyan-400 glow-border-cyan bg-cyan-950/20 font-medium transition-all">Part 2</button>
+<button class="px-6 py-2 rounded-full border border-slate-700 text-slate-400 hover:bg-slate-800 transition-colors">Part 3</button>
+<button class="px-6 py-2 rounded-full border border-slate-700 text-slate-400 hover:bg-slate-800 transition-colors">Câu Bạn thêm</button>
+</div>
+<!-- Right Controls -->
+<div class="flex items-center gap-6">
+<!-- Toggle -->
+<div class="flex items-center gap-2">
+<span class="text-slate-400 text-sm">Ẩn câu đã trả lời</span>
+<button class="w-10 h-6 bg-cyan-500/20 border border-cyan-500/50 rounded-full relative flex items-center px-1 cursor-pointer">
+<div class="w-4 h-4 bg-cyan-400 rounded-full absolute right-1 shadow-[0_0_8px_rgba(34,211,238,0.6)]"></div>
+</button>
+</div>
+<!-- Search -->
+<div class="relative">
+<input class="bg-slate-800/50 border border-slate-700 rounded-full py-1.5 pl-4 pr-10 text-sm focus:outline-none focus:border-cyan-500/50 w-64 text-slate-300 placeholder-slate-500" placeholder="Tìm câu hỏi" type="text"/>
+<svg class="w-4 h-4 absolute right-3 top-2.5 text-slate-500" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</div>
+</div>
+</header>
+<!-- Main Workspace Area -->
+<div class="flex-1 flex flex-col p-8 overflow-hidden gap-6 relative">
+<!-- Category Tabs -->
+<div class="flex gap-8 border-b border-slate-800 flex-shrink-0">
+<button class="pb-3 text-cyan-400 border-b-2 border-cyan-400 font-medium relative glow-text-cyan">
+                    Person
+                </button>
+<button class="pb-3 text-slate-400 hover:text-slate-200 transition-colors">Object</button>
+<button class="pb-3 text-slate-400 hover:text-slate-200 transition-colors">Activity</button>
+<button class="pb-3 text-slate-400 hover:text-slate-200 transition-colors">Place</button>
+</div>
+<!-- Columns Container -->
+<div class="flex-1 flex gap-8 overflow-hidden">
+<!-- Left Column: Topic List -->
+<div class="w-[450px] flex flex-col flex-shrink-0 border-r border-slate-800 pr-6">
+<div class="overflow-y-auto custom-scrollbar pr-2 pb-10 space-y-6 flex-1">
+<!-- Topic Group: Person -->
+<div>
+<h3 class="text-white mb-3">Topic: Person</h3>
+<div class="space-y-2">
+<button class="w-full text-left px-4 py-3 rounded-lg border text-cyan-100 bg-cyan-900/20 glow-border-cyan text-sm shadow-[inset_0_0_15px_rgba(34,211,238,0.1)]">
+                                    Describe a person who likes to look after the natural world
+                                </button>
+<button class="w-full text-left px-4 py-3 rounded-lg border border-slate-700 bg-slate-800/30 text-slate-300 hover:bg-slate-800/50 transition-colors text-sm">
+                                    Describe a person who often helps others
+                                </button>
+<button class="w-full text-left px-4 py-3 rounded-lg border border-slate-700 bg-slate-800/30 text-slate-300 hover:bg-slate-800/50 transition-colors text-sm">
+                                    Describe a child who loves drawing/painting
+                                </button>
+<button class="w-full text-left px-4 py-3 rounded-lg border border-slate-700 bg-slate-800/30 text-slate-300 hover:bg-slate-800/50 transition-colors text-sm">
+                                    Describe a person who makes plans a lot and is good at planning
+                                </button>
+<button class="w-full text-left px-4 py-3 rounded-lg border border-slate-700 bg-slate-800/30 text-slate-300 hover:bg-slate-800/50 transition-colors text-sm">
+                                    Describe a famous person you would like to meet
+                                </button>
+<button class="w-full text-left px-4 py-3 rounded-lg border border-slate-700 bg-slate-800/30 text-slate-300 hover:bg-slate-800/50 transition-colors text-sm">
+                                    Describe a person who solved a problem in a smart way
+                                </button>
+</div>
+</div>
+<!-- Topic Group: Object -->
+<div>
+<h3 class="text-white mb-3">Topic: Object</h3>
+<div class="space-y-2">
+<button class="w-full text-left px-4 py-3 rounded-lg border border-slate-700 bg-slate-800/30 text-slate-300 hover:bg-slate-800/50 transition-colors text-sm leading-snug">
+                                    Describe a short-term job you want to have in a foreign country
+                                </button>
+<button class="w-full text-left px-4 py-3 rounded-lg border border-slate-700 bg-slate-800/30 text-slate-300 hover:bg-slate-800/50 transition-colors text-sm leading-snug">
+                                    Describe an event you attended in which you didn't enjoy the music played
+                                </button>
+<button class="w-full text-left px-4 py-3 rounded-lg border border-slate-700 bg-slate-800/30 text-slate-300 hover:bg-slate-800/50 transition-colors text-sm leading-snug">
+                                    Describe a child your friends who learned something without a teacher
+                                </button>
+<button class="w-full text-left px-4 py-3 rounded-lg border border-slate-700 bg-slate-800/30 text-slate-300 hover:bg-slate-800/50 transition-colors text-sm leading-snug">
+                                    Describe a piece of technology (not a phone) that you would like to own
+                                </button>
+<button class="w-full text-left px-4 py-3 rounded-lg border border-slate-700 bg-slate-800/30 text-slate-300 hover:bg-slate-800/50 transition-colors text-sm leading-snug">
+                                    Describe a perfect job you would like to have in the future
+                                </button>
+<button class="w-full text-left px-4 py-3 rounded-lg border border-slate-700 bg-slate-800/30 text-slate-300 hover:bg-slate-800/50 transition-colors text-sm">
+                                    Describe a program or app for your computer or phone
+                                </button>
+<button class="w-full text-left px-4 py-3 rounded-lg border border-slate-700 bg-slate-800/30 text-slate-300 hover:bg-slate-800/50 transition-colors text-sm">
+                                    Describe an interesting building
+                                </button>
+<button class="w-full text-left px-4 py-3 rounded-lg border border-slate-700 bg-slate-800/30 text-slate-300 hover:bg-slate-800/50 transition-colors text-sm leading-snug">
+                                    Describe something that you can't live without (not a computer/phone)
+                                </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Detail View -->
+<div class="flex-1 flex flex-col overflow-hidden relative">
+<!-- Decorative Graphic Background -->
+<div class="absolute top-0 right-10 left-10 h-32 opacity-30 pointer-events-none" style="background: radial-gradient(ellipse at top center, rgba(34,211,238,0.4) 0%, transparent 60%);">
+<!-- Simplified abstract waves representation -->
+<svg class="w-full h-full text-cyan-500/20" preserveaspectratio="none" viewbox="0 0 400 100">
+<path d="M0,50 Q100,20 200,50 T400,50" fill="none" stroke="currentColor" stroke-width="2"></path>
+<path d="M0,60 Q100,30 200,60 T400,60" fill="none" stroke="currentColor" stroke-width="1"></path>
+</svg>
+</div>
+<!-- Detail Header -->
+<div class="flex items-center gap-2 mb-6 text-white font-medium text-lg relative z-10">
+<svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+                        Person
+                    </div>
+<!-- Cards Scrollable Area -->
+<div class="flex-1 overflow-y-auto custom-scrollbar pr-4 space-y-6 pb-10">
+<!-- Card 1 -->
+<div class="gradient-border-card p-6 h-40 flex items-start">
+<h2 class="text-white text-base">Describe a person who likes to look after the natural world</h2>
+</div>
+<!-- Card 2 -->
+<div class="gradient-border-card gradient-border-card-2 p-6 h-40 flex items-start">
+<h2 class="text-slate-200 text-base">Describe a person who often helps others</h2>
+</div>
+<!-- Card 3 -->
+<div class="gradient-border-card gradient-border-card-2 p-6 h-40 flex items-start">
+<h2 class="text-slate-200 text-base">Describe a child who loves drawing/painting</h2>
+</div>
+<!-- Card 4 -->
+<div class="gradient-border-card gradient-border-card-2 p-6 h-40 flex items-start">
+<h2 class="text-slate-200 text-base">Describe a person who makes plans fit and is good of planning</h2>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- END: Main Content -->
+</body></html>
