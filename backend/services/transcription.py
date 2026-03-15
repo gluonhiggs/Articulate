@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import threading
 from typing import Any, Dict, List
 
 from backend.config import get_settings
@@ -10,27 +11,29 @@ logger = logging.getLogger(__name__)
 
 # Module-level cache for the loaded Whisper model
 _whisper_model = None
+_whisper_lock = threading.Lock()
 
 
 def _get_model():
-    """Lazy-load and cache the WhisperModel instance."""
+    """Lazy-load and cache the WhisperModel instance (thread-safe)."""
     global _whisper_model
-    if _whisper_model is None:
-        from faster_whisper import WhisperModel
+    with _whisper_lock:
+        if _whisper_model is None:
+            from faster_whisper import WhisperModel
 
-        settings = get_settings()
-        logger.info(
-            "Loading Whisper model '%s' on device='%s' compute_type='%s'",
-            settings.whisper_model,
-            settings.whisper_device,
-            settings.whisper_compute_type,
-        )
-        _whisper_model = WhisperModel(
-            settings.whisper_model,
-            device=settings.whisper_device,
-            compute_type=settings.whisper_compute_type,
-        )
-        logger.info("Whisper model loaded successfully.")
+            settings = get_settings()
+            logger.info(
+                "Loading Whisper model '%s' on device='%s' compute_type='%s'",
+                settings.whisper_model,
+                settings.whisper_device,
+                settings.whisper_compute_type,
+            )
+            _whisper_model = WhisperModel(
+                settings.whisper_model,
+                device=settings.whisper_device,
+                compute_type=settings.whisper_compute_type,
+            )
+            logger.info("Whisper model loaded successfully.")
     return _whisper_model
 
 
