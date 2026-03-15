@@ -34,3 +34,22 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.python-version
+
+# App data
+data/articulate.db
+data/audio/
+
+# Frontend build
+frontend/dist/
+frontend/node_modules/
+
+# Environment files
+.env.*
+!.env.laptop.example
+!.env.pc.example

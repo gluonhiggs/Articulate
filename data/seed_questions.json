@@ -1,0 +1,302 @@
+[
+  {
+    "part": "1",
+    "topic": "Daily Routine",
+    "category": null,
+    "parent_question_id": null,
+    "text": "What time do you usually wake up in the morning?",
+    "bullet_points": null
+  },
+  {
+    "part": "1",
+    "topic": "Daily Routine",
+    "category": null,
+    "parent_question_id": null,
+    "text": "Describe your typical morning routine before work or study.",
+    "bullet_points": null
+  },
+  {
+    "part": "1",
+    "topic": "Hometown",
+    "category": null,
+    "parent_question_id": null,
+    "text": "Where are you from, and what do you like most about your hometown?",
+    "bullet_points": null
+  },
+  {
+    "part": "1",
+    "topic": "Hometown",
+    "category": null,
+    "parent_question_id": null,
+    "text": "What kind of accommodation do you live in — a house or an apartment?",
+    "bullet_points": null
+  },
+  {
+    "part": "1",
+    "topic": "Hometown",
+    "category": null,
+    "parent_question_id": null,
+    "text": "Do you prefer living in a city or the countryside? Why?",
+    "bullet_points": null
+  },
+  {
+    "part": "1",
+    "topic": "Work & Study",
+    "category": null,
+    "parent_question_id": null,
+    "text": "Do you work or study? What do you enjoy most about it?",
+    "bullet_points": null
+  },
+  {
+    "part": "1",
+    "topic": "Work & Study",
+    "category": null,
+    "parent_question_id": null,
+    "text": "Would you like to change your job or field of study in the future?",
+    "bullet_points": null
+  },
+  {
+    "part": "1",
+    "topic": "Work & Study",
+    "category": null,
+    "parent_question_id": null,
+    "text": "How do you usually spend your free time after work or study?",
+    "bullet_points": null
+  },
+  {
+    "part": "1",
+    "topic": "Hobbies",
+    "category": null,
+    "parent_question_id": null,
+    "text": "What hobbies or activities do you enjoy in your free time?",
+    "bullet_points": null
+  },
+  {
+    "part": "1",
+    "topic": "Hobbies",
+    "category": null,
+    "parent_question_id": null,
+    "text": "Have your hobbies changed since you were a child?",
+    "bullet_points": null
+  },
+  {
+    "part": "2",
+    "topic": null,
+    "category": "person",
+    "parent_question_id": null,
+    "text": "Describe a person who likes to look after the natural world",
+    "bullet_points": [
+      "Describe who this person is",
+      "How you know them",
+      "What they do to protect the environment",
+      "Explain why you admire this person"
+    ]
+  },
+  {
+    "part": "2",
+    "topic": null,
+    "category": "person",
+    "parent_question_id": null,
+    "text": "Describe a person who often helps others",
+    "bullet_points": [
+      "Describe who this person is",
+      "How and when they help others",
+      "Why they like to help",
+      "Explain how their helpfulness affected you"
+    ]
+  },
+  {
+    "part": "2",
+    "topic": null,
+    "category": "person",
+    "parent_question_id": null,
+    "text": "Describe a famous person you would like to meet",
+    "bullet_points": [
+      "Who this person is",
+      "Why they are famous",
+      "What you would talk about",
+      "Explain why you would like to meet them"
+    ]
+  },
+  {
+    "part": "2",
+    "topic": null,
+    "category": "object",
+    "parent_question_id": null,
+    "text": "Describe a piece of technology you use regularly",
+    "bullet_points": [
+      "What it is",
+      "How often you use it",
+      "What you use it for",
+      "Explain why you find it so useful"
+    ]
+  },
+  {
+    "part": "2",
+    "topic": null,
+    "category": "object",
+    "parent_question_id": null,
+    "text": "Describe a gift you received that was meaningful to you",
+    "bullet_points": [
+      "What the gift was",
+      "Who gave it to you",
+      "When you received it",
+      "Explain why it was meaningful"
+    ]
+  },
+  {
+    "part": "2",
+    "topic": null,
+    "category": "object",
+    "parent_question_id": null,
+    "text": "Describe a book or film that made a strong impression on you",
+    "bullet_points": [
+      "What it was called",
+      "What it was about",
+      "When you read or watched it",
+      "Explain why it made such a strong impression"
+    ]
+  },
+  {
+    "part": "2",
+    "topic": null,
+    "category": "activity",
+    "parent_question_id": null,
+    "text": "Describe a skill you would like to learn",
+    "bullet_points": [
+      "What the skill is",
+      "Why you want to learn it",
+      "How you plan to learn it",
+      "Explain how this skill would benefit you"
+    ]
+  },
+  {
+    "part": "2",
+    "topic": null,
+    "category": "activity",
+    "parent_question_id": null,
+    "text": "Describe a time when you helped someone",
+    "bullet_points": [
+      "Who you helped",
+      "Why they needed help",
+      "How you helped them",
+      "Explain how you felt about helping"
+    ]
+  },
+  {
+    "part": "2",
+    "topic": null,
+    "category": "place",
+    "parent_question_id": null,
+    "text": "Describe a place you have visited that you particularly enjoyed",
+    "bullet_points": [
+      "What the place was",
+      "Where it is located",
+      "What you did there",
+      "Explain why you enjoyed it so much"
+    ]
+  },
+  {
+    "part": "2",
+    "topic": null,
+    "category": "place",
+    "parent_question_id": null,
+    "text": "Describe your ideal home",
+    "bullet_points": [
+      "Where it would be located",
+      "What it would look like",
+      "Who you would live with",
+      "Explain why this would be your ideal home"
+    ]
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "category": null,
+    "parent_question_id": null,
+    "parent_text": "Describe a person who likes to look after the natural world",
+    "text": "Is it important to teach students environmental protection at school?",
+    "bullet_points": null
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "category": null,
+    "parent_question_id": null,
+    "parent_text": "Describe a person who likes to look after the natural world",
+    "text": "What can governments do to encourage people to protect the natural world?",
+    "bullet_points": null
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "category": null,
+    "parent_question_id": null,
+    "parent_text": "Describe a person who likes to look after the natural world",
+    "text": "Is it easy for people in cities to stay connected with nature?",
+    "bullet_points": null
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "category": null,
+    "parent_question_id": null,
+    "parent_text": "Describe a piece of technology you use regularly",
+    "text": "How has technology changed the way people communicate with each other?",
+    "bullet_points": null
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "category": null,
+    "parent_question_id": null,
+    "parent_text": "Describe a piece of technology you use regularly",
+    "text": "Do you think people are too dependent on technology nowadays?",
+    "bullet_points": null
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "category": null,
+    "parent_question_id": null,
+    "parent_text": "Describe a piece of technology you use regularly",
+    "text": "What are the potential negative effects of children using technology from a young age?",
+    "bullet_points": null
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "category": null,
+    "parent_question_id": null,
+    "parent_text": "Describe a skill you would like to learn",
+    "text": "Why is it important for people to keep learning new skills throughout their lives?",
+    "bullet_points": null
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "category": null,
+    "parent_question_id": null,
+    "parent_text": "Describe a skill you would like to learn",
+    "text": "What skills do you think will be most valuable in the future job market?",
+    "bullet_points": null
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "category": null,
+    "parent_question_id": null,
+    "parent_text": "Describe a place you have visited that you particularly enjoyed",
+    "text": "Why do you think tourism has become so popular in recent decades?",
+    "bullet_points": null
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "category": null,
+    "parent_question_id": null,
+    "parent_text": "Describe a place you have visited that you particularly enjoyed",
+    "text": "What are the negative effects of mass tourism on local communities?",
+    "bullet_points": null
+  }
+]
