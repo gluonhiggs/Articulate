@@ -55,7 +55,7 @@ class Attempt(Base):
     __tablename__ = "attempts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    question_id: Mapped[int] = mapped_column(ForeignKey("questions.id"))
+    question_id: Mapped[int] = mapped_column(ForeignKey("questions.id"), index=True)
     audio_path: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     transcript: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
@@ -68,9 +68,9 @@ class Attempt(Base):
     word_timestamps: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON
     duration_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     status: Mapped[str] = mapped_column(
-        String(20), default="processing"
+        String(20), default="processing", index=True
     )  # processing | ready | failed
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), index=True)
 
     question: Mapped["Question"] = relationship(back_populates="attempts")
 

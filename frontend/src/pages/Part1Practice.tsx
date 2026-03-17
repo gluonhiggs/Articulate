@@ -11,7 +11,7 @@ export function Part1Practice() {
   const [search, setSearch] = useState('')
   const [hideAnswered, setHideAnswered] = useState(false)
 
-  const { data: questions, isLoading } = useQuery<Question[]>({
+  const { data: questions, isLoading, isError } = useQuery<Question[]>({
     queryKey: ['questions', 'part1', hideAnswered],
     queryFn: () => fetchPart1Questions(hideAnswered),
     staleTime: 60 * 1000,
@@ -25,7 +25,7 @@ export function Part1Practice() {
   }, [questions, search])
 
   function handleClick(question: Question) {
-    navigate(`/practice/${question.id}`)
+    navigate(`/practice/part1/questions/${question.id}`)
   }
 
   return (
@@ -52,7 +52,7 @@ export function Part1Practice() {
             </svg>
             <input
               type="text"
-              placeholder="Tìm kiếm câu hỏi..."
+              placeholder="Search questions..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-card border border-cardBorder rounded-lg pl-9 pr-4 py-2 text-sm text-textPrimary placeholder-textSecondary focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent/50"
@@ -74,15 +74,15 @@ export function Part1Practice() {
                 ].join(' ')}
               />
             </div>
-            <span className="text-textSecondary text-sm">Ẩn đã trả lời</span>
+            <span className="text-textSecondary text-sm">Hide answered</span>
           </label>
         </div>
 
         {/* Results count */}
         {!isLoading && (
           <p className="text-textSecondary text-xs mb-4">
-            {filtered.length} câu hỏi
-            {search && ` phù hợp với "${search}"`}
+            {filtered.length} {filtered.length === 1 ? 'question' : 'questions'}
+            {search && ` matching "${search}"`}
           </p>
         )}
 
@@ -93,11 +93,16 @@ export function Part1Practice() {
               <div key={i} className="h-32 bg-card animate-pulse rounded-xl" />
             ))}
           </div>
+        ) : isError ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <p className="text-red-400 text-lg">Could not load questions</p>
+            <p className="text-textSecondary text-sm mt-2">Check that the backend is running.</p>
+          </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <p className="text-textSecondary text-lg">Không tìm thấy câu hỏi</p>
+            <p className="text-textSecondary text-lg">No questions found</p>
             <p className="text-textSecondary text-sm mt-2">
-              {search ? 'Thử từ khóa khác' : 'Tất cả câu hỏi đã được trả lời'}
+              {search ? 'Try a different keyword' : 'All questions have been answered'}
             </p>
           </div>
         ) : (

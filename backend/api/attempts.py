@@ -6,14 +6,17 @@ from datetime import date, datetime
 from typing import List
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.config import get_settings
+from backend.constants import BAND_ROLLING_WINDOW
 from backend.database import AsyncSessionLocal, get_db
 from backend.models import Attempt, DailyActivity, Question, UserStats
-from backend.schemas import AttemptOut, AttemptStatusOut
+from backend.schemas import AttemptOut, AttemptStatusOut, ImproveOut, PronunciationOut, PronunciationWord
 from backend.services import audio as audio_service
+from backend.services import improve as improve_service
 from backend.services import scoring as scoring_service
 from backend.services import transcription as transcription_service
 
@@ -55,12 +58,27 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             # ----------------------------------------------------------------
             # 2. Scoring
             # ----------------------------------------------------------------
-            # Build list of words with low probability as "flagged"
+            # Build list of flagged words:
+            # 1. Low Whisper confidence (possible mispronunciation)
+            # 2. Long silence gap before word (disfluency / hesitation)
+            disfluent: set[str] = set()
+            for i in range(1, len(words)):
+                cur_start = words[i].get("start")
+                prev_end = words[i - 1].get("end")
+                if (
+                    cur_start is not None
+                    and prev_end is not None
+                    and cur_start - prev_end >= settings.gap_threshold
+                ):
+                    disfluent.add(words[i]["word"].lower())
             flagged_words = [
                 w["word"]
                 for w in words
-                if isinstance(w.get("probability"), (int, float))
-                and w["probability"] < 0.6
+                if (
+                    isinstance(w.get("probability"), (int, float))
+                    and w["probability"] < settings.low_confidence_threshold
+                )
+                or w["word"].lower() in disfluent
             ]
 
             scoring_result = await scoring_service.score_attempt(
@@ -146,17 +164,19 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
 
             stats.total_attempts += 1
 
-            # Recalculate streak: count consecutive days ending today (capped at 1000)
+            # Recalculate streak: single bulk fetch, count consecutive days ending today
+            recent = await session.execute(
+                select(DailyActivity.date, DailyActivity.attempts_count)
+                .order_by(DailyActivity.date.desc())
+                .limit(1000)
+            )
+            rows = recent.all()
             streak = 0
-            check_date = today
-            while streak < 1000:
-                day_result = await session.execute(
-                    select(DailyActivity).where(DailyActivity.date == check_date)
-                )
-                day_entry = day_result.scalar_one_or_none()
-                if day_entry is not None and day_entry.attempts_count > 0:
+            expected = today
+            for row_date, count in rows:
+                if row_date == expected and count > 0:
                     streak += 1
-                    check_date = date.fromordinal(check_date.toordinal() - 1)
+                    expected = date.fromordinal(expected.toordinal() - 1)
                 else:
                     break
 
@@ -170,7 +190,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                     select(Attempt.score)
                     .where(Attempt.status == "ready", Attempt.score.isnot(None))
                     .order_by(Attempt.created_at.desc())
-                    .limit(10)
+                    .limit(BAND_ROLLING_WINDOW)
                 )
                 recent_scores = [r for r in recent_result.scalars().all()]
                 if recent_scores:
@@ -294,3 +314,110 @@ async def get_attempt_history(
     )
     attempts = result.scalars().all()
     return [AttemptOut.model_validate(a) for a in attempts]
+
+
+@router.post("/{attempt_id}/improve", response_model=ImproveOut)
+async def improve_attempt(
+    attempt_id: int,
+    db: AsyncSession = Depends(get_db),
+) -> ImproveOut:
+    """Rewrite the attempt's response at one band higher using Ollama."""
+    result = await db.execute(select(Attempt).where(Attempt.id == attempt_id))
+    attempt = result.scalar_one_or_none()
+    if attempt is None:
+        raise HTTPException(status_code=404, detail="Attempt not found")
+
+    if attempt.status != "ready" or attempt.transcript is None or attempt.score is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Attempt is not ready or has no transcript/score",
+        )
+
+    # Fetch question text
+    q_result = await db.execute(
+        select(Question).where(Question.id == attempt.question_id)
+    )
+    question = q_result.scalar_one_or_none()
+    if question is None:
+        raise HTTPException(status_code=404, detail="Question not found")
+
+    # Compute target band: current score rounded to nearest 0.5 + 1.0, capped at 9.0
+    current_band = round(attempt.score * 2) / 2
+    target_band = min(current_band + 1.0, 9.0)
+
+    try:
+        improved = await improve_service.generate_improvement(
+            question_text=question.text,
+            transcript=attempt.transcript,
+            current_band=current_band,
+            target_band=target_band,
+        )
+    except (RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    return ImproveOut(
+        improved_text=improved["improved_text"],
+        target_band=target_band,
+        explanation=improved["explanation"],
+    )
+
+
+@router.get("/{attempt_id}/pronunciation", response_model=PronunciationOut)
+async def get_pronunciation(
+    attempt_id: int,
+    db: AsyncSession = Depends(get_db),
+) -> PronunciationOut:
+    """Return per-word pronunciation confidence from Whisper word timestamps."""
+    result = await db.execute(select(Attempt).where(Attempt.id == attempt_id))
+    attempt = result.scalar_one_or_none()
+    if attempt is None:
+        raise HTTPException(status_code=404, detail="Attempt not found")
+
+    if attempt.status != "ready" or attempt.word_timestamps is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Attempt is not ready or has no word timestamps",
+        )
+
+    try:
+        words_data = json.loads(attempt.word_timestamps)
+    except (json.JSONDecodeError, TypeError):
+        raise HTTPException(status_code=500, detail="Invalid word_timestamps data")
+
+    words = []
+    for w in words_data:
+        confidence = w.get("probability", 0.0)
+        if not isinstance(confidence, (int, float)):
+            confidence = 0.0
+        words.append(
+            PronunciationWord(
+                word=w.get("word", ""),
+                confidence=round(confidence, 3),
+                is_flagged=confidence < get_settings().low_confidence_threshold,
+            )
+        )
+
+    return PronunciationOut(words=words)
+
+
+@router.get("/{attempt_id}/audio")
+async def get_attempt_audio(
+    attempt_id: int,
+    db: AsyncSession = Depends(get_db),
+) -> FileResponse:
+    """Stream the recorded audio for a completed attempt."""
+    result = await db.execute(select(Attempt).where(Attempt.id == attempt_id))
+    attempt = result.scalar_one_or_none()
+    if attempt is None:
+        raise HTTPException(status_code=404, detail="Attempt not found")
+
+    if not attempt.audio_path:
+        raise HTTPException(status_code=404, detail="No audio recorded for this attempt")
+
+    try:
+        return FileResponse(attempt.audio_path, media_type="audio/webm")
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=404,
+            detail="Audio file no longer available (may have been cleaned up)",
+        )

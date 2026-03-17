@@ -56,7 +56,7 @@ export function RecordingBar({
       <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
         {status === 'idle' && (
           <>
-            <p className="text-textSecondary text-sm">Sẵn sàng luyện tập?</p>
+            <p className="text-textSecondary text-sm">Ready to practice?</p>
             <button
               onClick={onStart}
               className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-semibold text-sm hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-accent/50"
@@ -75,7 +75,7 @@ export function RecordingBar({
                   d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
                 />
               </svg>
-              Ghi âm ngay
+              Record
             </button>
           </>
         )}
@@ -85,9 +85,9 @@ export function RecordingBar({
             <div className="flex items-center gap-3">
               <CountdownTimer seconds={max - elapsed} maxSeconds={max} />
               <div>
-                <p className="text-textPrimary text-sm font-medium">Chuẩn bị...</p>
+                <p className="text-textPrimary text-sm font-medium">Preparing...</p>
                 <p className="text-textSecondary text-xs">
-                  Ghi âm bắt đầu sau {Math.max(0, max - elapsed)} giây
+                  Recording starts in {Math.max(0, max - elapsed)}s
                 </p>
               </div>
             </div>
@@ -95,7 +95,7 @@ export function RecordingBar({
               onClick={onStop}
               className="px-4 py-2 rounded-lg border border-cardBorder text-textSecondary text-sm hover:text-textPrimary hover:border-textSecondary transition-colors"
             >
-              Bỏ qua
+              Skip
             </button>
           </>
         )}
@@ -105,7 +105,7 @@ export function RecordingBar({
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full bg-red-500 pulse-record" />
-                <span className="text-red-400 text-sm font-medium">Đang ghi âm</span>
+                <span className="text-red-400 text-sm font-medium">Recording</span>
               </div>
               <span className="text-textSecondary text-sm">
                 {formatTime(elapsed)} / {formatTime(max)}
@@ -129,7 +129,7 @@ export function RecordingBar({
               >
                 <rect x="6" y="6" width="12" height="12" rx="1" />
               </svg>
-              Dừng lại
+              Stop
             </button>
           </>
         )}
@@ -138,7 +138,7 @@ export function RecordingBar({
           <div className="flex items-center gap-3 w-full justify-center">
             <Spinner />
             <p className="text-textSecondary text-sm">
-              {status === 'uploading' ? 'Đang tải lên...' : 'Đang xử lý... AI đang chấm điểm'}
+              {status === 'uploading' ? 'Uploading...' : 'AI is scoring your response...'}
             </p>
           </div>
         )}
@@ -160,13 +160,13 @@ export function RecordingBar({
                   d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              <p className="text-green-400 text-sm font-medium">Hoàn thành! Kết quả đã cập nhật.</p>
+              <p className="text-green-400 text-sm font-medium">Done! Results updated.</p>
             </div>
             <button
               onClick={onStart}
               className="flex items-center gap-2 px-5 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-semibold text-sm hover:opacity-90 transition-opacity"
             >
-              Ghi âm lại
+              Record again
             </button>
           </div>
         )}
@@ -188,13 +188,13 @@ export function RecordingBar({
                   d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              <p className="text-red-400 text-sm">{errorMessage ?? 'Có lỗi xảy ra'}</p>
+              <p className="text-red-400 text-sm">{errorMessage ?? 'An error occurred'}</p>
             </div>
             <button
               onClick={onRetry}
               className="px-4 py-2 rounded-lg border border-red-500/50 text-red-400 text-sm hover:bg-red-500/10 transition-colors"
             >
-              Thử lại
+              Retry
             </button>
           </div>
         )}

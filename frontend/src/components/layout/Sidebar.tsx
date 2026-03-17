@@ -91,13 +91,13 @@ function CpuIcon() {
 }
 
 const navItems: NavItem[] = [
-  { label: 'Trang chủ', to: '/', icon: <HomeIcon /> },
-  { label: 'Luyện theo câu', to: '/practice/part1', icon: <MicrophoneIcon /> },
-  { label: 'Thi thử', to: '/mock-test', icon: <ClipboardIcon /> },
+  { label: 'Home', to: '/', icon: <HomeIcon /> },
+  { label: 'Practice', to: '/practice/part1', icon: <MicrophoneIcon /> },
+  { label: 'Mock Test', to: '/mock-test', icon: <ClipboardIcon /> },
 ]
 
 export function Sidebar() {
-  const { data: systemInfo } = useQuery<SystemInfo>({
+  const { data: systemInfo, isError: systemInfoError } = useQuery<SystemInfo>({
     queryKey: ['systemInfo'],
     queryFn: fetchSystemInfo,
     staleTime: 5 * 60 * 1000,
@@ -143,13 +143,13 @@ export function Sidebar() {
         {/* Practice sub-links */}
         <div className="pt-2 pb-1 px-3">
           <p className="text-xs font-semibold text-textSecondary uppercase tracking-wider">
-            Luyện tập
+            Speaking Parts
           </p>
         </div>
         {[
-          { label: 'Part 1 — Hỏi đáp', to: '/practice/part1' },
+          { label: 'Part 1 — Q&A', to: '/practice/part1' },
           { label: 'Part 2 — Cue Card', to: '/practice/part2' },
-          { label: 'Part 3 — Thảo luận', to: '/practice/part3' },
+          { label: 'Part 3 — Discussion', to: '/practice/part3' },
         ].map((item) => (
           <NavLink
             key={item.to}
@@ -187,8 +187,10 @@ export function Sidebar() {
                   LLM: {systemInfo.ollama_model}
                 </p>
               </>
+            ) : systemInfoError ? (
+              <p className="text-xs text-red-400">Backend offline</p>
             ) : (
-              <p className="text-xs text-textSecondary">Loading system info…</p>
+              <p className="text-xs text-textSecondary">Loading...</p>
             )}
           </div>
         </div>

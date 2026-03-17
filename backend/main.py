@@ -8,10 +8,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from backend.api import attempts, dashboard, questions, system
+from backend.api import attempts, dashboard, questions, system, tts
 from backend.config import get_settings
 from backend.database import init_db
+from backend.services import ollama_client
 from backend.services.audio import cleanup_old_audio
+from backend.services.tts import evict_tts_cache
 
 logging.basicConfig(
     level=logging.INFO,
@@ -37,8 +39,13 @@ async def lifespan(app: FastAPI):
     )
     logger.info("Audio cleanup done.")
 
+    logger.info("Evicting TTS cache…")
+    evict_tts_cache(settings.tts_cache_dir, settings.tts_cache_max_mb)
+    logger.info("TTS cache eviction done.")
+
     yield  # Application runs here
 
+    await ollama_client.close_if_initialized()
     logger.info("Shutting down Articulate backend.")
 
 
@@ -54,10 +61,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",  # Vite dev server
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=[o.strip() for o in get_settings().cors_origins.split(",")],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -71,6 +75,7 @@ app.include_router(questions.router)
 app.include_router(attempts.router)
 app.include_router(dashboard.router)
 app.include_router(system.router)
+app.include_router(tts.router)
 
 # ---------------------------------------------------------------------------
 # Frontend static files (catch-all — MUST be last)

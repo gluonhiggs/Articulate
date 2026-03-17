@@ -28,5 +28,14 @@ if ($Profile -eq "pc") {
     }
 }
 
+# Conditional SSL
+$sslArgs = @()
+if (Test-Path "certs/cert.pem") {
+    $sslArgs = @("--ssl-certfile", "certs/cert.pem", "--ssl-keyfile", "certs/key.pem")
+    Write-Host "HTTPS enabled (certs/cert.pem found)" -ForegroundColor Green
+} else {
+    Write-Warning "certs/ not found, running HTTP only (phone mic will not work)"
+}
+
 Write-Host "Starting Articulate ($Profile profile)..." -ForegroundColor Green
-uv run uvicorn backend.main:app --host 127.0.0.1 --port 8000 --workers 1 --reload
+uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 1 --reload @sslArgs

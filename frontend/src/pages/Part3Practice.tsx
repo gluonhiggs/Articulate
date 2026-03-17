@@ -9,10 +9,10 @@ import { PartTabSwitcher } from './PartTabSwitcher'
 type Category = 'person' | 'object' | 'activity' | 'place'
 
 const CATEGORIES: { id: Category; label: string; emoji: string }[] = [
-  { id: 'person', label: 'Con người', emoji: '👤' },
-  { id: 'object', label: 'Đồ vật', emoji: '📦' },
-  { id: 'activity', label: 'Hoạt động', emoji: '🏃' },
-  { id: 'place', label: 'Địa điểm', emoji: '📍' },
+  { id: 'person', label: 'Person', emoji: '👤' },
+  { id: 'object', label: 'Object', emoji: '📦' },
+  { id: 'activity', label: 'Activity', emoji: '🏃' },
+  { id: 'place', label: 'Place', emoji: '📍' },
 ]
 
 export function Part3Practice() {
@@ -21,7 +21,7 @@ export function Part3Practice() {
   const [hideAnswered, setHideAnswered] = useState(false)
   const [selectedGroupIndex, setSelectedGroupIndex] = useState<number>(0)
 
-  const { data: groups, isLoading } = useQuery<Part3Group[]>({
+  const { data: groups, isLoading, isError } = useQuery<Part3Group[]>({
     queryKey: ['questions', 'part3', activeCategory, hideAnswered],
     queryFn: () => fetchPart3Questions(activeCategory, hideAnswered),
     staleTime: 60 * 1000,
@@ -43,7 +43,7 @@ export function Part3Practice() {
             {/* Category filter */}
             <div className="flex items-center justify-between mb-3">
               <p className="text-textSecondary text-xs font-semibold uppercase tracking-wider">
-                Danh mục
+                Category
               </p>
               <label className="flex items-center gap-1.5 cursor-pointer">
                 <div
@@ -63,7 +63,7 @@ export function Part3Practice() {
                     ].join(' ')}
                   />
                 </div>
-                <span className="text-textSecondary text-xs">Ẩn đã làm</span>
+                <span className="text-textSecondary text-xs">Hide done</span>
               </label>
             </div>
 
@@ -89,7 +89,7 @@ export function Part3Practice() {
 
             {/* Topic list */}
             <p className="text-textSecondary text-xs font-semibold uppercase tracking-wider mb-2">
-              Chủ đề
+              Topics
             </p>
             {isLoading ? (
               <div className="space-y-2">
@@ -97,8 +97,10 @@ export function Part3Practice() {
                   <div key={i} className="h-10 bg-card animate-pulse rounded-lg" />
                 ))}
               </div>
+            ) : isError ? (
+              <p className="text-red-400 text-xs py-4 text-center">Backend offline</p>
             ) : !groups || groups.length === 0 ? (
-              <p className="text-textSecondary text-sm py-4 text-center">Không có chủ đề</p>
+              <p className="text-textSecondary text-sm py-4 text-center">No topics</p>
             ) : (
               <div className="space-y-1">
                 {groups.map((group, i) => (
@@ -113,7 +115,7 @@ export function Part3Practice() {
                     ].join(' ')}
                   >
                     <p className="line-clamp-2 leading-snug">{group.parent.text}</p>
-                    <p className="text-xs mt-0.5 opacity-60">{group.questions.length} câu</p>
+                    <p className="text-xs mt-0.5 opacity-60">{group.questions.length} {group.questions.length === 1 ? 'question' : 'questions'}</p>
                   </button>
                 ))}
               </div>
@@ -129,11 +131,16 @@ export function Part3Practice() {
                 <div key={i} className="h-48 bg-card animate-pulse rounded-xl" />
               ))}
             </div>
+          ) : isError ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <p className="text-red-400 text-lg">Could not load questions</p>
+              <p className="text-textSecondary text-sm mt-2">Check that the backend is running.</p>
+            </div>
           ) : !selectedGroup ? (
             <div className="flex flex-col items-center justify-center py-20 text-center">
-              <p className="text-textSecondary text-lg">Chọn một chủ đề</p>
+              <p className="text-textSecondary text-lg">Select a topic</p>
               <p className="text-textSecondary text-sm mt-2">
-                Chọn chủ đề từ danh sách bên trái
+                Choose a topic from the list on the left
               </p>
             </div>
           ) : (
@@ -160,13 +167,13 @@ export function Part3Practice() {
 
               {/* Part 3 questions */}
               <p className="text-textSecondary text-xs font-semibold uppercase tracking-wider mb-3">
-                Câu hỏi Part 3 liên quan
+                Related Part 3 Questions
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {selectedGroup.questions.map((q) => (
                   <button
                     key={q.id}
-                    onClick={() => navigate(`/practice/${q.id}`)}
+                    onClick={() => navigate(`/practice/part3/questions/${q.id}`)}
                     className="text-left bg-card border border-cardBorder rounded-xl p-4 hover:border-accent/50 hover:shadow-lg hover:shadow-accent/5 hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-accent/50"
                   >
                     <div className="flex items-start justify-between gap-3">

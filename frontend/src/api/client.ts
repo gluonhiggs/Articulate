@@ -1,9 +1,20 @@
-import type { Attempt, DashboardData, Part3Group, Question, SystemInfo } from '../types'
+import type { Attempt, DashboardData, ImproveResponse, Part3Group, PronunciationWord, Question, SampleAnswerResponse, SystemInfo, TopicVocabResponse } from '../types'
 
 const BASE = '/api/v1'
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${BASE}${path}`, options)
+  let response: Response
+  try {
+    response = await fetch(`${BASE}${path}`, {
+      ...options,
+      signal: options?.signal ?? AbortSignal.timeout(10_000),
+    })
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'TimeoutError') {
+      throw new Error('Không thể kết nối server (timeout). Hãy kiểm tra backend đang chạy.')
+    }
+    throw new Error('Không thể kết nối server. Hãy kiểm tra backend đang chạy.')
+  }
   if (!response.ok) {
     const text = await response.text().catch(() => response.statusText)
     throw new Error(`API error ${response.status}: ${text}`)
@@ -53,8 +64,9 @@ export async function submitAttempt(
   audioBlob: Blob,
 ): Promise<{ id: number; status: string }> {
   const formData = new FormData()
+  formData.append('question_id', String(questionId))
   formData.append('audio', audioBlob, 'recording.webm')
-  return apiFetch<{ id: number; status: string }>(`/attempts/${questionId}`, {
+  return apiFetch<{ id: number; status: string }>('/attempts/submit', {
     method: 'POST',
     body: formData,
   })
@@ -66,6 +78,38 @@ export function fetchAttemptStatus(attemptId: number): Promise<Attempt> {
 
 export function fetchAttemptHistory(questionId: number): Promise<Attempt[]> {
   return apiFetch<Attempt[]>(`/attempts/history/${questionId}`)
+}
+
+export function fetchImprovedVersion(attemptId: number): Promise<ImproveResponse> {
+  return apiFetch<ImproveResponse>(`/attempts/${attemptId}/improve`, {
+    method: 'POST',
+    signal: AbortSignal.timeout(60_000),
+  })
+}
+
+export function fetchPronunciationDetails(attemptId: number): Promise<{ words: PronunciationWord[] }> {
+  return apiFetch<{ words: PronunciationWord[] }>(`/attempts/${attemptId}/pronunciation`)
+}
+
+/** Returns the URL to stream attempt audio. Does not fetch — use with Audio or fetch-to-blob. */
+export function getAttemptAudioUrl(attemptId: number): string {
+  return `${BASE}/attempts/${attemptId}/audio`
+}
+
+// ─── AI Assist ──────────────────────────────────────────────────────────────
+
+export function fetchSampleAnswer(questionId: number): Promise<SampleAnswerResponse> {
+  return apiFetch<SampleAnswerResponse>(`/questions/${questionId}/sample-answer`, {
+    method: 'POST',
+    signal: AbortSignal.timeout(60_000),
+  })
+}
+
+export function fetchTopicVocab(questionId: number): Promise<TopicVocabResponse> {
+  return apiFetch<TopicVocabResponse>(`/questions/${questionId}/topic-vocab`, {
+    method: 'POST',
+    signal: AbortSignal.timeout(60_000),
+  })
 }
 
 // ─── Dashboard ───────────────────────────────────────────────────────────────

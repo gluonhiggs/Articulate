@@ -7,8 +7,10 @@ import './index.css'
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30 * 1000, // 30 seconds
-      retry: 2,
+      staleTime: 60 * 1000,
+      retry: 1,
+      networkMode: 'always',
+      refetchOnWindowFocus: false,
     },
   },
 })

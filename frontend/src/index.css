@@ -21,87 +21,113 @@
   }
 
   ::-webkit-scrollbar-track {
-    background: #111827;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #374151;
-    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #4b5563;
+    background: rgba(255, 255, 255, 0.3);
   }
 }
 
-/* react-calendar-heatmap color classes */
-.react-calendar-heatmap .color-empty {
-  fill: #1e293b;
-}
+/* ── Inline corrections (matching code.html mockup) ───────────────────────── */
 
-.react-calendar-heatmap .color-scale-1 {
-  fill: rgba(59, 130, 246, 0.2);
-}
-
-.react-calendar-heatmap .color-scale-2 {
-  fill: rgba(59, 130, 246, 0.5);
-}
-
-.react-calendar-heatmap .color-scale-3 {
-  fill: #60a5fa;
-}
-
-.react-calendar-heatmap .color-scale-4 {
-  fill: #06b6d4;
-}
-
-.react-calendar-heatmap rect {
-  rx: 2;
-}
-
-.react-calendar-heatmap text {
-  fill: #9ca3af;
-  font-size: 8px;
-}
-
-/* Transcript error highlighting */
-.error-word {
-  color: #f87171;
+.correction-wrong {
+  color: #fca5a5;
+  background-color: rgba(127, 29, 29, 0.5);
   text-decoration: line-through;
+  padding: 1px 4px;
+  border-radius: 3px;
 }
 
-.uncertain-word {
-  color: #fbbf24;
+.correction-right {
+  color: #6ee7b7;
+  background-color: rgba(6, 78, 59, 0.6);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 500;
 }
 
-/* Pulsing animation for recording indicator */
+/* Legacy aliases */
+.error-word { color: #fca5a5; text-decoration: line-through; }
+.correction-word { color: #6ee7b7; font-weight: 600; }
+.uncertain-word { color: #fbbf24; }
+
+/* ── Neon glow effects ────────────────────────────────────────────────────── */
+
+.glow-border-active {
+  box-shadow: 0 0 10px rgba(45, 212, 191, 0.3), inset 0 0 10px rgba(45, 212, 191, 0.1);
+  border: 1px solid rgba(45, 212, 191, 0.5);
+}
+
+.glow-circle {
+  box-shadow: 0 0 12px rgba(45, 212, 191, 0.4), inset 0 0 8px rgba(45, 212, 191, 0.4);
+}
+
+.glow-btn-record {
+  background: linear-gradient(90deg, #a855f7 0%, #3b82f6 100%);
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.6), 0 0 8px rgba(59, 130, 246, 0.6);
+}
+
+.glow-improve {
+  background: linear-gradient(90deg, #4f46e5 0%, #3b82f6 100%);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+/* ── Score tags ───────────────────────────────────────────────────────────── */
+
+.tag-high  { background-color: rgba(45, 212, 191, 0.15); color: #2dd4bf; border: 1px solid rgba(45, 212, 191, 0.3); }
+.tag-mid   { background-color: rgba(251, 146, 60, 0.15); color: #fb923c; border: 1px solid rgba(251, 146, 60, 0.3); }
+.tag-low   { background-color: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+
+/* ── Right panel ──────────────────────────────────────────────────────────── */
+
+.right-panel {
+  background-color: #13151f;
+  border-left: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glow-btn-pronun {
+  background: linear-gradient(90deg, #ec4899 0%, #8b5cf6 100%);
+  box-shadow: 0 4px 15px rgba(236, 72, 153, 0.4);
+}
+
+/* Pronunciation word chip in the panel */
+.pronun-word {
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.pronun-word:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+.pronun-word-flagged {
+  color: #fb923c;
+  border-bottom: 1px dashed #fb923c;
+  cursor: pointer;
+}
+
+/* IPA display */
+.ipa-display {
+  font-family: 'Noto Sans', 'Inter', sans-serif;
+  color: #a78bfa;
+  font-size: 0.875rem;
+}
+
+/* ── Animations ───────────────────────────────────────────────────────────── */
+
 @keyframes pulse-record {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.5;
-    transform: scale(1.2);
-  }
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
 }
+.pulse-record { animation: pulse-record 1.2s ease-in-out infinite; }
 
-.pulse-record {
-  animation: pulse-record 1.2s ease-in-out infinite;
-}
-
-/* Slide-in animation for new attempt cards */
 @keyframes slide-in-top {
-  from {
-    opacity: 0;
-    transform: translateY(-16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-16px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-
-.slide-in-top {
-  animation: slide-in-top 0.3s ease-out forwards;
-}
+.slide-in-top { animation: slide-in-top 0.3s ease-out forwards; }

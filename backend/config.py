@@ -24,6 +24,12 @@ class Settings(BaseSettings):
     audio_retention_days: int = 60
     db_path: str = "data/articulate.db"
     audio_dir: str = "data/audio"
+    tts_cache_dir: str = "data/tts_cache"
+    tts_voice: str = "af_heart"
+    tts_cache_max_mb: int = 100
+    low_confidence_threshold: float = 0.6
+    gap_threshold: float = 0.5
+    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
 
 @lru_cache(maxsize=1)

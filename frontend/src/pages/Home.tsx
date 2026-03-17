@@ -39,8 +39,8 @@ function BandDisplay({ band }: { band: number | null }) {
         <div className="w-20 h-20 rounded-full border-4 border-cardBorder flex items-center justify-center mb-3">
           <span className="text-textSecondary text-2xl font-bold">?</span>
         </div>
-        <p className="text-textSecondary text-sm">Chưa có dữ liệu</p>
-        <p className="text-xs text-textSecondary mt-1">Luyện thêm để xem band score</p>
+        <p className="text-textSecondary text-sm">No data yet</p>
+        <p className="text-xs text-textSecondary mt-1">Practice more to see your band score</p>
       </div>
     )
   }
@@ -61,7 +61,7 @@ function SkeletonBlock({ className }: { className?: string }) {
 }
 
 export function Home() {
-  const { data, isLoading, isError } = useQuery<DashboardData>({
+  const { data, isLoading, isError, error } = useQuery<DashboardData>({
     queryKey: ['dashboard'],
     queryFn: fetchDashboard,
     staleTime: 60 * 1000,
@@ -71,13 +71,16 @@ export function Home() {
     <div className="p-6 max-w-5xl mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-textPrimary">Trang chủ</h1>
-        <p className="text-textSecondary text-sm mt-1">Tiến độ luyện tập IELTS Speaking của bạn</p>
+        <h1 className="text-2xl font-bold text-textPrimary">Dashboard</h1>
+        <p className="text-textSecondary text-sm mt-1">Your IELTS Speaking practice progress</p>
       </div>
 
       {isError && (
         <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-4 mb-6">
-          <p className="text-red-400 text-sm">Không thể tải dữ liệu. Hãy kiểm tra kết nối server.</p>
+          <p className="text-red-400 text-sm font-medium">Backend not responding</p>
+          <p className="text-red-400/70 text-xs mt-1">
+            {error instanceof Error ? error.message : 'Hãy kiểm tra backend đang chạy.'}
+          </p>
         </div>
       )}
 
@@ -99,16 +102,16 @@ export function Home() {
         <div className="md:col-span-1">
           {isLoading ? (
             <SkeletonBlock className="h-40" />
-          ) : (
+          ) : !isError ? (
             <BandDisplay band={data?.estimated_band ?? null} />
-          )}
+          ) : null}
         </div>
 
         {/* Quick Stats */}
         <div className="md:col-span-1">
           <div className="bg-card border border-cardBorder rounded-xl p-5 h-full">
             <p className="text-textSecondary text-xs font-semibold uppercase tracking-wider mb-3">
-              Thống kê
+              Stats
             </p>
             {isLoading ? (
               <div className="space-y-2">
@@ -119,16 +122,16 @@ export function Home() {
             ) : data ? (
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-textSecondary text-sm">Tổng lần luyện</span>
+                  <span className="text-textSecondary text-sm">Total attempts</span>
                   <span className="text-textPrimary font-semibold">{data.total_attempts}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-textSecondary text-sm">Streak dài nhất</span>
-                  <span className="text-textPrimary font-semibold">{data.longest_streak} ngày</span>
+                  <span className="text-textSecondary text-sm">Longest streak</span>
+                  <span className="text-textPrimary font-semibold">{data.longest_streak} days</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-textSecondary text-sm">Streak hiện tại</span>
-                  <span className="text-accent font-semibold">{data.current_streak} ngày 🔥</span>
+                  <span className="text-textSecondary text-sm">Current streak</span>
+                  <span className="text-accent font-semibold">{data.current_streak} days</span>
                 </div>
               </div>
             ) : null}
@@ -139,8 +142,8 @@ export function Home() {
       {/* Activity Heatmap */}
       <div className="bg-card border border-cardBorder rounded-xl p-5 mb-6">
         <div className="flex items-center justify-between mb-4">
-          <p className="text-textPrimary font-semibold text-sm">Hoạt động luyện tập</p>
-          <p className="text-textSecondary text-xs">5 tháng gần nhất</p>
+          <p className="text-textPrimary font-semibold text-sm">Practice Activity</p>
+          <p className="text-textSecondary text-xs">Last 6 months</p>
         </div>
         {isLoading ? (
           <SkeletonBlock className="h-24" />
@@ -151,26 +154,26 @@ export function Home() {
 
       {/* Quick Launch */}
       <div>
-        <p className="text-textPrimary font-semibold text-sm mb-3">Bắt đầu luyện tập</p>
+        <p className="text-textPrimary font-semibold text-sm mb-3">Start Practicing</p>
         <div className="grid grid-cols-3 gap-4">
           <PartLaunchButton
             part="P1"
             label="Part 1"
-            description="Câu hỏi hỏi đáp ngắn"
+            description="Short Q&A"
             to="/practice/part1"
             color="bg-cyan-600"
           />
           <PartLaunchButton
             part="P2"
             label="Part 2"
-            description="Cue card — nói 2 phút"
+            description="Cue card — speak 2 min"
             to="/practice/part2"
             color="bg-purple-600"
           />
           <PartLaunchButton
             part="P3"
             label="Part 3"
-            description="Câu hỏi thảo luận"
+            description="Discussion questions"
             to="/practice/part3"
             color="bg-indigo-600"
           />

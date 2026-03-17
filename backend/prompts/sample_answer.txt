@@ -1,0 +1,22 @@
+You are an IELTS speaking coach. Write a sample response to this question at Band {target_band} level.
+
+Question: {question_text}
+Part: {part}
+Target band: {target_band}
+Approximate length: {word_count} words
+
+SPOKEN-REGISTER RULES:
+- First-person contractions are natural: "I'd", "I've", "it's", "that's", "I'm"
+- No semicolons — use coordination or new sentences
+- Avoid passive voice unless it sounds natural in speech
+- Include collocations, idiomatic expressions, and discourse markers appropriate for Band {target_band}
+- Sound like a real person speaking, not a written essay
+
+EXAMPLE:
+Question: Do you prefer living in the city or the countryside?
+Part: Part 1
+Target band: 7.0
+
+{"sample_answer":"Honestly, I'd have to say the city — I've grown up here and I'm used to having everything at my fingertips. I love the convenience of public transport and being able to grab food at any time of day. That said, I do sometimes crave a bit of peace and quiet, so I can see the appeal of the countryside for a holiday or a weekend escape.","key_phrases":["at my fingertips","I've grown up here","crave a bit of peace and quiet","see the appeal of"]}
+
+Now write a sample answer for the ACTUAL question above. Return ONLY valid JSON with "sample_answer" and "key_phrases" fields. No markdown fences. No extra text.

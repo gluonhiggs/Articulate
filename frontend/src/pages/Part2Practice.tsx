@@ -9,10 +9,10 @@ import { PartTabSwitcher } from './PartTabSwitcher'
 type Category = 'person' | 'object' | 'activity' | 'place'
 
 const CATEGORIES: { id: Category; label: string; emoji: string }[] = [
-  { id: 'person', label: 'Con người', emoji: '👤' },
-  { id: 'object', label: 'Đồ vật', emoji: '📦' },
-  { id: 'activity', label: 'Hoạt động', emoji: '🏃' },
-  { id: 'place', label: 'Địa điểm', emoji: '📍' },
+  { id: 'person', label: 'Person', emoji: '👤' },
+  { id: 'object', label: 'Object', emoji: '📦' },
+  { id: 'activity', label: 'Activity', emoji: '🏃' },
+  { id: 'place', label: 'Place', emoji: '📍' },
 ]
 
 function CueCardItem({
@@ -60,7 +60,7 @@ export function Part2Practice() {
   const [activeCategory, setActiveCategory] = useState<Category>('person')
   const [hideAnswered, setHideAnswered] = useState(false)
 
-  const { data: questions, isLoading } = useQuery<Question[]>({
+  const { data: questions, isLoading, isError } = useQuery<Question[]>({
     queryKey: ['questions', 'part2', activeCategory, hideAnswered],
     queryFn: () => fetchPart2Questions(activeCategory, hideAnswered),
     staleTime: 60 * 1000,
@@ -79,7 +79,7 @@ export function Part2Practice() {
           <div className="p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="text-textSecondary text-xs font-semibold uppercase tracking-wider">
-                Danh mục
+                Category
               </p>
               <label className="flex items-center gap-1.5 cursor-pointer">
                 <div
@@ -96,7 +96,7 @@ export function Part2Practice() {
                     ].join(' ')}
                   />
                 </div>
-                <span className="text-textSecondary text-xs">Ẩn đã làm</span>
+                <span className="text-textSecondary text-xs">Hide done</span>
               </label>
             </div>
 
@@ -128,7 +128,7 @@ export function Part2Practice() {
             </p>
             {!isLoading && (
               <p className="text-textSecondary text-xs mt-0.5">
-                {questions?.length ?? 0} cue cards
+                {questions?.length ?? 0} cue {(questions?.length ?? 0) === 1 ? 'card' : 'cards'}
               </p>
             )}
           </div>
@@ -139,11 +139,16 @@ export function Part2Practice() {
                 <div key={i} className="h-40 bg-card animate-pulse rounded-xl" />
               ))}
             </div>
+          ) : isError ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <p className="text-red-400 text-lg">Could not load questions</p>
+              <p className="text-textSecondary text-sm mt-2">Check that the backend is running.</p>
+            </div>
           ) : !questions || questions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center">
-              <p className="text-textSecondary text-lg">Không có câu hỏi</p>
+              <p className="text-textSecondary text-lg">No cue cards</p>
               <p className="text-textSecondary text-sm mt-2">
-                Chưa có cue card cho danh mục này
+                No cue cards in this category yet
               </p>
             </div>
           ) : (
@@ -152,7 +157,7 @@ export function Part2Practice() {
                 <CueCardItem
                   key={q.id}
                   question={q}
-                  onClick={() => navigate(`/practice/${q.id}`)}
+                  onClick={() => navigate(`/practice/part2/questions/${q.id}`)}
                 />
               ))}
             </div>

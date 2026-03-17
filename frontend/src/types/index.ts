@@ -16,6 +16,7 @@ export interface Part3Group {
 export interface Attempt {
   id: number
   question_id: number
+  audio_path?: string | null
   transcript: string | null
   score: number | null
   fluency: number | null
@@ -32,7 +33,37 @@ export interface Attempt {
 export interface ErrorHighlight {
   word: string
   type: 'error' | 'uncertain'
-  suggestion: string
+  correction?: string    // exact replacement word (empty string = redundant word)
+  explanation?: string   // brief reason for the correction
+  suggestion?: string    // legacy fallback
+}
+
+export interface ImproveResponse {
+  improved_text: string
+  target_band: number
+  explanation: string
+}
+
+export interface PronunciationWord {
+  word: string
+  confidence: number
+  is_flagged: boolean
+}
+
+export interface SampleAnswerResponse {
+  sample_answer: string
+  key_phrases: string[]
+}
+
+export interface VocabItem {
+  term: string
+  type: string
+  definition: string
+  example: string
+}
+
+export interface TopicVocabResponse {
+  vocabulary: VocabItem[]
 }
 
 export interface HeatmapEntry {

@@ -18,6 +18,7 @@ dependencies = [
     # On PC (Windows, CUDA), after `uv sync` run:
     #   uv pip install torch --index-url https://download.pytorch.org/whl/cu121
     "torch>=2.3",
+    "kokoro>=0.3",
 ]
 
 [build-system]

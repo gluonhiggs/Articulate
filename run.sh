@@ -7,4 +7,13 @@ if [ ! -f "$ENV_FILE" ]; then
   exit 1
 fi
 export $(grep -v '^#' "$ENV_FILE" | xargs)
-exec uv run uvicorn backend.main:app --host 127.0.0.1 --port 8000 --workers 1 --reload
+
+SSL_ARGS=""
+if [ -f certs/cert.pem ]; then
+  SSL_ARGS="--ssl-certfile certs/cert.pem --ssl-keyfile certs/key.pem"
+  echo "HTTPS enabled (certs/cert.pem found)"
+else
+  echo "WARNING: certs/ not found, running HTTP only (phone mic will not work)"
+fi
+
+exec uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 1 --reload $SSL_ARGS

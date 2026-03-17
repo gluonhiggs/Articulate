@@ -65,6 +65,22 @@ class QuestionCreateIn(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+def _parse_json_list(v: Any) -> Optional[List[Any]]:
+    """Parse a JSON string into a list, passthrough if already a list."""
+    if v is None:
+        return None
+    if isinstance(v, list):
+        return v
+    if isinstance(v, str):
+        try:
+            parsed = json.loads(v)
+            if isinstance(parsed, list):
+                return parsed
+        except (json.JSONDecodeError, ValueError):
+            pass
+    return None
+
+
 class AttemptOut(BaseModel):
     id: int
     question_id: int
@@ -76,11 +92,16 @@ class AttemptOut(BaseModel):
     grammar: Optional[float] = None
     pronunciation: Optional[float] = None
     feedback_text: Optional[str] = None
-    error_highlights: Optional[str] = None
-    word_timestamps: Optional[str] = None
+    error_highlights: Optional[List[Any]] = None
+    word_timestamps: Optional[List[Any]] = None
     duration_seconds: Optional[int] = None
     status: str
     created_at: datetime
+
+    @field_validator("error_highlights", "word_timestamps", mode="before")
+    @classmethod
+    def parse_json_fields(cls, v: Any) -> Optional[List[Any]]:
+        return _parse_json_list(v)
 
     model_config = {"from_attributes": True}
 
@@ -94,8 +115,13 @@ class AttemptStatusOut(BaseModel):
     grammar: Optional[float] = None
     pronunciation: Optional[float] = None
     feedback_text: Optional[str] = None
-    error_highlights: Optional[str] = None
+    error_highlights: Optional[List[Any]] = None
     transcript: Optional[str] = None
+
+    @field_validator("error_highlights", mode="before")
+    @classmethod
+    def parse_json_fields(cls, v: Any) -> Optional[List[Any]]:
+        return _parse_json_list(v)
 
     model_config = {"from_attributes": True}
 
@@ -122,6 +148,22 @@ class DashboardOut(BaseModel):
 # ---------------------------------------------------------------------------
 # System info
 # ---------------------------------------------------------------------------
+
+
+class ImproveOut(BaseModel):
+    improved_text: str
+    target_band: float
+    explanation: str
+
+
+class PronunciationWord(BaseModel):
+    word: str
+    confidence: float
+    is_flagged: bool
+
+
+class PronunciationOut(BaseModel):
+    words: List[PronunciationWord]
 
 
 class SystemInfoOut(BaseModel):

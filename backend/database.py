@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 from typing import AsyncGenerator
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.future import select
 
@@ -90,10 +91,26 @@ async def _seed_questions(session: AsyncSession) -> None:
     await session.commit()
 
 
+async def _ensure_indexes() -> None:
+    """Create indexes for existing DBs that predate index=True column declarations."""
+    async with engine.begin() as conn:
+        await conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_attempts_question_id ON attempts(question_id)"
+        ))
+        await conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_attempts_status ON attempts(status)"
+        ))
+        await conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_attempts_created_at ON attempts(created_at)"
+        ))
+
+
 async def init_db() -> None:
     """Create all tables and seed if the questions table is empty."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    await _ensure_indexes()
 
     async with AsyncSessionLocal() as session:
         # Check if questions table is empty

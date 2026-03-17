@@ -11,6 +11,7 @@ from sqlalchemy.orm import selectinload
 from backend.database import get_db
 from backend.models import Attempt, Question
 from backend.schemas import Part3GroupOut, QuestionCreateIn, QuestionOut
+from backend.services import ai_assist as ai_assist_service
 
 router = APIRouter(prefix="/api/v1/questions", tags=["questions"])
 
@@ -137,6 +138,48 @@ async def list_part3(
         groups.append(Part3GroupOut(parent=parent_out, questions=filtered_children))
 
     return groups
+
+
+@router.post("/{question_id}/sample-answer")
+async def sample_answer(
+    question_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate a sample IELTS response for a question."""
+    result = await db.execute(select(Question).where(Question.id == question_id))
+    question = result.scalar_one_or_none()
+    if question is None:
+        raise HTTPException(status_code=404, detail="Question not found")
+
+    try:
+        data = await ai_assist_service.generate_sample_answer(
+            question_text=question.text,
+            part=question.part,
+            target_band=7.0,
+        )
+    except (RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    return data
+
+
+@router.post("/{question_id}/topic-vocab")
+async def topic_vocab(
+    question_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate advanced topic vocabulary for a question."""
+    result = await db.execute(select(Question).where(Question.id == question_id))
+    question = result.scalar_one_or_none()
+    if question is None:
+        raise HTTPException(status_code=404, detail="Question not found")
+
+    try:
+        data = await ai_assist_service.generate_topic_vocab(question_text=question.text)
+    except (RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    return data
 
 
 @router.get("/{question_id}", response_model=QuestionOut)

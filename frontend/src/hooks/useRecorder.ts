@@ -5,6 +5,7 @@ interface UseRecorderReturn {
   startRecording: () => Promise<void>
   stopRecording: () => void
   audioBlob: Blob | null
+  resetAudioBlob: () => void
 }
 
 export function useRecorder(maxSeconds: number): UseRecorderReturn {
@@ -80,5 +81,7 @@ export function useRecorder(maxSeconds: number): UseRecorderReturn {
     }, maxSeconds * 1000)
   }, [maxSeconds])
 
-  return { isRecording, startRecording, stopRecording, audioBlob }
+  const resetAudioBlob = useCallback(() => setAudioBlob(null), [])
+
+  return { isRecording, startRecording, stopRecording, audioBlob, resetAudioBlob }
 }

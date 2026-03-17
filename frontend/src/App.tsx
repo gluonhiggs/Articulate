@@ -1,4 +1,5 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { Layout } from './components/layout/Layout'
 import { Home } from './pages/Home'
 import { MockTest } from './pages/MockTest'
@@ -10,16 +11,20 @@ import { QuestionDetail } from './pages/QuestionDetail'
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route element={<Layout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/practice/part1" element={<Part1Practice />} />
-          <Route path="/practice/part2" element={<Part2Practice />} />
-          <Route path="/practice/part3" element={<Part3Practice />} />
-          <Route path="/practice/:questionId" element={<QuestionDetail />} />
-          <Route path="/mock-test" element={<MockTest />} />
-        </Route>
-      </Routes>
+      <ErrorBoundary>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/practice/part1" element={<Part1Practice />} />
+            <Route path="/practice/part2" element={<Part2Practice />} />
+            <Route path="/practice/part3" element={<Part3Practice />} />
+            <Route path="/practice/part1/questions/:questionId" element={<QuestionDetail />} />
+            <Route path="/practice/part2/questions/:questionId" element={<QuestionDetail />} />
+            <Route path="/practice/part3/questions/:questionId" element={<QuestionDetail />} />
+            <Route path="/mock-test" element={<MockTest />} />
+          </Route>
+        </Routes>
+      </ErrorBoundary>
     </BrowserRouter>
   )
 }

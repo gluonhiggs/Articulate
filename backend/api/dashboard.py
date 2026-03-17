@@ -16,7 +16,7 @@ router = APIRouter(prefix="/api/v1/dashboard", tags=["dashboard"])
 HEATMAP_DAYS = 180
 
 
-@router.get("/", response_model=DashboardOut)
+@router.get("", response_model=DashboardOut)
 async def get_dashboard(db: AsyncSession = Depends(get_db)) -> DashboardOut:
     # Fetch UserStats
     stats_result = await db.execute(select(UserStats).where(UserStats.id == 1))
