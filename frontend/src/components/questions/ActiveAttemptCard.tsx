@@ -25,15 +25,8 @@ export function ActiveAttemptCard({
 
   // Check audio availability and stop on unmount
   useEffect(() => {
-    if (!attempt.audio_path) {
-      setAudioAvailable(false)
-      return
-    }
-    // Probe availability with a HEAD-style fetch
-    const url = getAttemptAudioUrl(attempt.id)
-    fetch(url, { method: 'HEAD' })
-      .then((res) => setAudioAvailable(res.ok))
-      .catch(() => setAudioAvailable(false))
+    // Show button if audio_path is set; hide on play error (handled in handlePlayPause)
+    setAudioAvailable(!!attempt.audio_path)
 
     return () => {
       if (audioRef.current) {
