@@ -12,6 +12,21 @@ Attempt to build a personal speaking trainer
   Just run .\run.ps1 pc — the config is already wired.
 
   ---
+  Using a microphone directly on the PC (simplest setup)
+
+  Browsers grant microphone access to localhost without HTTPS. No certs needed.
+
+  1. Start the backend:
+     .\run.ps1 pc
+
+  2. In a separate terminal, start the frontend:
+     cd frontend && npm run dev
+
+  3. Open http://localhost:5173 in your browser. The mic will work.
+
+  That's it. Certs are only needed when using your phone as a remote microphone over WiFi.
+
+  ---
   Phone as microphone (phone → PC server over WiFi)
 
   Browsers block the mic on non-HTTPS, non-localhost origins. Your phone on WiFi is neither, so you need HTTPS with a trusted cert. The code already supports this — you just need the certs once.
