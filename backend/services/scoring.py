@@ -5,8 +5,11 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from backend.config import get_settings
-from backend.constants import PROMPTS_DIR
+from backend.constants import PROMPTS_DIR, PROJECT_ROOT
 from backend.services import ollama_client
+
+# Load at module level so a missing file raises FileNotFoundError at startup, not per-request
+_BAND_DESCRIPTORS = (PROJECT_ROOT / "BAND-SCORES.md").read_text(encoding="utf-8")
 
 logger = logging.getLogger(__name__)
 
@@ -32,14 +35,21 @@ def _build_prompt(
     part: str,
     transcript: str,
     flagged_words: List[str],
+    fluency_context: str = "",
+    vocab_signal: str = "",
+    grammar_context: str = "",
 ) -> str:
     """Render the prompt template with actual values."""
     template = _load_prompt(part)
     flagged_str = ", ".join(flagged_words) if flagged_words else "none"
     return (
-        template.replace("{question_text}", question_text)
+        template.replace("{band_descriptors}", _BAND_DESCRIPTORS)
+        .replace("{question_text}", question_text)
         .replace("{transcript}", transcript)
         .replace("{flagged_words}", flagged_str)
+        .replace("{fluency_context}", fluency_context or "not available")
+        .replace("{vocab_signal}", vocab_signal or "not available")
+        .replace("{grammar_context}", grammar_context or "not available")
     )
 
 
@@ -61,16 +71,28 @@ def _parse_llm_response(raw: str) -> Dict[str, Any]:
     # Try to extract a JSON object from the response
     start = raw.find("{")
     end = raw.rfind("}") + 1
-    if start != -1 and end > start:
-        json_str = raw[start:end]
-        try:
-            data = json.loads(json_str)
-        except json.JSONDecodeError:
+    data = {}
+    if start != -1:
+        # Strip trailing markdown fences so repair candidates are clean JSON
+        fragment = raw[start:].rstrip().rstrip("`").rstrip()
+
+        if end > start:
+            # Happy path: found balanced braces — try as-is first, then repair
+            attempts = [raw[start:end], fragment + '}', fragment + '"}'  ]
+        else:
+            # No closing brace at all — LLM was truncated; try repair
+            attempts = [fragment + '"}', fragment + '}']
+
+        for candidate in attempts:
+            try:
+                data = json.loads(candidate)
+                break
+            except json.JSONDecodeError:
+                continue
+        else:
             logger.warning("LLM returned invalid JSON, using fallback scoring.")
-            data = {}
     else:
         logger.warning("LLM response contained no JSON object, using fallback scoring.")
-        data = {}
 
     fluency = _clamp_band(data.get("fluency"))
     vocabulary = _clamp_band(data.get("vocabulary"))
@@ -128,6 +150,9 @@ async def score_attempt(
     part: str,
     transcript: str,
     flagged_words: List[str],
+    fluency_context: str = "",
+    vocab_signal: str = "",
+    grammar_context: str = "",
 ) -> Dict[str, Any]:
     """
     Score a transcribed IELTS attempt using Ollama LLM.
@@ -144,7 +169,15 @@ async def score_attempt(
         }
     """
     settings = get_settings()
-    prompt = _build_prompt(question_text, part, transcript, flagged_words)
+    prompt = _build_prompt(
+        question_text,
+        part,
+        transcript,
+        flagged_words,
+        fluency_context=fluency_context,
+        vocab_signal=vocab_signal,
+        grammar_context=grammar_context,
+    )
 
     try:
         raw_text = await ollama_client.generate(
@@ -152,7 +185,8 @@ async def score_attempt(
             model=settings.ollama_model,
             prompt=prompt,
             temperature=0.2,
-            num_predict=1024,
+            num_predict=2048,
+            num_ctx=4096,
             timeout=120.0,
         )
     except (RuntimeError, FileNotFoundError) as exc:

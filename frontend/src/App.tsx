@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { Layout } from './components/layout/Layout'
+import { Forecast } from './pages/Forecast'
 import { Home } from './pages/Home'
 import { MockTest } from './pages/MockTest'
 import { Part1Practice } from './pages/Part1Practice'
@@ -22,6 +23,7 @@ export default function App() {
             <Route path="/practice/part2/questions/:questionId" element={<QuestionDetail />} />
             <Route path="/practice/part3/questions/:questionId" element={<QuestionDetail />} />
             <Route path="/mock-test" element={<MockTest />} />
+            <Route path="/forecast" element={<Forecast />} />
           </Route>
         </Routes>
       </ErrorBoundary>

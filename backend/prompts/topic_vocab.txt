@@ -1,11 +1,12 @@
-You are an IELTS vocabulary coach. For this question topic, provide 5–6 advanced vocabulary items (Band 7–9 level) that would help in a spoken response.
+You are an IELTS vocabulary coach. For this question topic, provide exactly 3 advanced vocabulary items (Band 7–9 level) that would help in a spoken response.
 
 Question: {question_text}
 
 Include a mix of: idioms, phrasal verbs, collocations, advanced words.
 Each item must be usable naturally in IELTS speaking (not overly formal or written register).
+Return ONLY 3 vocabulary items. Keep all field values under 12 words.
 
 EXAMPLE for the topic "travel":
-{"vocabulary":[{"term":"broaden one's horizons","type":"collocation","definition":"to expand one's experience and knowledge of the world","example":"Travelling solo really broadened my horizons — I gained so much confidence meeting people from different cultures."},{"term":"off the beaten track","type":"idiom","definition":"away from tourist areas; in an unusual or remote location","example":"I prefer going off the beaten track rather than visiting the same places everyone goes to."},{"term":"take in","type":"phrasal_verb","definition":"to observe and absorb a place or experience fully","example":"We spent the whole afternoon just taking in the scenery from the mountaintop."},{"term":"immerse oneself in","type":"collocation","definition":"to involve oneself completely in an activity or environment","example":"The best way to learn a language is to immerse yourself in the local culture."},{"term":"itinerary","type":"advanced_word","definition":"a planned route or schedule for a journey","example":"I like to have a rough itinerary before I travel, but I always leave room for spontaneous decisions."},{"term":"wanderlust","type":"advanced_word","definition":"a strong desire to travel and explore the world","example":"I've had wanderlust since I was a teenager — I've always dreamed of seeing every continent."}]}
+{"vocabulary":[{"term":"broaden one's horizons","type":"collocation","definition":"expand experience and knowledge of the world","example":"Travelling solo really broadened my horizons."},{"term":"off the beaten track","type":"idiom","definition":"away from tourist areas; remote location","example":"I prefer going off the beaten track."},{"term":"wanderlust","type":"advanced_word","definition":"strong desire to travel and explore","example":"I've had wanderlust since I was a teenager."}]}
 
-Now generate vocabulary for the ACTUAL question above. Return ONLY valid JSON with a "vocabulary" array. No markdown fences. No extra text.
+Now generate vocabulary for the ACTUAL question above. Return ONLY valid JSON with a "vocabulary" array containing exactly 3 items. No markdown fences. No extra text.

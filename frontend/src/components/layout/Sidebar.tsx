@@ -66,6 +66,23 @@ function ClipboardIcon() {
   )
 }
 
+function ChartIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
+      <line x1="18" y1="20" x2="18" y2="10" />
+      <line x1="12" y1="20" x2="12" y2="4" />
+      <line x1="6" y1="20" x2="6" y2="14" />
+    </svg>
+  )
+}
+
 function CpuIcon() {
   return (
     <svg
@@ -94,6 +111,7 @@ const navItems: NavItem[] = [
   { label: 'Home', to: '/', icon: <HomeIcon /> },
   { label: 'Practice', to: '/practice/part1', icon: <MicrophoneIcon /> },
   { label: 'Mock Test', to: '/mock-test', icon: <ClipboardIcon /> },
+  { label: 'Forecast', to: '/forecast', icon: <ChartIcon /> },
 ]
 
 export function Sidebar() {
@@ -186,6 +204,11 @@ export function Sidebar() {
                 <p className="text-xs text-textSecondary truncate">
                   LLM: {systemInfo.ollama_model}
                 </p>
+                {systemInfo.is_low_accuracy && (
+                  <span className="mt-1.5 inline-block text-xs text-amber-400 border border-amber-400/30 rounded px-1.5 py-0.5">
+                    Low-accuracy mode
+                  </span>
+                )}
               </>
             ) : systemInfoError ? (
               <p className="text-xs text-red-400">Backend offline</p>

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
-from typing import Any, List, Optional
+from datetime import date, datetime
+from typing import Any, List, Literal, Optional
 
 from pydantic import BaseModel, field_validator, model_validator
 
@@ -21,6 +21,9 @@ class QuestionOut(BaseModel):
     text: str
     bullet_points: Optional[List[str]] = None
     latest_score: Optional[float] = None
+    topic_tag: Optional[str] = None
+    source: Optional[str] = None
+    last_seen_date: Optional[date] = None
 
     @field_validator("bullet_points", mode="before")
     @classmethod
@@ -46,6 +49,12 @@ class Part3GroupOut(BaseModel):
     questions: List[QuestionOut]
 
 
+class ForecastEntry(BaseModel):
+    topic_tag: str
+    count: int
+    last_seen_date: Optional[str] = None  # "YYYY-MM" format
+
+
 # ---------------------------------------------------------------------------
 # Create question request
 # ---------------------------------------------------------------------------
@@ -53,11 +62,14 @@ class Part3GroupOut(BaseModel):
 
 class QuestionCreateIn(BaseModel):
     text: str
-    part: str
+    part: Literal["1", "2", "3"]
     topic: Optional[str] = None
     category: Optional[str] = None
     parent_question_id: Optional[int] = None
     bullet_points: Optional[List[str]] = None
+    topic_tag: Optional[str] = None
+    source: Optional[str] = None
+    last_seen_date: Optional[date] = None
 
 
 # ---------------------------------------------------------------------------
@@ -171,3 +183,4 @@ class SystemInfoOut(BaseModel):
     whisper_model: str
     whisper_device: str
     ollama_model: str
+    is_low_accuracy: bool = False

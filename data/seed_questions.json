@@ -2,88 +2,369 @@
   {
     "part": "1",
     "topic": "Daily Routine",
+    "topic_tag": "daily_routine",
+    "source": "IELTS community",
     "category": null,
-    "parent_question_id": null,
-    "text": "What time do you usually wake up in the morning?",
-    "bullet_points": null
+    "text": "What time do you usually wake up in the morning?"
   },
   {
     "part": "1",
     "topic": "Daily Routine",
+    "topic_tag": "daily_routine",
+    "source": "IELTS community",
     "category": null,
-    "parent_question_id": null,
-    "text": "Describe your typical morning routine before work or study.",
-    "bullet_points": null
+    "text": "Describe your typical morning routine before work or study."
   },
   {
     "part": "1",
     "topic": "Hometown",
+    "topic_tag": "hometown",
+    "source": "IELTS community",
     "category": null,
-    "parent_question_id": null,
-    "text": "Where are you from, and what do you like most about your hometown?",
-    "bullet_points": null
+    "text": "Where are you from, and what do you like most about your hometown?"
   },
   {
     "part": "1",
     "topic": "Hometown",
+    "topic_tag": "hometown",
+    "source": "IELTS community",
     "category": null,
-    "parent_question_id": null,
-    "text": "What kind of accommodation do you live in — a house or an apartment?",
-    "bullet_points": null
+    "text": "What kind of accommodation do you live in — a house or an apartment?"
   },
   {
     "part": "1",
     "topic": "Hometown",
+    "topic_tag": "hometown",
+    "source": "IELTS community",
     "category": null,
-    "parent_question_id": null,
-    "text": "Do you prefer living in a city or the countryside? Why?",
-    "bullet_points": null
+    "text": "Do you prefer living in a city or the countryside? Why?"
   },
   {
     "part": "1",
     "topic": "Work & Study",
+    "topic_tag": "work_study",
+    "source": "IELTS community",
     "category": null,
-    "parent_question_id": null,
-    "text": "Do you work or study? What do you enjoy most about it?",
-    "bullet_points": null
+    "text": "Do you work or study? What do you enjoy most about it?"
   },
   {
     "part": "1",
     "topic": "Work & Study",
+    "topic_tag": "work_study",
+    "source": "IELTS community",
     "category": null,
-    "parent_question_id": null,
-    "text": "Would you like to change your job or field of study in the future?",
-    "bullet_points": null
+    "text": "Would you like to change your job or field of study in the future?"
   },
   {
     "part": "1",
     "topic": "Work & Study",
+    "topic_tag": "work_study",
+    "source": "IELTS community",
     "category": null,
-    "parent_question_id": null,
-    "text": "How do you usually spend your free time after work or study?",
-    "bullet_points": null
+    "text": "How do you usually spend your free time after work or study?"
   },
   {
     "part": "1",
     "topic": "Hobbies",
+    "topic_tag": "hobbies",
+    "source": "IELTS community",
     "category": null,
-    "parent_question_id": null,
-    "text": "What hobbies or activities do you enjoy in your free time?",
-    "bullet_points": null
+    "text": "What hobbies or activities do you enjoy in your free time?"
   },
   {
     "part": "1",
     "topic": "Hobbies",
+    "topic_tag": "hobbies",
+    "source": "IELTS community",
     "category": null,
-    "parent_question_id": null,
-    "text": "Have your hobbies changed since you were a child?",
-    "bullet_points": null
+    "text": "Have your hobbies changed since you were a child?"
+  },
+  {
+    "part": "1",
+    "topic": "Food",
+    "topic_tag": "food",
+    "source": "IELTS community",
+    "last_seen_date": "2025-01",
+    "category": null,
+    "text": "What kinds of food do you enjoy eating most?"
+  },
+  {
+    "part": "1",
+    "topic": "Food",
+    "topic_tag": "food",
+    "source": "IELTS community",
+    "last_seen_date": "2025-01",
+    "category": null,
+    "text": "Do you prefer cooking at home or eating out? Why?"
+  },
+  {
+    "part": "1",
+    "topic": "Food",
+    "topic_tag": "food",
+    "source": "IELTS community",
+    "last_seen_date": "2024-12",
+    "category": null,
+    "text": "Has the way people eat in your country changed in recent years?"
+  },
+  {
+    "part": "1",
+    "topic": "Technology",
+    "topic_tag": "technology",
+    "source": "IELTS community",
+    "last_seen_date": "2025-02",
+    "category": null,
+    "text": "How often do you use your smartphone on a typical day?"
+  },
+  {
+    "part": "1",
+    "topic": "Technology",
+    "topic_tag": "technology",
+    "source": "IELTS community",
+    "last_seen_date": "2025-02",
+    "category": null,
+    "text": "Do you think technology has made people's lives easier or more stressful?"
+  },
+  {
+    "part": "1",
+    "topic": "Technology",
+    "topic_tag": "technology",
+    "source": "IELTS community",
+    "last_seen_date": "2025-01",
+    "category": null,
+    "text": "What kinds of apps do you use most frequently?"
+  },
+  {
+    "part": "1",
+    "topic": "Travel",
+    "topic_tag": "travel",
+    "source": "IELTS community",
+    "last_seen_date": "2024-12",
+    "category": null,
+    "text": "Do you enjoy travelling? Where have you been recently?"
+  },
+  {
+    "part": "1",
+    "topic": "Travel",
+    "topic_tag": "travel",
+    "source": "IELTS community",
+    "last_seen_date": "2024-12",
+    "category": null,
+    "text": "Do you prefer travelling alone or with others? Why?"
+  },
+  {
+    "part": "1",
+    "topic": "Travel",
+    "topic_tag": "travel",
+    "source": "IELTS community",
+    "last_seen_date": "2024-11",
+    "category": null,
+    "text": "Would you like to live in another country? Which one and why?"
+  },
+  {
+    "part": "1",
+    "topic": "Health",
+    "topic_tag": "health",
+    "source": "IELTS community",
+    "last_seen_date": "2025-01",
+    "category": null,
+    "text": "How do you try to keep yourself healthy?"
+  },
+  {
+    "part": "1",
+    "topic": "Health",
+    "topic_tag": "health",
+    "source": "IELTS community",
+    "last_seen_date": "2025-01",
+    "category": null,
+    "text": "Do you think people today are more or less healthy than people in the past?"
+  },
+  {
+    "part": "1",
+    "topic": "Family",
+    "topic_tag": "family",
+    "source": "IELTS community",
+    "last_seen_date": "2024-11",
+    "category": null,
+    "text": "How much time do you spend with your family each week?"
+  },
+  {
+    "part": "1",
+    "topic": "Family",
+    "topic_tag": "family",
+    "source": "IELTS community",
+    "last_seen_date": "2024-11",
+    "category": null,
+    "text": "What kinds of activities does your family do together?"
+  },
+  {
+    "part": "1",
+    "topic": "Environment",
+    "topic_tag": "environment",
+    "source": "IELTS community",
+    "last_seen_date": "2024-12",
+    "category": null,
+    "text": "Do you do anything to help protect the environment in your daily life?"
+  },
+  {
+    "part": "1",
+    "topic": "Environment",
+    "topic_tag": "environment",
+    "source": "IELTS community",
+    "last_seen_date": "2024-12",
+    "category": null,
+    "text": "Do you think climate change is a serious problem in your country?"
+  },
+  {
+    "part": "1",
+    "topic": "Sports",
+    "topic_tag": "sports",
+    "source": "IELTS community",
+    "last_seen_date": "2024-10",
+    "category": null,
+    "text": "Do you enjoy watching or playing sports?"
+  },
+  {
+    "part": "1",
+    "topic": "Sports",
+    "topic_tag": "sports",
+    "source": "IELTS community",
+    "last_seen_date": "2024-10",
+    "category": null,
+    "text": "What sport is most popular in your country and why do you think that is?"
+  },
+  {
+    "part": "1",
+    "topic": "Reading",
+    "topic_tag": "reading",
+    "source": "IELTS community",
+    "last_seen_date": "2024-09",
+    "category": null,
+    "text": "Do you enjoy reading? What types of books or articles do you prefer?"
+  },
+  {
+    "part": "1",
+    "topic": "Reading",
+    "topic_tag": "reading",
+    "source": "IELTS community",
+    "last_seen_date": "2024-09",
+    "category": null,
+    "text": "Do you prefer reading physical books or digital content? Why?"
+  },
+  {
+    "part": "1",
+    "topic": "Weather",
+    "topic_tag": "weather",
+    "source": "IELTS community",
+    "last_seen_date": "2024-08",
+    "category": null,
+    "text": "What is the weather like in your country?"
+  },
+  {
+    "part": "1",
+    "topic": "Weather",
+    "topic_tag": "weather",
+    "source": "IELTS community",
+    "last_seen_date": "2024-08",
+    "category": null,
+    "text": "What is your favourite season and why?"
+  },
+  {
+    "part": "1",
+    "topic": "Shopping",
+    "topic_tag": "shopping",
+    "source": "IELTS community",
+    "last_seen_date": "2024-11",
+    "category": null,
+    "text": "How often do you go shopping? What do you usually buy?"
+  },
+  {
+    "part": "1",
+    "topic": "Shopping",
+    "topic_tag": "shopping",
+    "source": "IELTS community",
+    "last_seen_date": "2024-11",
+    "category": null,
+    "text": "Do you prefer shopping online or in physical stores? Why?"
+  },
+  {
+    "part": "1",
+    "topic": "Music",
+    "topic_tag": "music",
+    "source": "IELTS community",
+    "last_seen_date": "2024-10",
+    "category": null,
+    "text": "What kind of music do you like listening to?"
+  },
+  {
+    "part": "1",
+    "topic": "Music",
+    "topic_tag": "music",
+    "source": "IELTS community",
+    "last_seen_date": "2024-10",
+    "category": null,
+    "text": "Do you play any musical instruments? Would you like to learn one?"
+  },
+  {
+    "part": "1",
+    "topic": "Social Media",
+    "topic_tag": "social_media",
+    "source": "IELTS community",
+    "last_seen_date": "2025-02",
+    "category": null,
+    "text": "How much time do you spend on social media each day?"
+  },
+  {
+    "part": "1",
+    "topic": "Social Media",
+    "topic_tag": "social_media",
+    "source": "IELTS community",
+    "last_seen_date": "2025-02",
+    "category": null,
+    "text": "What are the advantages and disadvantages of social media in your opinion?"
+  },
+  {
+    "part": "1",
+    "topic": "Education",
+    "topic_tag": "education",
+    "source": "IELTS community",
+    "last_seen_date": "2025-01",
+    "category": null,
+    "text": "What subject did you enjoy most at school? Why?"
+  },
+  {
+    "part": "1",
+    "topic": "Education",
+    "topic_tag": "education",
+    "source": "IELTS community",
+    "last_seen_date": "2025-01",
+    "category": null,
+    "text": "Do you think the education system in your country prepares students well for work?"
+  },
+  {
+    "part": "1",
+    "topic": "Friends",
+    "topic_tag": "friendship",
+    "source": "IELTS community",
+    "last_seen_date": "2024-09",
+    "category": null,
+    "text": "How do you usually make new friends?"
+  },
+  {
+    "part": "1",
+    "topic": "Friends",
+    "topic_tag": "friendship",
+    "source": "IELTS community",
+    "last_seen_date": "2024-09",
+    "category": null,
+    "text": "How important is it to maintain friendships with people from your past?"
   },
   {
     "part": "2",
     "topic": null,
+    "topic_tag": "environment",
+    "source": "IELTS community",
+    "last_seen_date": "2024-12",
     "category": "person",
-    "parent_question_id": null,
     "text": "Describe a person who likes to look after the natural world",
     "bullet_points": [
       "Describe who this person is",
@@ -95,8 +376,10 @@
   {
     "part": "2",
     "topic": null,
+    "topic_tag": "helping_others",
+    "source": "IELTS community",
+    "last_seen_date": "2024-10",
     "category": "person",
-    "parent_question_id": null,
     "text": "Describe a person who often helps others",
     "bullet_points": [
       "Describe who this person is",
@@ -108,8 +391,10 @@
   {
     "part": "2",
     "topic": null,
+    "topic_tag": "famous_person",
+    "source": "IELTS community",
+    "last_seen_date": "2024-08",
     "category": "person",
-    "parent_question_id": null,
     "text": "Describe a famous person you would like to meet",
     "bullet_points": [
       "Who this person is",
@@ -121,8 +406,10 @@
   {
     "part": "2",
     "topic": null,
+    "topic_tag": "technology",
+    "source": "IELTS community",
+    "last_seen_date": "2025-02",
     "category": "object",
-    "parent_question_id": null,
     "text": "Describe a piece of technology you use regularly",
     "bullet_points": [
       "What it is",
@@ -134,8 +421,10 @@
   {
     "part": "2",
     "topic": null,
+    "topic_tag": "gifts",
+    "source": "IELTS community",
+    "last_seen_date": "2024-11",
     "category": "object",
-    "parent_question_id": null,
     "text": "Describe a gift you received that was meaningful to you",
     "bullet_points": [
       "What the gift was",
@@ -147,8 +436,10 @@
   {
     "part": "2",
     "topic": null,
+    "topic_tag": "arts_media",
+    "source": "IELTS community",
+    "last_seen_date": "2024-09",
     "category": "object",
-    "parent_question_id": null,
     "text": "Describe a book or film that made a strong impression on you",
     "bullet_points": [
       "What it was called",
@@ -160,8 +451,10 @@
   {
     "part": "2",
     "topic": null,
+    "topic_tag": "skills_learning",
+    "source": "IELTS community",
+    "last_seen_date": "2024-12",
     "category": "activity",
-    "parent_question_id": null,
     "text": "Describe a skill you would like to learn",
     "bullet_points": [
       "What the skill is",
@@ -173,8 +466,10 @@
   {
     "part": "2",
     "topic": null,
+    "topic_tag": "helping_others",
+    "source": "IELTS community",
+    "last_seen_date": "2024-08",
     "category": "activity",
-    "parent_question_id": null,
     "text": "Describe a time when you helped someone",
     "bullet_points": [
       "Who you helped",
@@ -186,8 +481,10 @@
   {
     "part": "2",
     "topic": null,
+    "topic_tag": "travel",
+    "source": "IELTS community",
+    "last_seen_date": "2024-12",
     "category": "place",
-    "parent_question_id": null,
     "text": "Describe a place you have visited that you particularly enjoyed",
     "bullet_points": [
       "What the place was",
@@ -199,8 +496,10 @@
   {
     "part": "2",
     "topic": null,
+    "topic_tag": "hometown",
+    "source": "IELTS community",
+    "last_seen_date": "2024-07",
     "category": "place",
-    "parent_question_id": null,
     "text": "Describe your ideal home",
     "bullet_points": [
       "Where it would be located",
@@ -210,93 +509,726 @@
     ]
   },
   {
+    "part": "2",
+    "topic": null,
+    "topic_tag": "education",
+    "source": "IELTS community",
+    "last_seen_date": "2025-01",
+    "category": "person",
+    "text": "Describe a teacher who had a positive influence on you",
+    "bullet_points": [
+      "Who this teacher was",
+      "What subject they taught",
+      "What made them different from other teachers",
+      "Explain how they influenced you"
+    ]
+  },
+  {
+    "part": "2",
+    "topic": null,
+    "topic_tag": "success",
+    "source": "IELTS community",
+    "last_seen_date": "2024-11",
+    "category": "person",
+    "text": "Describe a successful person you know personally",
+    "bullet_points": [
+      "Who this person is",
+      "What they have achieved",
+      "How they achieved their success",
+      "Explain why you consider them successful"
+    ]
+  },
+  {
+    "part": "2",
+    "topic": null,
+    "topic_tag": "health",
+    "source": "IELTS community",
+    "last_seen_date": "2025-01",
+    "category": "activity",
+    "text": "Describe a sport or physical activity you enjoy",
+    "bullet_points": [
+      "What the sport or activity is",
+      "How often you do it",
+      "Who you do it with",
+      "Explain why you enjoy it"
+    ]
+  },
+  {
+    "part": "2",
+    "topic": null,
+    "topic_tag": "food",
+    "source": "IELTS community",
+    "last_seen_date": "2025-01",
+    "category": "activity",
+    "text": "Describe a meal you cooked for someone special",
+    "bullet_points": [
+      "What you cooked",
+      "Who you cooked it for",
+      "How you prepared it",
+      "Explain why this meal was special"
+    ]
+  },
+  {
+    "part": "2",
+    "topic": null,
+    "topic_tag": "travel",
+    "source": "IELTS community",
+    "last_seen_date": "2024-12",
+    "category": "place",
+    "text": "Describe a foreign country you would like to visit",
+    "bullet_points": [
+      "Which country it is",
+      "What you know about this country",
+      "What you would do there",
+      "Explain why you want to visit this country"
+    ]
+  },
+  {
+    "part": "2",
+    "topic": null,
+    "topic_tag": "environment",
+    "source": "IELTS community",
+    "last_seen_date": "2024-12",
+    "category": "place",
+    "text": "Describe a natural place you have visited that you found beautiful",
+    "bullet_points": [
+      "What this place is",
+      "Where it is located",
+      "When you visited",
+      "Explain what made it so beautiful"
+    ]
+  },
+  {
+    "part": "2",
+    "topic": null,
+    "topic_tag": "arts_media",
+    "source": "IELTS community",
+    "last_seen_date": "2024-09",
+    "category": "object",
+    "text": "Describe a piece of music or a song that is important to you",
+    "bullet_points": [
+      "What the song or piece of music is",
+      "When you first heard it",
+      "What feelings it gives you",
+      "Explain why it is important to you"
+    ]
+  },
+  {
+    "part": "2",
+    "topic": null,
+    "topic_tag": "childhood",
+    "source": "IELTS community",
+    "last_seen_date": "2024-08",
+    "category": "object",
+    "text": "Describe a toy or game you enjoyed as a child",
+    "bullet_points": [
+      "What the toy or game was",
+      "How you played with it",
+      "Who you played with",
+      "Explain why you enjoyed it so much"
+    ]
+  },
+  {
     "part": "3",
     "topic": null,
+    "topic_tag": "environment",
+    "source": "IELTS community",
     "category": null,
-    "parent_question_id": null,
     "parent_text": "Describe a person who likes to look after the natural world",
-    "text": "Is it important to teach students environmental protection at school?",
-    "bullet_points": null
+    "text": "Is it important to teach students environmental protection at school?"
   },
   {
     "part": "3",
     "topic": null,
+    "topic_tag": "environment",
+    "source": "IELTS community",
     "category": null,
-    "parent_question_id": null,
     "parent_text": "Describe a person who likes to look after the natural world",
-    "text": "What can governments do to encourage people to protect the natural world?",
-    "bullet_points": null
+    "text": "What can governments do to encourage people to protect the natural world?"
   },
   {
     "part": "3",
     "topic": null,
+    "topic_tag": "environment",
+    "source": "IELTS community",
     "category": null,
-    "parent_question_id": null,
     "parent_text": "Describe a person who likes to look after the natural world",
-    "text": "Is it easy for people in cities to stay connected with nature?",
-    "bullet_points": null
+    "text": "Is it easy for people in cities to stay connected with nature?"
   },
   {
     "part": "3",
     "topic": null,
+    "topic_tag": "technology",
+    "source": "IELTS community",
     "category": null,
-    "parent_question_id": null,
     "parent_text": "Describe a piece of technology you use regularly",
-    "text": "How has technology changed the way people communicate with each other?",
-    "bullet_points": null
+    "text": "How has technology changed the way people communicate with each other?"
   },
   {
     "part": "3",
     "topic": null,
+    "topic_tag": "technology",
+    "source": "IELTS community",
     "category": null,
-    "parent_question_id": null,
     "parent_text": "Describe a piece of technology you use regularly",
-    "text": "Do you think people are too dependent on technology nowadays?",
-    "bullet_points": null
+    "text": "Do you think people are too dependent on technology nowadays?"
   },
   {
     "part": "3",
     "topic": null,
+    "topic_tag": "technology",
+    "source": "IELTS community",
     "category": null,
-    "parent_question_id": null,
     "parent_text": "Describe a piece of technology you use regularly",
-    "text": "What are the potential negative effects of children using technology from a young age?",
-    "bullet_points": null
+    "text": "What are the potential negative effects of children using technology from a young age?"
   },
   {
     "part": "3",
     "topic": null,
+    "topic_tag": "skills_learning",
+    "source": "IELTS community",
     "category": null,
-    "parent_question_id": null,
     "parent_text": "Describe a skill you would like to learn",
-    "text": "Why is it important for people to keep learning new skills throughout their lives?",
-    "bullet_points": null
+    "text": "Why is it important for people to keep learning new skills throughout their lives?"
   },
   {
     "part": "3",
     "topic": null,
+    "topic_tag": "skills_learning",
+    "source": "IELTS community",
     "category": null,
-    "parent_question_id": null,
     "parent_text": "Describe a skill you would like to learn",
-    "text": "What skills do you think will be most valuable in the future job market?",
-    "bullet_points": null
+    "text": "What skills do you think will be most valuable in the future job market?"
   },
   {
     "part": "3",
     "topic": null,
+    "topic_tag": "travel",
+    "source": "IELTS community",
     "category": null,
-    "parent_question_id": null,
     "parent_text": "Describe a place you have visited that you particularly enjoyed",
-    "text": "Why do you think tourism has become so popular in recent decades?",
-    "bullet_points": null
+    "text": "Why do you think tourism has become so popular in recent decades?"
   },
   {
     "part": "3",
     "topic": null,
+    "topic_tag": "travel",
+    "source": "IELTS community",
     "category": null,
-    "parent_question_id": null,
     "parent_text": "Describe a place you have visited that you particularly enjoyed",
-    "text": "What are the negative effects of mass tourism on local communities?",
-    "bullet_points": null
+    "text": "What are the negative effects of mass tourism on local communities?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "education",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a teacher who had a positive influence on you",
+    "text": "What qualities make a good teacher in your opinion?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "education",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a teacher who had a positive influence on you",
+    "text": "How has online learning changed the role of teachers in education?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "education",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a teacher who had a positive influence on you",
+    "text": "Should education focus more on academic knowledge or practical skills?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "success",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a successful person you know personally",
+    "text": "What factors do you think are most important for achieving success in life?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "success",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a successful person you know personally",
+    "text": "Do you think success is more about talent or hard work?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "health",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a sport or physical activity you enjoy",
+    "text": "Why do you think some young people are becoming less active nowadays?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "health",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a sport or physical activity you enjoy",
+    "text": "What role should governments play in promoting physical activity among citizens?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "food",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a meal you cooked for someone special",
+    "text": "How has globalisation changed eating habits in your country?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "food",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a meal you cooked for someone special",
+    "text": "Do you think fast food has had a positive or negative impact on society?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "travel",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a foreign country you would like to visit",
+    "text": "How do you think international travel affects people's understanding of other cultures?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "travel",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a foreign country you would like to visit",
+    "text": "What are the environmental costs of international travel and how can they be reduced?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "environment",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a natural place you have visited that you found beautiful",
+    "text": "How can countries balance economic development with environmental protection?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "environment",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a natural place you have visited that you found beautiful",
+    "text": "Do you think individuals or governments have a greater responsibility to protect the environment?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "arts_media",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a book or film that made a strong impression on you",
+    "text": "Do you think reading books is becoming less popular? Why or why not?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "arts_media",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a book or film that made a strong impression on you",
+    "text": "How has the internet changed the way people access entertainment?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "arts_media",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a piece of music or a song that is important to you",
+    "text": "Why do you think music is such an important part of human culture?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "arts_media",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a piece of music or a song that is important to you",
+    "text": "Should governments fund arts and music programmes? Why or why not?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "childhood",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a toy or game you enjoyed as a child",
+    "text": "Do you think children today spend too much time playing video games rather than outdoor games?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "childhood",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a toy or game you enjoyed as a child",
+    "text": "How important is play for children's development?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "helping_others",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a person who often helps others",
+    "text": "Why do some people choose to volunteer their time to help others?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "helping_others",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a person who often helps others",
+    "text": "Do you think it is the government's responsibility to help people in need, or should individuals do more?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "gifts",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a gift you received that was meaningful to you",
+    "text": "Do you think giving gifts is an important part of building relationships? Why?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "gifts",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a gift you received that was meaningful to you",
+    "text": "Has the culture of gift-giving changed in modern times compared to the past?"
+  },
+  {
+    "part": "2",
+    "topic": null,
+    "topic_tag": "work_study",
+    "source": "IELTS community",
+    "last_seen_date": "2025-01",
+    "category": "person",
+    "text": "Describe a colleague or classmate you enjoy working with",
+    "bullet_points": [
+      "Who this person is",
+      "How you know each other",
+      "What you work on together",
+      "Explain why you enjoy working with them"
+    ]
+  },
+  {
+    "part": "2",
+    "topic": null,
+    "topic_tag": "childhood",
+    "source": "IELTS community",
+    "last_seen_date": "2024-08",
+    "category": "person",
+    "text": "Describe an older person who has given you useful advice",
+    "bullet_points": [
+      "Who this person is",
+      "What advice they gave you",
+      "When they gave you this advice",
+      "Explain why you found the advice useful"
+    ]
+  },
+  {
+    "part": "2",
+    "topic": null,
+    "topic_tag": "environment",
+    "source": "IELTS community",
+    "last_seen_date": "2024-10",
+    "category": "object",
+    "text": "Describe an object in your home that you could not live without",
+    "bullet_points": [
+      "What the object is",
+      "How long you have had it",
+      "What you use it for",
+      "Explain why you could not live without it"
+    ]
+  },
+  {
+    "part": "2",
+    "topic": null,
+    "topic_tag": "arts_media",
+    "source": "IELTS community",
+    "last_seen_date": "2024-07",
+    "category": "object",
+    "text": "Describe a painting or work of art you have seen",
+    "bullet_points": [
+      "What the painting or artwork looks like",
+      "Where you saw it",
+      "Who created it",
+      "Explain why it impressed you"
+    ]
+  },
+  {
+    "part": "2",
+    "topic": null,
+    "topic_tag": "social_media",
+    "source": "IELTS community",
+    "last_seen_date": "2025-02",
+    "category": "activity",
+    "text": "Describe an event that was broadcast on social media or TV that you watched",
+    "bullet_points": [
+      "What the event was",
+      "When and where it took place",
+      "Why you watched it",
+      "Explain how it affected you or others"
+    ]
+  },
+  {
+    "part": "2",
+    "topic": null,
+    "topic_tag": "skills_learning",
+    "source": "IELTS community",
+    "last_seen_date": "2024-11",
+    "category": "activity",
+    "text": "Describe a time you had to learn something new quickly",
+    "bullet_points": [
+      "What you had to learn",
+      "Why you had to learn it quickly",
+      "How you managed to learn it",
+      "Explain how you felt about the experience"
+    ]
+  },
+  {
+    "part": "2",
+    "topic": null,
+    "topic_tag": "hometown",
+    "source": "IELTS community",
+    "last_seen_date": "2024-09",
+    "category": "place",
+    "text": "Describe a park, garden or public space you enjoy visiting",
+    "bullet_points": [
+      "Where this place is",
+      "What it looks like",
+      "What you do there",
+      "Explain why you like going there"
+    ]
+  },
+  {
+    "part": "2",
+    "topic": null,
+    "topic_tag": "education",
+    "source": "IELTS community",
+    "last_seen_date": "2025-01",
+    "category": "place",
+    "text": "Describe a library or learning space that you have used",
+    "bullet_points": [
+      "Where this place is",
+      "What facilities it has",
+      "How often you visit it",
+      "Explain why you find it useful"
+    ]
+  },
+  {
+    "part": "2",
+    "topic": null,
+    "topic_tag": "friendship",
+    "source": "IELTS community",
+    "last_seen_date": "2024-09",
+    "category": "person",
+    "text": "Describe a friend from your childhood you still remember well",
+    "bullet_points": [
+      "Who this friend was",
+      "How you met them",
+      "What you did together",
+      "Explain why you still remember them"
+    ]
+  },
+  {
+    "part": "2",
+    "topic": null,
+    "topic_tag": "shopping",
+    "source": "IELTS community",
+    "last_seen_date": "2024-11",
+    "category": "activity",
+    "text": "Describe a purchase you made that you were very pleased with",
+    "bullet_points": [
+      "What you bought",
+      "When and where you bought it",
+      "Why you bought it",
+      "Explain why you are pleased with the purchase"
+    ]
+  },
+  {
+    "part": "2",
+    "topic": null,
+    "topic_tag": "famous_person",
+    "source": "IELTS community",
+    "last_seen_date": "2024-10",
+    "category": "person",
+    "text": "Describe a historical figure you would like to learn more about",
+    "bullet_points": [
+      "Who this person was",
+      "When and where they lived",
+      "What they are known for",
+      "Explain why you find them interesting"
+    ]
+  },
+  {
+    "part": "2",
+    "topic": null,
+    "topic_tag": "travel",
+    "source": "IELTS community",
+    "last_seen_date": "2024-12",
+    "category": "activity",
+    "text": "Describe a memorable journey or trip you have taken",
+    "bullet_points": [
+      "Where you went",
+      "Who you went with",
+      "What happened during the journey",
+      "Explain why it was memorable"
+    ]
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "work_study",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a colleague or classmate you enjoy working with",
+    "text": "Do you think teamwork is more important than individual effort in the workplace?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "work_study",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a colleague or classmate you enjoy working with",
+    "text": "How has remote working changed the way people build professional relationships?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "social_media",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe an event that was broadcast on social media or TV that you watched",
+    "text": "How has social media changed the way people consume news and current events?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "social_media",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe an event that was broadcast on social media or TV that you watched",
+    "text": "Do you think social media does more harm than good to society? Why?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "shopping",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a purchase you made that you were very pleased with",
+    "text": "How has online shopping affected traditional high-street retailers?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "shopping",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a purchase you made that you were very pleased with",
+    "text": "Do you think consumerism is having a negative effect on the environment and society?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "friendship",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a friend from your childhood you still remember well",
+    "text": "Why do you think some people find it difficult to maintain long-term friendships?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "friendship",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a friend from your childhood you still remember well",
+    "text": "Has the nature of friendship changed due to social media and digital communication?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "arts_media",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a painting or work of art you have seen",
+    "text": "Do you think governments should spend public money on supporting the arts?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "arts_media",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a painting or work of art you have seen",
+    "text": "How have digital technologies changed the way art is created and experienced?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "famous_person",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a historical figure you would like to learn more about",
+    "text": "Why is it important to study history and learn from historical figures?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "famous_person",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a historical figure you would like to learn more about",
+    "text": "Do you think modern celebrities have as much influence on society as historical figures did?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "skills_learning",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a time you had to learn something new quickly",
+    "text": "How important is adaptability as a skill in today's rapidly changing world?"
+  },
+  {
+    "part": "3",
+    "topic": null,
+    "topic_tag": "skills_learning",
+    "source": "IELTS community",
+    "category": null,
+    "parent_text": "Describe a time you had to learn something new quickly",
+    "text": "Should schools focus more on teaching students how to learn, rather than what to learn?"
   }
 ]

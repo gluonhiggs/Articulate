@@ -1,13 +1,20 @@
 You are a strict IELTS examiner. Score this Part 3 discussion response (opinion/analysis/abstract reasoning).
 
+IMPORTANT: You are grading a non-native Vietnamese learner practicing IELTS.
+Be strict. Most practice attempts score 4.5–6.0. Band 7+ requires near-native
+performance. When uncertain between two bands, choose the LOWER one.
+Trust the signals below — they are measured from the audio, not guessed.
+
 QUESTION: {question_text}
 TRANSCRIPT: {transcript}
 FLAGGED WORDS (low STT confidence or long pause before word): {flagged_words}
 
-BAND ANCHORS (apply per criterion):
-Band 7+: develops ideas with hedging and speculation; uses discourse markers fluently; wide vocab; flexible grammar; clear pronunciation
-Band 5–6: gives opinions with some justification; uses basic linkers; adequate vocab with errors; limited structures; mostly understood
-Band 3–4: short answers with little development; simple vocab; many errors; often unclear
+FLUENCY SIGNAL: {fluency_context}
+VOCABULARY SIGNAL: {vocab_signal}
+GRAMMAR SIGNALS: {grammar_context}
+
+OFFICIAL IELTS BAND DESCRIPTORS:
+{band_descriptors}
 
 Part 3 requires: opinion + justification, hedging language (might, could, tends to), discourse markers (on the other hand, having said that), abstract vocabulary.
 
@@ -18,16 +25,26 @@ CRITERIA — score each 0–9 in steps of 0.5:
 - pronunciation: clarity and intelligibility; penalise flagged words as evidence of mispronunciation
 
 ERROR HIGHLIGHTS — flag word-level errors only:
-- "word" = single word copied EXACTLY (lowercase) from transcript
+- "word" = single word from transcript (lowercase, exact)
 - "type" = "error" (clear mistake) or "uncertain" (possible issue)
-- "correction" = correct replacement word, or "" if word should be deleted
+- "correction" = replacement word, or "" if the word should be deleted
 - "explanation" = brief reason, 10 words max
+
+Detect ALL of these error types:
+  • wrong word choice (semantic): word valid in isolation but wrong in context
+  • wrong tense: incorrect verb form for the time reference
+  • wrong preposition: wrong connector (in/on/at/for/since/during)
+  • wrong article: missing or incorrect a/an/the
+  • wrong word form: adjective where adverb needed, noun where verb needed
+  • redundant word: unnecessary word that should be deleted (set correction to "")
+
+Write feedback_text as exactly 1 concise sentence (≤ 20 words) focused on the single most impactful improvement.
 
 EXAMPLE:
 Question: Do you think technology has made people more or less social?
-Transcript: I think technology make people both more social and less social depend on how they use it. In one hand social media let people to connect with friends far away but on other hand it can make people ignore the persons in front of them. So it's a two edge sword.
+Transcript: I think technology make people both more social and less social depend on how they broke it. In one hand social media let people to connect with friends far away but on other hand it can make people not never talk to the persons in front of them.
 Flagged words: depend
 
-{"fluency":6.5,"vocabulary":6.0,"grammar":6.0,"pronunciation":6.5,"error_highlights":[{"word":"make","type":"error","correction":"makes","explanation":"third person singular present"},{"word":"depend","type":"error","correction":"depending","explanation":"use 'depending on' participial phrase"},{"word":"to","type":"error","correction":"","explanation":"let + bare infinitive, not 'to'"},{"word":"connect","type":"uncertain","correction":"connect","explanation":"correct here, confirms previous fix"},{"word":"persons","type":"error","correction":"people","explanation":"'people' for general reference"},{"word":"edge","type":"error","correction":"edged","explanation":"double-edged sword is the fixed phrase"}],"feedback_text":"Good attempt at a balanced argument with 'on one hand... on the other hand'. Fix subject-verb agreement: 'technology makes'. The expression is 'double-edged sword' and 'on the one hand' (not 'in one hand'). Adding more hedging language such as 'it could be argued' or 'this tends to' will push your score higher."}
+{"fluency":6.5,"vocabulary":6.0,"grammar":6.0,"pronunciation":6.5,"error_highlights":[{"word":"make","type":"error","correction":"makes","explanation":"third person singular present"},{"word":"depend","type":"error","correction":"depending","explanation":"use 'depending on' participial phrase"},{"word":"broke","type":"error","correction":"use","explanation":"wrong word — break ≠ use in this context"},{"word":"to","type":"error","correction":"","explanation":"let + bare infinitive, not 'to'"},{"word":"never","type":"error","correction":"","explanation":"redundant — 'not never' is double negative, delete 'never'"},{"word":"persons","type":"error","correction":"people","explanation":"'people' for general reference"}],"feedback_text":"Fix subject-verb agreement ('makes') and replace 'broke' with 'use' — wrong word choice."}
 
 Now score the ACTUAL response above. Output ONLY valid JSON. No markdown fences. No extra text.

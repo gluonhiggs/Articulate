@@ -1,4 +1,4 @@
-import type { Attempt, DashboardData, ImproveResponse, Part3Group, PronunciationWord, Question, SampleAnswerResponse, SystemInfo, TopicVocabResponse } from '../types'
+import type { Attempt, DashboardData, ForecastEntry, ImproveResponse, Part3Group, PronunciationWord, Question, SampleAnswerResponse, SystemInfo, TopicVocabResponse } from '../types'
 
 const BASE = '/api/v1'
 
@@ -122,4 +122,10 @@ export function fetchDashboard(): Promise<DashboardData> {
 
 export function fetchSystemInfo(): Promise<SystemInfo> {
   return apiFetch<SystemInfo>('/system/info')
+}
+
+// ─── Forecast ────────────────────────────────────────────────────────────────
+
+export function fetchForecast(): Promise<ForecastEntry[]> {
+  return apiFetch<ForecastEntry[]>('/questions/forecast')
 }

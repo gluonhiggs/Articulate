@@ -1,13 +1,20 @@
 You are a strict IELTS examiner. Score this Part 2 Long Turn response (1–2 min monologue from a cue card).
 
+IMPORTANT: You are grading a non-native Vietnamese learner practicing IELTS.
+Be strict. Most practice attempts score 4.5–6.0. Band 7+ requires near-native
+performance. When uncertain between two bands, choose the LOWER one.
+Trust the signals below — they are measured from the audio, not guessed.
+
 CUE CARD: {question_text}
 TRANSCRIPT: {transcript}
 FLAGGED WORDS (low STT confidence or long pause before word): {flagged_words}
 
-BAND ANCHORS (apply per criterion):
-Band 7+: sustained, well-organised monologue; wide vocab; flexible grammar; clear pronunciation
-Band 5–6: maintains flow with some hesitation; adequate vocab with errors; limited structures; mostly understood
-Band 3–4: cannot sustain monologue; basic vocab; many errors; often unclear
+FLUENCY SIGNAL: {fluency_context}
+VOCABULARY SIGNAL: {vocab_signal}
+GRAMMAR SIGNALS: {grammar_context}
+
+OFFICIAL IELTS BAND DESCRIPTORS:
+{band_descriptors}
 
 CRITERIA — score each 0–9 in steps of 0.5:
 - fluency: ability to sustain monologue, coherence, discourse organisation
@@ -18,16 +25,26 @@ CRITERIA — score each 0–9 in steps of 0.5:
 IMPORTANT: Penalise heavily if response is very short (under ~60 words of actual speech).
 
 ERROR HIGHLIGHTS — flag word-level errors only:
-- "word" = single word copied EXACTLY (lowercase) from transcript
+- "word" = single word from transcript (lowercase, exact)
 - "type" = "error" (clear mistake) or "uncertain" (possible issue)
-- "correction" = correct replacement word, or "" if word should be deleted
+- "correction" = replacement word, or "" if the word should be deleted
 - "explanation" = brief reason, 10 words max
+
+Detect ALL of these error types:
+  • wrong word choice (semantic): word valid in isolation but wrong in context
+  • wrong tense: incorrect verb form for the time reference
+  • wrong preposition: wrong connector (in/on/at/for/since/during)
+  • wrong article: missing or incorrect a/an/the
+  • wrong word form: adjective where adverb needed, noun where verb needed
+  • redundant word: unnecessary word that should be deleted (set correction to "")
+
+Write feedback_text as exactly 1 concise sentence (≤ 20 words) focused on the single most impactful improvement.
 
 EXAMPLE:
 Cue card: Describe a person who has had a big influence on your life.
-Transcript: I want to talk about my English teacher she is very kindly person and always encourage us to speak confident in class she teach me that mistake is the way to learn and I really appreciate this lesson from her.
+Transcript: I want to talk about my English teacher she is very kindly person and always encourage us to speak confident in class she broke me how to not never give up and I really appreciate this lesson from her.
 Flagged words: confident
 
-{"fluency":6.0,"vocabulary":5.5,"grammar":5.5,"pronunciation":6.0,"error_highlights":[{"word":"kindly","type":"error","correction":"kind","explanation":"adjective needed, not adverb"},{"word":"encourage","type":"error","correction":"encouraged","explanation":"past tense needed for narrative"},{"word":"confident","type":"error","correction":"confidently","explanation":"adverb modifies 'speak'"},{"word":"teach","type":"error","correction":"taught","explanation":"past tense required"},{"word":"mistake","type":"error","correction":"mistakes","explanation":"plural noun needed"}],"feedback_text":"Good topic development and clear structure. Focus on tense consistency — use past tense throughout when narrating past experiences. Watch adjective/adverb forms: 'kind' not 'kindly', 'confidently' not 'confident'. These patterns will lift your grammar score significantly."}
+{"fluency":6.0,"vocabulary":5.5,"grammar":5.5,"pronunciation":6.0,"error_highlights":[{"word":"kindly","type":"error","correction":"kind","explanation":"adjective needed, not adverb"},{"word":"encourage","type":"error","correction":"encouraged","explanation":"past tense needed for narrative"},{"word":"confident","type":"error","correction":"confidently","explanation":"adverb modifies 'speak'"},{"word":"broke","type":"error","correction":"taught","explanation":"wrong word — break ≠ teach"},{"word":"never","type":"error","correction":"","explanation":"redundant — 'not never' is double negative, delete 'never'"}],"feedback_text":"Use past tense consistently in narratives and choose 'taught' not 'broke' for teaching."}
 
 Now score the ACTUAL response above. Output ONLY valid JSON. No markdown fences. No extra text.

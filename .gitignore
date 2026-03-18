@@ -53,3 +53,4 @@ frontend/node_modules/
 .env.*
 !.env.laptop.example
 !.env.pc.example
+.gstack/

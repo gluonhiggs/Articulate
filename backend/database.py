@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
+from datetime import date as date_type
 from pathlib import Path
 from typing import AsyncGenerator
 
@@ -11,6 +13,8 @@ from sqlalchemy.future import select
 
 from backend.config import get_settings
 from backend.models import Base, DailyActivity, Question, UserStats
+
+logger = logging.getLogger(__name__)
 
 
 def _make_engine():
@@ -39,7 +43,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def _seed_questions(session: AsyncSession) -> None:
-    """Seed the database with questions from seed_questions.json."""
+    """Seed questions from seed_questions.json (additive — skips existing by text match)."""
     seed_path = Path(__file__).parent.parent / "data" / "seed_questions.json"
     if not seed_path.exists():
         return
@@ -47,17 +51,41 @@ async def _seed_questions(session: AsyncSession) -> None:
     with open(seed_path, "r", encoding="utf-8") as f:
         questions_data = json.load(f)
 
+    # Get existing question texts to avoid duplicates
+    existing_texts = set(
+        (await session.execute(select(Question.text))).scalars().all()
+    )
+
+    # Build lookup of all existing questions for parent_text resolution
+    existing_by_text: dict[str, Question] = {}
+    existing_result = await session.execute(select(Question))
+    for q in existing_result.scalars().all():
+        existing_by_text[q.text] = q
+
     # Separate by part
     part1_and_2 = [q for q in questions_data if q["part"] in ("1", "2")]
     part3 = [q for q in questions_data if q["part"] == "3"]
 
-    # Map from question text -> inserted Question object (for Part 3 parent lookup)
-    inserted_by_text: dict[str, Question] = {}
+    inserted_by_text: dict[str, Question] = dict(existing_by_text)
 
     for q_data in part1_and_2:
+        if q_data["text"] in existing_texts:
+            continue
+
         bullet_points = q_data.get("bullet_points")
         if isinstance(bullet_points, list):
             bullet_points = json.dumps(bullet_points)
+
+        last_seen = None
+        last_seen_raw = q_data.get("last_seen_date")
+        if last_seen_raw:
+            try:
+                if len(last_seen_raw) == 7:  # "YYYY-MM"
+                    last_seen = date_type.fromisoformat(f"{last_seen_raw}-01")
+                else:
+                    last_seen = date_type.fromisoformat(last_seen_raw)
+            except ValueError:
+                pass
 
         question = Question(
             part=q_data["part"],
@@ -66,13 +94,19 @@ async def _seed_questions(session: AsyncSession) -> None:
             parent_question_id=None,
             text=q_data["text"],
             bullet_points=bullet_points,
+            topic_tag=q_data.get("topic_tag"),
+            source=q_data.get("source"),
+            last_seen_date=last_seen,
         )
         session.add(question)
-        await session.flush()  # Get the ID assigned
+        await session.flush()
         inserted_by_text[q_data["text"]] = question
 
     # Insert Part 3 questions, resolving parent_text -> parent_id
     for q_data in part3:
+        if q_data["text"] in existing_texts:
+            continue
+
         parent_text = q_data.get("parent_text")
         parent_id: int | None = None
         if parent_text and parent_text in inserted_by_text:
@@ -85,6 +119,9 @@ async def _seed_questions(session: AsyncSession) -> None:
             parent_question_id=parent_id,
             text=q_data["text"],
             bullet_points=None,
+            topic_tag=q_data.get("topic_tag"),
+            source=q_data.get("source"),
+            last_seen_date=None,
         )
         session.add(question)
 
@@ -92,7 +129,7 @@ async def _seed_questions(session: AsyncSession) -> None:
 
 
 async def _ensure_indexes() -> None:
-    """Create indexes for existing DBs that predate index=True column declarations."""
+    """Create indexes and run column migrations for existing DBs."""
     async with engine.begin() as conn:
         await conn.execute(text(
             "CREATE INDEX IF NOT EXISTS ix_attempts_question_id ON attempts(question_id)"
@@ -103,22 +140,28 @@ async def _ensure_indexes() -> None:
         await conn.execute(text(
             "CREATE INDEX IF NOT EXISTS ix_attempts_created_at ON attempts(created_at)"
         ))
+        # New column migrations — idempotent via try/except (SQLite has no IF NOT EXISTS for ALTER)
+        for col_sql in [
+            "ALTER TABLE questions ADD COLUMN topic_tag TEXT",
+            "ALTER TABLE questions ADD COLUMN source TEXT",
+            "ALTER TABLE questions ADD COLUMN last_seen_date DATE",
+        ]:
+            try:
+                await conn.execute(text(col_sql))
+            except Exception as exc:
+                logger.debug("ALTER TABLE skipped (column likely exists): %s", exc)
 
 
 async def init_db() -> None:
-    """Create all tables and seed if the questions table is empty."""
+    """Create all tables and seed questions (additive)."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
     await _ensure_indexes()
 
     async with AsyncSessionLocal() as session:
-        # Check if questions table is empty
-        result = await session.execute(select(Question).limit(1))
-        existing = result.scalars().first()
-
-        if existing is None:
-            await _seed_questions(session)
+        # Always run seeding (additive — skips existing by text match)
+        await _seed_questions(session)
 
         # Ensure UserStats row with id=1 exists
         stats_result = await session.execute(

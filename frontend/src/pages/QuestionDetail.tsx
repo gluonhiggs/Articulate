@@ -102,11 +102,11 @@ export function QuestionDetail() {
   const ttsAudioRef = useRef<HTMLAudioElement | null>(null)
   const [ttsPlaying, setTtsPlaying] = useState(false)
 
-  function playQuestionTTS() {
-    if (!question) return
+  function playQuestionTTS(): Promise<void> {
+    if (!question) return Promise.resolve()
     if (ttsAudioRef.current) { ttsAudioRef.current.pause(); ttsAudioRef.current = null }
     setTtsPlaying(true)
-    fetch(`/api/v1/tts/${question.id}`)
+    return fetch(`/api/v1/tts/${question.id}`)
       .then((res) => {
         if (!res.ok) throw new Error(`TTS error: ${res.status}`)
         return res.blob()
@@ -118,11 +118,26 @@ export function QuestionDetail() {
         audio.onerror = () => { setTtsPlaying(false); URL.revokeObjectURL(audio.src) }
         return audio.play()
       })
-      .catch((err) => {
-        console.error('Question TTS failed:', err)
+      .catch((err: unknown) => {
         setTtsPlaying(false)
+        throw err
       })
   }
+
+  // Auto-play TTS when question loads
+  useEffect(() => {
+    if (!question) return
+    const timer = setTimeout(() => {
+      playQuestionTTS().catch((err: unknown) => {
+        // Silent fail on mobile (NotAllowedError = no user gesture yet)
+        if (err instanceof Error && err.name !== 'NotAllowedError') {
+          console.error('Question TTS auto-play failed:', err)
+        }
+      })
+    }, 400)
+    return () => clearTimeout(timer)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [question?.id])
 
   // Cleanup TTS on unmount or question change
   useEffect(() => {
@@ -293,11 +308,8 @@ export function QuestionDetail() {
                 )}
               </div>
               <div className="flex items-start gap-3">
-                <h1 className="text-textPrimary font-semibold text-lg leading-snug flex-1">
-                  {question.text}
-                </h1>
                 <button
-                  onClick={playQuestionTTS}
+                  onClick={() => { playQuestionTTS().catch((err: unknown) => { console.error('Question TTS failed:', err) }) }}
                   className={`w-9 h-9 shrink-0 rounded-full flex items-center justify-center border transition-colors mt-0.5 ${
                     ttsPlaying
                       ? 'bg-teal-500/20 border-teal-500/50'
@@ -311,6 +323,9 @@ export function QuestionDetail() {
                     <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
                   </svg>
                 </button>
+                <h1 className="text-textPrimary font-semibold text-lg leading-snug flex-1">
+                  {question.text}
+                </h1>
               </div>
               {question.bullet_points && question.bullet_points.length > 0 && (
                 <ul className="mt-4 space-y-2">

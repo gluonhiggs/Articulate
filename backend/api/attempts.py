@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from datetime import date, datetime
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
@@ -12,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.config import get_settings
 from backend.constants import BAND_ROLLING_WINDOW
+from backend.data.cefr_wordlist import CEFR
 from backend.database import AsyncSessionLocal, get_db
 from backend.models import Attempt, DailyActivity, Question, UserStats
 from backend.schemas import AttemptOut, AttemptStatusOut, ImproveOut, PronunciationOut, PronunciationWord
@@ -23,6 +25,26 @@ from backend.services import transcription as transcription_service
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/attempts", tags=["attempts"])
+
+# ── LanguageTool singleton (optional — requires Java) ────────────────────────
+
+_lt_tool = None
+_lt_tool_init_attempted = False
+
+
+def _get_lt_tool():
+    global _lt_tool, _lt_tool_init_attempted
+    if _lt_tool_init_attempted:
+        return _lt_tool
+    _lt_tool_init_attempted = True
+    try:
+        import language_tool_python  # type: ignore[import]
+        _lt_tool = language_tool_python.LanguageTool('en-US')
+        logger.info("LanguageTool initialized successfully")
+    except Exception as exc:
+        logger.warning("LanguageTool unavailable (Java required): %s", exc)
+        _lt_tool = None
+    return _lt_tool
 
 
 async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> None:
@@ -56,11 +78,11 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                     duration_seconds = int(end_time)
 
             # ----------------------------------------------------------------
-            # 2. Scoring
+            # 2. Scoring signals
             # ----------------------------------------------------------------
-            # Build list of flagged words:
-            # 1. Low Whisper confidence (possible mispronunciation)
-            # 2. Long silence gap before word (disfluency / hesitation)
+
+            # Signal 1: Fluency gap rate + disfluent word set (single pass)
+            gap_count = 0
             disfluent: set[str] = set()
             for i in range(1, len(words)):
                 cur_start = words[i].get("start")
@@ -70,7 +92,54 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                     and prev_end is not None
                     and cur_start - prev_end >= settings.gap_threshold
                 ):
+                    gap_count += 1
                     disfluent.add(words[i]["word"].lower())
+            total_words = len(words)
+            gaps_per_100 = round(gap_count / total_words * 100, 1) if total_words > 0 else 0.0
+            fluency_context = (
+                f"{gap_count} long pause(s) in {total_words} words ({gaps_per_100}/100 words)"
+            )
+
+            # Signal 2: CEFR vocabulary distribution
+            vocab_signal = "insufficient vocabulary data"
+            try:
+                content_words = [
+                    w["word"].lower().strip(".,!?;:'\"")
+                    for w in words
+                    if len(w.get("word", "")) > 2
+                ]
+                known = [w for w in content_words if w in CEFR]
+                high_level = sum(1 for w in known if CEFR[w] in ("B2", "C1"))
+                if known:
+                    pct = round(high_level / len(known) * 100)
+                    vocab_signal = f"{high_level}/{len(known)} known words are B2+ ({pct}%)"
+            except Exception as exc:
+                logger.warning("CEFR vocab signal failed: %s", exc)
+
+            # Signal 3: Grammar checker (LanguageTool — requires Java)
+            grammar_context = "grammar checker unavailable"
+            if transcript and transcript.strip():
+                try:
+                    lt = _get_lt_tool()
+                    if lt is not None:
+                        loop = asyncio.get_event_loop()
+                        matches = await loop.run_in_executor(None, lt.check, transcript)
+                        grammar_errors = [
+                            f"{m.ruleId}: '{transcript[m.offset:m.offset + m.errorLength]}'"
+                            f" → {list(m.replacements[:2])}"
+                            for m in matches[:8]
+                        ]
+                        grammar_context = (
+                            "; ".join(grammar_errors)
+                            if grammar_errors
+                            else "no grammar errors detected"
+                        )
+                except Exception as exc:
+                    logger.warning("Grammar check failed: %s", exc)
+
+            # ----------------------------------------------------------------
+            # 3. Flagged words for pronunciation
+            # ----------------------------------------------------------------
             flagged_words = [
                 w["word"]
                 for w in words
@@ -81,11 +150,17 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                 or w["word"].lower() in disfluent
             ]
 
+            # ----------------------------------------------------------------
+            # 4. Score
+            # ----------------------------------------------------------------
             scoring_result = await scoring_service.score_attempt(
                 question_text=question.text,
                 part=question.part,
                 transcript=transcript,
                 flagged_words=flagged_words,
+                fluency_context=fluency_context,
+                vocab_signal=vocab_signal,
+                grammar_context=grammar_context,
             )
 
             fluency = scoring_result.get("fluency")
@@ -99,7 +174,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             score = scoring_result.get("score")
 
             # ----------------------------------------------------------------
-            # 3. Update Attempt
+            # 5. Update Attempt
             # ----------------------------------------------------------------
             result = await session.execute(
                 select(Attempt).where(Attempt.id == attempt_id)
@@ -121,7 +196,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             attempt.status = "ready"
 
             # ----------------------------------------------------------------
-            # 4. Update DailyActivity
+            # 6. Update DailyActivity
             # ----------------------------------------------------------------
             today = date.today()
             da_result = await session.execute(
@@ -149,7 +224,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                 daily.intensity = 4
 
             # ----------------------------------------------------------------
-            # 5. Update UserStats streak
+            # 7. Update UserStats streak
             # ----------------------------------------------------------------
             stats_result = await session.execute(
                 select(UserStats).where(UserStats.id == 1)

@@ -37,6 +37,29 @@ def _parse_json_response(raw: str, required_field: str) -> Dict[str, Any]:
     return data
 
 
+def _repair_vocab_json(raw: str) -> str:
+    """Try to salvage truncated {\"vocabulary\":[...]} JSON from LLM output."""
+    start = raw.find('{"vocabulary"')
+    if start == -1:
+        start = raw.find('{')
+    if start == -1:
+        raise ValueError("No JSON found in LLM response")
+    fragment = raw[start:]
+    # Find last complete item: ends with }
+    last_complete = fragment.rfind('}')
+    if last_complete == -1:
+        raise ValueError("No complete JSON object found")
+    # Close the array and wrapper if needed
+    truncated = fragment[:last_complete + 1]
+    open_arrays = truncated.count('[') - truncated.count(']')
+    open_braces = truncated.count('{') - truncated.count('}')
+    if open_arrays > 0:
+        truncated += ']' * open_arrays
+    if open_braces > 0:
+        truncated += '}' * open_braces
+    return truncated
+
+
 async def generate_sample_answer(
     question_text: str,
     part: str,
@@ -81,7 +104,29 @@ async def generate_topic_vocab(question_text: str) -> Dict[str, Any]:
         model=settings.ollama_model,
         prompt=prompt,
         temperature=0.4,
-        num_predict=1024,
+        num_predict=2048,
         timeout=120.0,
     )
-    return _parse_json_response(raw, "vocabulary")
+
+    # Try standard parse first
+    start = raw.find('{"vocabulary"')
+    if start == -1:
+        start = raw.find('{')
+    end = raw.rfind('}') + 1
+
+    if start != -1 and end > start:
+        try:
+            return json.loads(raw[start:end])
+        except json.JSONDecodeError:
+            pass  # Fall through to repair
+
+    # Repair truncated JSON
+    try:
+        repaired = _repair_vocab_json(raw)
+        data = json.loads(repaired)
+        if "vocabulary" in data and data["vocabulary"]:
+            return data
+    except (ValueError, json.JSONDecodeError) as exc:
+        logger.warning("Vocab JSON repair failed: %s", exc)
+
+    raise ValueError("Could not parse vocabulary response from LLM")

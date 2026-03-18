@@ -6,11 +6,10 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from backend.database import get_db
 from backend.models import Attempt, Question
-from backend.schemas import Part3GroupOut, QuestionCreateIn, QuestionOut
+from backend.schemas import ForecastEntry, Part3GroupOut, QuestionCreateIn, QuestionOut
 from backend.services import ai_assist as ai_assist_service
 
 router = APIRouter(prefix="/api/v1/questions", tags=["questions"])
@@ -39,6 +38,9 @@ async def _question_to_out(session: AsyncSession, q: Question) -> QuestionOut:
         text=q.text,
         bullet_points=q.bullet_points,
         latest_score=score,
+        topic_tag=q.topic_tag,
+        source=q.source,
+        last_seen_date=q.last_seen_date,
     )
 
 
@@ -55,12 +57,15 @@ async def _has_ready_attempt(session: AsyncSession, question_id: int) -> bool:
 @router.get("/part1", response_model=List[QuestionOut])
 async def list_part1(
     topic: Optional[str] = Query(default=None),
+    topic_tag: Optional[str] = Query(default=None),
     hide_answered: bool = Query(default=False),
     db: AsyncSession = Depends(get_db),
 ) -> List[QuestionOut]:
     stmt = select(Question).where(Question.part == "1")
     if topic:
         stmt = stmt.where(Question.topic == topic)
+    if topic_tag:
+        stmt = stmt.where(Question.topic_tag == topic_tag)
     stmt = stmt.order_by(Question.id)
 
     result = await db.execute(stmt)
@@ -77,12 +82,15 @@ async def list_part1(
 @router.get("/part2", response_model=List[QuestionOut])
 async def list_part2(
     category: Optional[str] = Query(default=None),
+    topic_tag: Optional[str] = Query(default=None),
     hide_answered: bool = Query(default=False),
     db: AsyncSession = Depends(get_db),
 ) -> List[QuestionOut]:
     stmt = select(Question).where(Question.part == "2")
     if category:
         stmt = stmt.where(Question.category == category)
+    if topic_tag:
+        stmt = stmt.where(Question.topic_tag == topic_tag)
     stmt = stmt.order_by(Question.id)
 
     result = await db.execute(stmt)
@@ -99,13 +107,16 @@ async def list_part2(
 @router.get("/part3", response_model=List[Part3GroupOut])
 async def list_part3(
     category: Optional[str] = Query(default=None),
+    topic_tag: Optional[str] = Query(default=None),
     hide_answered: bool = Query(default=False),
     db: AsyncSession = Depends(get_db),
 ) -> List[Part3GroupOut]:
-    # Fetch all Part 2 questions (potential parents), optionally filtered by category
+    # Fetch all Part 2 questions (potential parents), optionally filtered
     parent_stmt = select(Question).where(Question.part == "2")
     if category:
         parent_stmt = parent_stmt.where(Question.category == category)
+    if topic_tag:
+        parent_stmt = parent_stmt.where(Question.topic_tag == topic_tag)
     parent_stmt = parent_stmt.order_by(Question.id)
 
     parent_result = await db.execute(parent_stmt)
@@ -138,6 +149,35 @@ async def list_part3(
         groups.append(Part3GroupOut(parent=parent_out, questions=filtered_children))
 
     return groups
+
+
+@router.get("/forecast", response_model=List[ForecastEntry])
+async def get_forecast(
+    db: AsyncSession = Depends(get_db),
+) -> List[ForecastEntry]:
+    """Return topic groups sorted by last_seen_date desc, then by question count."""
+    result = await db.execute(
+        select(
+            Question.topic_tag,
+            func.count(Question.id).label("count"),
+            func.max(Question.last_seen_date).label("last_seen_date"),
+        )
+        .where(Question.topic_tag.isnot(None))
+        .group_by(Question.topic_tag)
+        .order_by(
+            func.max(Question.last_seen_date).desc().nullslast(),
+            func.count(Question.id).desc(),
+        )
+    )
+    rows = result.all()
+    return [
+        ForecastEntry(
+            topic_tag=row.topic_tag,
+            count=row.count,
+            last_seen_date=str(row.last_seen_date)[:7] if row.last_seen_date else None,
+        )
+        for row in rows
+    ]
 
 
 @router.post("/{question_id}/sample-answer")
@@ -194,6 +234,39 @@ async def get_question(
     return await _question_to_out(db, question)
 
 
+@router.post("/bulk", status_code=201)
+async def bulk_import_questions(
+    body: List[QuestionCreateIn],
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Bulk import questions; skips duplicates by text match."""
+    existing = set(
+        (await db.execute(select(Question.text))).scalars().all()
+    )
+    inserted = 0
+    skipped = 0
+    for q in body:
+        if q.text in existing:
+            skipped += 1
+            continue
+        bp_str = json.dumps(q.bullet_points) if q.bullet_points else None
+        question = Question(
+            part=q.part,
+            topic=q.topic,
+            category=q.category,
+            parent_question_id=q.parent_question_id,
+            text=q.text,
+            bullet_points=bp_str,
+            topic_tag=q.topic_tag,
+            source=q.source,
+            last_seen_date=q.last_seen_date,
+        )
+        db.add(question)
+        inserted += 1
+    await db.commit()
+    return {"inserted": inserted, "skipped": skipped}
+
+
 @router.post("/", response_model=QuestionOut, status_code=201)
 async def create_question(
     body: QuestionCreateIn,
@@ -210,6 +283,9 @@ async def create_question(
         parent_question_id=body.parent_question_id,
         text=body.text,
         bullet_points=bullet_points_str,
+        topic_tag=body.topic_tag,
+        source=body.source,
+        last_seen_date=body.last_seen_date,
     )
     db.add(question)
     await db.commit()

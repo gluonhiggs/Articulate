@@ -153,7 +153,7 @@ export function RightPanelPlaceholder({
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-sm font-medium text-teal-300">{item.term}</span>
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-gray-500 border border-white/10">
-                      {item.type.replace('_', ' ')}
+                      {(item.type ?? '').replace('_', ' ')}
                     </span>
                   </div>
                   <p className="text-xs text-gray-400 mb-1">{item.definition}</p>

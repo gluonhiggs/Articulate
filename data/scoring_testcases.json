@@ -1,0 +1,47 @@
+[
+  {
+    "id": "wrong-word-broke",
+    "question": "What time do you usually wake up?",
+    "transcript": "I usually broke up at six in the morning.",
+    "part": "1",
+    "expect_error_word": "broke",
+    "expect_correction": "woke",
+    "expect_score_range": [4.0, 6.0]
+  },
+  {
+    "id": "fluent-b2-answer",
+    "question": "What do you enjoy doing in your free time?",
+    "transcript": "I'm particularly fond of reading contemporary fiction. I find it tremendously enriching because it broadens my perspective on various social issues and enhances my vocabulary significantly.",
+    "part": "1",
+    "expect_error_word": null,
+    "expect_correction": null,
+    "expect_score_range": [6.0, 9.0]
+  },
+  {
+    "id": "vague-short-answer",
+    "question": "Tell me about your hometown.",
+    "transcript": "My hometown is good. I like it. It has many things.",
+    "part": "1",
+    "expect_error_word": null,
+    "expect_correction": null,
+    "expect_score_range": [3.0, 5.5]
+  },
+  {
+    "id": "redundant-word",
+    "question": "Do you often go shopping?",
+    "transcript": "I do not never go to shopping centers because I prefer online buying.",
+    "part": "1",
+    "expect_error_word": "never",
+    "expect_correction": "",
+    "expect_score_range": [4.0, 6.0]
+  },
+  {
+    "id": "tense-error",
+    "question": "What did you do last weekend?",
+    "transcript": "Last weekend I go to the park with my friend and we have a picnic.",
+    "part": "1",
+    "expect_error_word": "go",
+    "expect_correction": "went",
+    "expect_score_range": [4.0, 6.5]
+  }
+]

@@ -6,6 +6,9 @@ export interface Question {
   text: string
   bullet_points: string[] | null
   latest_score: number | null
+  topic_tag?: string | null
+  source?: string | null
+  last_seen_date?: string | null
 }
 
 export interface Part3Group {
@@ -85,4 +88,11 @@ export interface SystemInfo {
   whisper_model: string
   whisper_device: string
   ollama_model: string
+  is_low_accuracy: boolean
+}
+
+export interface ForecastEntry {
+  topic_tag: string
+  count: number
+  last_seen_date: string | null
 }

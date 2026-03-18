@@ -36,6 +36,15 @@ class Question(Base):
     bullet_points: Mapped[Optional[str]] = mapped_column(
         Text, nullable=True
     )  # JSON string, Part 2 only
+    topic_tag: Mapped[Optional[str]] = mapped_column(
+        String(50), nullable=True
+    )  # e.g. "environment", "technology"
+    source: Mapped[Optional[str]] = mapped_column(
+        String(100), nullable=True
+    )  # e.g. "IELTS community", "Cambridge 17"
+    last_seen_date: Mapped[Optional[date]] = mapped_column(
+        Date, nullable=True
+    )  # When this topic last appeared in real IELTS
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
 
     attempts: Mapped[List["Attempt"]] = relationship(

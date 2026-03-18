@@ -19,6 +19,9 @@ dependencies = [
     #   uv pip install torch --index-url https://download.pytorch.org/whl/cu121
     "torch>=2.3",
     "kokoro>=0.3",
+    # Grammar checker — optional enhancement, requires Java on host system.
+    # Falls back gracefully if Java is not installed.
+    "language-tool-python>=2.7",
 ]
 
 [build-system]
@@ -39,4 +42,11 @@ url = "https://download.pytorch.org/whl/cpu"
 explicit = true
 
 [dependency-groups]
-dev = []
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

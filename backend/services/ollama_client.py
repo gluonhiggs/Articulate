@@ -43,6 +43,7 @@ async def generate(
     *,
     temperature: float = 0.4,
     num_predict: int = 1024,
+    num_ctx: int = 2048,
     timeout: float = 120.0,
 ) -> str:
     """
@@ -59,6 +60,7 @@ async def generate(
         "options": {
             "temperature": temperature,
             "num_predict": num_predict,
+            "num_ctx": num_ctx,
         },
     }
     url = f"{base_url}/api/generate"
