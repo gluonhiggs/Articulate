@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, UploadFile
@@ -61,12 +61,41 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             if question is None:
                 raise ValueError(f"Question {question_id} not found")
 
+            # Emit 'transcribing' status
+            t_result = await session.execute(select(Attempt).where(Attempt.id == attempt_id))
+            attempt_pre = t_result.scalar_one_or_none()
+            if attempt_pre is not None:
+                attempt_pre.status = "transcribing"
+                await session.commit()
+                logger.info("Pipeline %d: transcribing", attempt_id)
+
             # ----------------------------------------------------------------
             # 1. Transcription
             # ----------------------------------------------------------------
-            transcription_result = await transcription_service.transcribe(audio_path)
+            try:
+                transcription_result = await transcription_service.transcribe(audio_path)
+            except Exception as exc:
+                logger.exception("Pipeline %d: transcription failed: %s", attempt_id, exc)
+                t2 = await session.execute(select(Attempt).where(Attempt.id == attempt_id))
+                a = t2.scalar_one_or_none()
+                if a is not None:
+                    a.status = "failed:transcription"
+                    await session.commit()
+                    logger.info("Pipeline %d: failed:transcription", attempt_id)
+                return
+
             transcript = transcription_result.get("transcript", "")
             words = transcription_result.get("words", [])
+
+            # Guard: empty or silent audio
+            if not transcript or not transcript.strip():
+                t2 = await session.execute(select(Attempt).where(Attempt.id == attempt_id))
+                a = t2.scalar_one_or_none()
+                if a is not None:
+                    a.status = "failed:empty_audio"
+                    await session.commit()
+                    logger.info("Pipeline %d: failed:empty_audio", attempt_id)
+                return
             word_timestamps_json = json.dumps(words)
 
             # Compute duration from last word end time if available
@@ -153,15 +182,33 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             # ----------------------------------------------------------------
             # 4. Score
             # ----------------------------------------------------------------
-            scoring_result = await scoring_service.score_attempt(
-                question_text=question.text,
-                part=question.part,
-                transcript=transcript,
-                flagged_words=flagged_words,
-                fluency_context=fluency_context,
-                vocab_signal=vocab_signal,
-                grammar_context=grammar_context,
-            )
+            # Emit 'scoring' status before calling Ollama
+            s_result = await session.execute(select(Attempt).where(Attempt.id == attempt_id))
+            attempt_scoring = s_result.scalar_one_or_none()
+            if attempt_scoring is not None:
+                attempt_scoring.status = "scoring"
+                await session.commit()
+                logger.info("Pipeline %d: scoring", attempt_id)
+
+            try:
+                scoring_result = await scoring_service.score_attempt(
+                    question_text=question.text,
+                    part=question.part,
+                    transcript=transcript,
+                    flagged_words=flagged_words,
+                    fluency_context=fluency_context,
+                    vocab_signal=vocab_signal,
+                    grammar_context=grammar_context,
+                )
+            except Exception as exc:
+                logger.exception("Pipeline %d: scoring failed: %s", attempt_id, exc)
+                s2 = await session.execute(select(Attempt).where(Attempt.id == attempt_id))
+                a = s2.scalar_one_or_none()
+                if a is not None:
+                    a.status = "failed:scoring"
+                    await session.commit()
+                    logger.info("Pipeline %d: failed:scoring", attempt_id)
+                return
 
             fluency = scoring_result.get("fluency")
             vocabulary = scoring_result.get("vocabulary")
@@ -194,6 +241,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             attempt.feedback_text = feedback_text
             attempt.error_highlights = error_highlights
             attempt.status = "ready"
+            logger.info("Pipeline %d: ready", attempt_id)
 
             # ----------------------------------------------------------------
             # 6. Update DailyActivity
@@ -285,6 +333,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                 if attempt is not None:
                     attempt.status = "failed"
                     await session.commit()
+                    logger.info("Pipeline %d: failed (unknown)", attempt_id)
             except Exception:
                 logger.exception(
                     "Failed to mark attempt %d as failed", attempt_id
@@ -372,6 +421,9 @@ async def get_attempt_status(
     )
 
 
+_STALE_PROCESSING_THRESHOLD = timedelta(minutes=10)
+
+
 @router.get("/history/{question_id}", response_model=List[AttemptOut])
 async def get_attempt_history(
     question_id: int,
@@ -388,6 +440,23 @@ async def get_attempt_history(
         .order_by(Attempt.created_at.desc())
     )
     attempts = result.scalars().all()
+
+    # Mark any attempt stuck in 'processing' for longer than the threshold as
+    # 'failed' so they don't show as infinite spinners in the UI.
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    stale_found = False
+    for attempt in attempts:
+        if (
+            attempt.status in ("processing", "transcribing", "scoring")
+            and attempt.created_at is not None
+            and now - attempt.created_at > _STALE_PROCESSING_THRESHOLD
+        ):
+            attempt.status = "failed"
+            stale_found = True
+            logger.warning("Marked stale attempt %d as failed (created_at=%s)", attempt.id, attempt.created_at)
+    if stale_found:
+        await db.commit()
+
     return [AttemptOut.model_validate(a) for a in attempts]
 
 

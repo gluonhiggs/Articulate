@@ -6,7 +6,7 @@ Attempt to build a personal speaking trainer
 
   .env.pc automatically uses:
   - WHISPER_MODEL=large-v3 (vs base on laptop)
-  - OLLAMA_MODEL=gemma3:9b (vs gemma3:1b)
+  - OLLAMA_MODEL=gemma3:12b (vs gemma3:1b)
   - WHISPER_DEVICE=cuda (GPU, not CPU)
 
   Just run .\run.ps1 pc — the config is already wired.
@@ -20,7 +20,7 @@ Attempt to build a personal speaking trainer
      .\run.ps1 pc
 
   2. In a separate terminal, start the frontend:
-     cd frontend && npm run dev
+     cd frontend && bun run dev
 
   3. Open http://localhost:5173 in your browser. The mic will work.
 
@@ -58,12 +58,15 @@ Attempt to build a personal speaking trainer
 
   Start the server
 
+  # Build the frontend first (backend serves it at :8000)
+  cd frontend && bun run build && cd ..
   .\run.ps1 pc
 
-  run.ps1 detects certs/cert.pem and automatically adds --ssl-certfile + --ssl-keyfile. The Vite dev server (vite.config.ts) does the same for the frontend.
+  run.ps1 detects certs/cert.pem and automatically adds --ssl-certfile + --ssl-keyfile.
 
   Access from phone
 
   Open https://192.168.x.x:8000 on your phone (replace with your PC's LAN IP from ipconfig). The browser will ask for mic permission and it will work.
 
-  ▎ If you're running the Vite dev server too, the frontend is at https://192.168.x.x:5173.
+  ▎ Alternative: skip the build step and run the Vite dev server instead (cd frontend && bun run dev).
+  ▎ Then open https://192.168.x.x:5173 on your phone instead.

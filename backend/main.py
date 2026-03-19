@@ -1,18 +1,22 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from backend.api import attempts, dashboard, questions, system, tts
 from backend.config import get_settings
 from backend.database import init_db
 from backend.services import ollama_client
 from backend.services.audio import cleanup_old_audio
+from backend.services.transcription import _get_model as _get_whisper_model
 from backend.services.tts import evict_tts_cache
 
 logging.basicConfig(
@@ -42,6 +46,11 @@ async def lifespan(app: FastAPI):
     logger.info("Evicting TTS cache…")
     evict_tts_cache(settings.tts_cache_dir, settings.tts_cache_max_mb)
     logger.info("TTS cache eviction done.")
+
+    logger.info("Pre-loading Whisper model…")
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(None, _get_whisper_model)
+    logger.info("Whisper model ready.")
 
     yield  # Application runs here
 
@@ -88,6 +97,17 @@ if _FRONTEND_DIST.exists():
     logger.info("Serving frontend from %s", _FRONTEND_DIST)
 else:
     logger.warning(
-        "Frontend dist not found at %s — run 'npm run build' inside the frontend/ directory.",
+        "Frontend dist not found at %s — run 'bun run build' inside the frontend/ directory.",
         _FRONTEND_DIST,
     )
+
+
+@app.exception_handler(StarletteHTTPException)
+async def spa_fallback(request, exc: StarletteHTTPException):
+    """Serve index.html for SPA deep-link navigation (e.g. phone refresh on /practice/part1/questions/5)."""
+    if exc.status_code != 404 or request.url.path.startswith("/api/"):
+        raise exc
+    idx = _FRONTEND_DIST / "index.html"
+    if idx.exists():
+        return FileResponse(str(idx))
+    raise exc

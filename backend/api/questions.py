@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import json
-from typing import List, Optional
+from collections import defaultdict
+from typing import Any, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
@@ -15,6 +16,46 @@ from backend.services import ai_assist as ai_assist_service
 router = APIRouter(prefix="/api/v1/questions", tags=["questions"])
 
 
+def _latest_score_subquery():
+    """Correlated scalar subquery: latest score for Question.id."""
+    return (
+        select(Attempt.score)
+        .where(Attempt.question_id == Question.id, Attempt.status == "ready")
+        .order_by(Attempt.created_at.desc())
+        .limit(1)
+        .correlate(Question)
+        .scalar_subquery()
+    )
+
+
+def _has_ready_subquery():
+    """Correlated scalar subquery: count of ready attempts for Question.id."""
+    return (
+        select(func.count(Attempt.id))
+        .where(Attempt.question_id == Question.id, Attempt.status == "ready")
+        .correlate(Question)
+        .scalar_subquery()
+    )
+
+
+def _row_to_out(row: Any) -> QuestionOut:
+    """Convert a row returned by a bulk-score query to QuestionOut."""
+    q = row.Question
+    return QuestionOut(
+        id=q.id,
+        part=q.part,
+        topic=q.topic,
+        category=q.category,
+        parent_question_id=q.parent_question_id,
+        text=q.text,
+        bullet_points=q.bullet_points,
+        latest_score=row.latest_score,
+        topic_tag=q.topic_tag,
+        source=q.source,
+        last_seen_date=q.last_seen_date,
+    )
+
+
 async def _latest_score(session: AsyncSession, question_id: int) -> Optional[float]:
     """Return the score of the most recent 'ready' attempt for a question."""
     result = await session.execute(
@@ -23,8 +64,7 @@ async def _latest_score(session: AsyncSession, question_id: int) -> Optional[flo
         .order_by(Attempt.created_at.desc())
         .limit(1)
     )
-    row = result.scalar_one_or_none()
-    return row
+    return result.scalar_one_or_none()
 
 
 async def _question_to_out(session: AsyncSession, q: Question) -> QuestionOut:
@@ -44,16 +84,6 @@ async def _question_to_out(session: AsyncSession, q: Question) -> QuestionOut:
     )
 
 
-async def _has_ready_attempt(session: AsyncSession, question_id: int) -> bool:
-    """Check whether a question has at least one attempt with status='ready'."""
-    result = await session.execute(
-        select(Attempt.id)
-        .where(Attempt.question_id == question_id, Attempt.status == "ready")
-        .limit(1)
-    )
-    return result.scalar_one_or_none() is not None
-
-
 @router.get("/part1", response_model=List[QuestionOut])
 async def list_part1(
     topic: Optional[str] = Query(default=None),
@@ -61,7 +91,11 @@ async def list_part1(
     hide_answered: bool = Query(default=False),
     db: AsyncSession = Depends(get_db),
 ) -> List[QuestionOut]:
-    stmt = select(Question).where(Question.part == "1")
+    stmt = select(
+        Question,
+        _latest_score_subquery().label("latest_score"),
+        _has_ready_subquery().label("ready_count"),
+    ).where(Question.part == "1")
     if topic:
         stmt = stmt.where(Question.topic == topic)
     if topic_tag:
@@ -69,14 +103,13 @@ async def list_part1(
     stmt = stmt.order_by(Question.id)
 
     result = await db.execute(stmt)
-    questions = result.scalars().all()
+    rows = result.all()
 
-    output: List[QuestionOut] = []
-    for q in questions:
-        if hide_answered and await _has_ready_attempt(db, q.id):
-            continue
-        output.append(await _question_to_out(db, q))
-    return output
+    return [
+        _row_to_out(row)
+        for row in rows
+        if not (hide_answered and row.ready_count > 0)
+    ]
 
 
 @router.get("/part2", response_model=List[QuestionOut])
@@ -86,7 +119,11 @@ async def list_part2(
     hide_answered: bool = Query(default=False),
     db: AsyncSession = Depends(get_db),
 ) -> List[QuestionOut]:
-    stmt = select(Question).where(Question.part == "2")
+    stmt = select(
+        Question,
+        _latest_score_subquery().label("latest_score"),
+        _has_ready_subquery().label("ready_count"),
+    ).where(Question.part == "2")
     if category:
         stmt = stmt.where(Question.category == category)
     if topic_tag:
@@ -94,14 +131,13 @@ async def list_part2(
     stmt = stmt.order_by(Question.id)
 
     result = await db.execute(stmt)
-    questions = result.scalars().all()
+    rows = result.all()
 
-    output: List[QuestionOut] = []
-    for q in questions:
-        if hide_answered and await _has_ready_attempt(db, q.id):
-            continue
-        output.append(await _question_to_out(db, q))
-    return output
+    return [
+        _row_to_out(row)
+        for row in rows
+        if not (hide_answered and row.ready_count > 0)
+    ]
 
 
 @router.get("/part3", response_model=List[Part3GroupOut])
@@ -111,8 +147,12 @@ async def list_part3(
     hide_answered: bool = Query(default=False),
     db: AsyncSession = Depends(get_db),
 ) -> List[Part3GroupOut]:
-    # Fetch all Part 2 questions (potential parents), optionally filtered
-    parent_stmt = select(Question).where(Question.part == "2")
+    # Fetch all Part 2 parents with scores in one query
+    parent_stmt = select(
+        Question,
+        _latest_score_subquery().label("latest_score"),
+        _has_ready_subquery().label("ready_count"),
+    ).where(Question.part == "2")
     if category:
         parent_stmt = parent_stmt.where(Question.category == category)
     if topic_tag:
@@ -120,33 +160,46 @@ async def list_part3(
     parent_stmt = parent_stmt.order_by(Question.id)
 
     parent_result = await db.execute(parent_stmt)
-    parent_questions = parent_result.scalars().all()
+    parent_rows = parent_result.all()
+
+    if not parent_rows:
+        return []
+
+    parent_ids = [row.Question.id for row in parent_rows]
+
+    # Fetch all Part 3 children for those parents with scores in one query
+    children_stmt = select(
+        Question,
+        _latest_score_subquery().label("latest_score"),
+        _has_ready_subquery().label("ready_count"),
+    ).where(Question.part == "3", Question.parent_question_id.in_(parent_ids)).order_by(Question.id)
+
+    children_result = await db.execute(children_stmt)
+    children_rows = children_result.all()
+
+    # Group children by parent_question_id in Python
+    children_by_parent: dict[int, list] = defaultdict(list)
+    for row in children_rows:
+        children_by_parent[row.Question.parent_question_id].append(row)
 
     groups: List[Part3GroupOut] = []
-    for parent_q in parent_questions:
-        # Fetch Part 3 children
-        children_stmt = (
-            select(Question)
-            .where(Question.part == "3", Question.parent_question_id == parent_q.id)
-            .order_by(Question.id)
-        )
-        children_result = await db.execute(children_stmt)
-        children = children_result.scalars().all()
+    for parent_row in parent_rows:
+        parent_id = parent_row.Question.id
+        child_rows = children_by_parent.get(parent_id, [])
 
-        if not children:
+        if not child_rows:
             continue
 
-        filtered_children: List[QuestionOut] = []
-        for child in children:
-            if hide_answered and await _has_ready_attempt(db, child.id):
-                continue
-            filtered_children.append(await _question_to_out(db, child))
+        filtered_children = [
+            _row_to_out(row)
+            for row in child_rows
+            if not (hide_answered and row.ready_count > 0)
+        ]
 
         if not filtered_children:
             continue
 
-        parent_out = await _question_to_out(db, parent_q)
-        groups.append(Part3GroupOut(parent=parent_out, questions=filtered_children))
+        groups.append(Part3GroupOut(parent=_row_to_out(parent_row), questions=filtered_children))
 
     return groups
 

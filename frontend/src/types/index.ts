@@ -29,7 +29,7 @@ export interface Attempt {
   feedback_text: string | null
   error_highlights: ErrorHighlight[] | null
   duration_seconds: number | null
-  status: 'processing' | 'ready' | 'failed'
+  status: 'processing' | 'transcribing' | 'scoring' | 'ready' | 'failed' | 'failed:transcription' | 'failed:empty_audio' | 'failed:scoring'
   created_at: string
 }
 
@@ -89,6 +89,7 @@ export interface SystemInfo {
   whisper_device: string
   ollama_model: string
   is_low_accuracy: boolean
+  ollama_reachable: boolean
 }
 
 export interface ForecastEntry {

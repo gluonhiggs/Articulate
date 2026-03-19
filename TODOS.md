@@ -1,28 +1,5 @@
 # Articulate — TODOS
 
-## Backend
-
-### Warn on orphaned Part 3 questions at startup
-
-**What:** After `_seed_questions()` completes, query for Part 3 questions with `parent_id IS NULL`
-and log a `logger.warning()` for each one, including the question text. This makes silent
-bad-data errors visible.
-
-**Why:** If a seed question's `parent_text` doesn't match any Part 2 question (typo, ordering
-issue, or the parent wasn't seeded yet), the Part 3 question is inserted with `parent_id = NULL`.
-It then disappears from the Part 3 grouped UI with no error message anywhere.
-
-**Pros:** Catches data integrity issues immediately at startup. Very small change (~5 lines).
-
-**Cons:** Adds one extra DB query at startup (fast, in-memory is fine).
-
-**Context:** Identified during eng review (2026-03-18). The seeding logic already handles this
-gracefully — this TODO is just about making the silent failure visible. Start in
-`backend/database.py` in `_seed_questions()`, after the `await session.commit()` call.
-
-**Depends on / blocked by:** Nothing.
-
----
 
 ## Deferred from Plan (2026-03-18)
 

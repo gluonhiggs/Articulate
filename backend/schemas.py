@@ -184,3 +184,4 @@ class SystemInfoOut(BaseModel):
     whisper_device: str
     ollama_model: str
     is_low_accuracy: bool = False
+    ollama_reachable: bool = False

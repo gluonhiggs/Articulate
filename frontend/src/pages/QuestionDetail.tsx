@@ -19,6 +19,15 @@ import { usePolling } from '../hooks/usePolling'
 import { useRecordingStore } from '../store/recordingStore'
 import type { Attempt, Part3Group, Question } from '../types'
 
+// ── Constants ────────────────────────────────────────────────────────────────
+
+const PROCESSING_STATUSES = ['processing', 'transcribing', 'scoring']
+const ERROR_MESSAGES: Record<string, string> = {
+  'failed:transcription': 'Could not transcribe audio',
+  'failed:empty_audio':   'Audio was too quiet or silent',
+  'failed:scoring':       'AI scoring unavailable (is Ollama running?)',
+}
+
 // ── Main page ───────────────────────────────────────────────────────────────
 
 export function QuestionDetail() {
@@ -164,7 +173,7 @@ export function QuestionDetail() {
   }, [questionId, reset, resetAudioBlob])
 
   // Polling
-  const polledAttempt = usePolling(attemptId)
+  const { data: polledAttempt, isTimedOut: pollingTimedOut } = usePolling(attemptId)
   const [newestAttemptId, setNewestAttemptId] = useState<number | null>(null)
 
   // Right panel state
@@ -196,8 +205,12 @@ export function QuestionDetail() {
 
   // Polling result
   useEffect(() => {
+    if (pollingTimedOut && status === 'polling') {
+      setError('Scoring timed out — the server is taking too long. Please try again.')
+      return
+    }
     if (!polledAttempt) return
-    if (polledAttempt.status === 'ready' || polledAttempt.status === 'failed') {
+    if (polledAttempt.status === 'ready') {
       setDone()
       queryClient.invalidateQueries({ queryKey: ['attempts', 'history', questionId] })
       queryClient.invalidateQueries({ queryKey: ['questions', 'part1'] })
@@ -205,8 +218,31 @@ export function QuestionDetail() {
       queryClient.invalidateQueries({ queryKey: ['questions', 'part3'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       void refetchAttempts()
+    } else if (!PROCESSING_STATUSES.includes(polledAttempt.status)) {
+      setError(ERROR_MESSAGES[polledAttempt.status] ?? 'Scoring failed')
+      queryClient.invalidateQueries({ queryKey: ['attempts', 'history', questionId] })
+      void refetchAttempts()
     }
-  }, [polledAttempt, setDone, queryClient, questionId, refetchAttempts])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [polledAttempt, pollingTimedOut, status, setDone, setError, queryClient, questionId, refetchAttempts])
+
+  // Companion sync — pick up an in-progress attempt recorded on another device
+  const { data: companionAttempt } = useQuery({
+    queryKey: ['companion-watch', questionId],
+    queryFn: () => fetchAttemptHistory(questionId),
+    enabled: attemptId === null && !isNaN(questionId),
+    refetchInterval: 4000,
+    select: (data: Attempt[]) =>
+      data.find((a) => PROCESSING_STATUSES.includes(a.status)) ?? null,
+    staleTime: 0,
+  })
+
+  useEffect(() => {
+    if (companionAttempt && attemptId === null) {
+      setPolling(companionAttempt.id)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companionAttempt, attemptId])
 
   // Auto-transition: preparing → recording
   useEffect(() => {
@@ -422,6 +458,7 @@ export function QuestionDetail() {
           onStop={handleStop}
           onRetry={handleRetry}
           errorMessage={errorMessage}
+          backendStatus={polledAttempt?.status ?? null}
         />
       </div>
 

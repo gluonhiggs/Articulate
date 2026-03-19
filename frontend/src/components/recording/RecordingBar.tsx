@@ -9,6 +9,15 @@ interface RecordingBarProps {
   onStop: () => void
   onRetry?: () => void
   errorMessage?: string | null
+  backendStatus?: string | null
+}
+
+const BACKEND_STEP_LABELS: Record<string, string> = {
+  transcribing:             'Transcribing your audio... (1/2)',
+  scoring:                  'AI scoring your response... (2/2)',
+  'failed:transcription':   'Could not transcribe audio',
+  'failed:empty_audio':     'Audio was too quiet or silent',
+  'failed:scoring':         'AI scoring unavailable (is Ollama running?)',
 }
 
 function formatTime(seconds: number): string {
@@ -50,6 +59,7 @@ export function RecordingBar({
   onStop,
   onRetry,
   errorMessage,
+  backendStatus,
 }: RecordingBarProps) {
   return (
     <div className="sticky bottom-0 left-0 right-0 bg-sidebar/95 backdrop-blur border-t border-cardBorder px-6 py-4 z-10">
@@ -135,11 +145,23 @@ export function RecordingBar({
         )}
 
         {(status === 'uploading' || status === 'polling') && (
-          <div className="flex items-center gap-3 w-full justify-center">
-            <Spinner />
-            <p className="text-textSecondary text-sm">
-              {status === 'uploading' ? 'Uploading...' : 'AI is scoring your response...'}
-            </p>
+          <div className="flex items-center gap-3 w-full justify-between">
+            <div className="flex items-center gap-3">
+              <Spinner />
+              <p className="text-textSecondary text-sm">
+                {status === 'uploading'
+                  ? 'Uploading...'
+                  : (BACKEND_STEP_LABELS[backendStatus ?? ''] ?? 'AI is scoring your response...')}
+              </p>
+            </div>
+            {status === 'polling' && onRetry && (
+              <button
+                onClick={onRetry}
+                className="px-3 py-1.5 rounded-lg border border-white/10 text-gray-500 text-xs hover:text-gray-300 hover:border-white/20 transition-colors"
+              >
+                Cancel
+              </button>
+            )}
           </div>
         )}
 

@@ -127,6 +127,20 @@ async def _seed_questions(session: AsyncSession) -> None:
 
     await session.commit()
 
+    # Warn about orphaned Part 3 questions (parent_question_id IS NULL).
+    # This catches seeding mismatches (typos, ordering issues) before they silently
+    # disappear from the Part 3 grouped UI.
+    orphan_result = await session.execute(
+        select(Question.id, Question.text)
+        .where(Question.part == "3", Question.parent_question_id.is_(None))
+    )
+    for row in orphan_result.all():
+        logger.warning(
+            "Orphaned Part 3 question (no parent_question_id): id=%d text=%r",
+            row.id,
+            row.text,
+        )
+
 
 async def _ensure_indexes() -> None:
     """Create indexes and run column migrations for existing DBs."""

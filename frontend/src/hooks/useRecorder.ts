@@ -32,6 +32,12 @@ export function useRecorder(maxSeconds: number): UseRecorderReturn {
     chunksRef.current = []
     setAudioBlob(null)
 
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error(
+        'Microphone is not available. Open the app at http://localhost:5173 and ensure your browser allows microphone access.'
+      )
+    }
+
     let stream: MediaStream
     try {
       stream = await navigator.mediaDevices.getUserMedia({
@@ -41,17 +47,15 @@ export function useRecorder(maxSeconds: number): UseRecorderReturn {
         },
       })
     } catch (err) {
-      throw new Error(`Microphone access denied: ${String(err)}`)
+      throw new Error(`Microphone access denied — check browser permissions and try again. (${String(err)})`)
     }
 
     streamRef.current = stream
 
-    // Prefer opus codec for smaller files
-    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-      ? 'audio/webm;codecs=opus'
-      : 'audio/webm'
-
-    const recorder = new MediaRecorder(stream, { mimeType })
+    // Prefer opus/webm; fall back to mp4 for iOS Safari
+    const preferredTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4']
+    const mimeType = preferredTypes.find((t) => MediaRecorder.isTypeSupported(t)) ?? ''
+    const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {})
     mediaRecorderRef.current = recorder
 
     recorder.ondataavailable = (event) => {

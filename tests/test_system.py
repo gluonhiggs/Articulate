@@ -10,7 +10,7 @@ import pytest
         ("gemma3:1b", True),
         ("gemma3:3b", True),
         ("llama3.2:1b", True),
-        ("gemma3:9b", False),
+        ("gemma3:12b", False),
         ("mistral:7b", False),
         ("qwen2.5:14b", False),
         ("gemma3:27b", False),
