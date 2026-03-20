@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures
 import logging
 import os
 import threading
@@ -13,6 +14,17 @@ logger = logging.getLogger(__name__)
 # Module-level cache for the loaded Whisper model
 _whisper_model = None
 _whisper_lock = threading.Lock()
+
+# Dedicated single-thread executor for Whisper.
+# Using None (default executor) risks pool exhaustion when a transcription hangs:
+# asyncio.wait_for cancels the coroutine but the thread keeps running, and the
+# default pool has os.cpu_count()*5 threads — fill them all with hung calls and
+# new transcriptions queue forever. A max_workers=1 executor bounds the damage to
+# one hung call; subsequent calls wait in the asyncio queue (and time out) rather
+# than spawning unbounded threads.
+_whisper_executor = concurrent.futures.ThreadPoolExecutor(
+    max_workers=1, thread_name_prefix="whisper"
+)
 
 
 def _get_model():
@@ -88,5 +100,5 @@ async def transcribe(audio_path: str) -> Dict[str, Any]:
         }
     """
     loop = asyncio.get_running_loop()
-    result = await loop.run_in_executor(None, _sync_transcribe, audio_path)
+    result = await loop.run_in_executor(_whisper_executor, _sync_transcribe, audio_path)
     return result
