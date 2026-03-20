@@ -145,23 +145,13 @@ export function RecordingBar({
         )}
 
         {(status === 'uploading' || status === 'polling') && (
-          <div className="flex items-center gap-3 w-full justify-between">
-            <div className="flex items-center gap-3">
-              <Spinner />
-              <p className="text-textSecondary text-sm">
-                {status === 'uploading'
-                  ? 'Uploading...'
-                  : (BACKEND_STEP_LABELS[backendStatus ?? ''] ?? 'AI is scoring your response...')}
-              </p>
-            </div>
-            {status === 'polling' && onRetry && (
-              <button
-                onClick={onRetry}
-                className="px-3 py-1.5 rounded-lg border border-white/10 text-gray-500 text-xs hover:text-gray-300 hover:border-white/20 transition-colors"
-              >
-                Cancel
-              </button>
-            )}
+          <div className="flex items-center gap-3 w-full">
+            <Spinner />
+            <p className="text-textSecondary text-sm">
+              {status === 'uploading'
+                ? 'Uploading...'
+                : (BACKEND_STEP_LABELS[backendStatus ?? ''] ?? 'AI is scoring your response...')}
+            </p>
           </div>
         )}
 

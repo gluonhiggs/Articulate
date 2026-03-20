@@ -12,6 +12,18 @@ logger = logging.getLogger(__name__)
 
 CHUNK_SIZE = 1024 * 1024  # 1 MB read chunks
 
+_MIME_TO_EXT: dict[str, str] = {
+    "audio/webm": ".webm",
+    "audio/mp4":  ".mp4",
+    "audio/ogg":  ".ogg",
+    "audio/wav":  ".wav",
+    "audio/mpeg": ".mp3",
+}
+
+EXT_TO_MIME: dict[str, str] = {v: k for k, v in _MIME_TO_EXT.items()}
+
+AUDIO_EXTENSIONS: frozenset[str] = frozenset(_MIME_TO_EXT.values())
+
 
 async def save_audio(
     upload_file: UploadFile,
@@ -21,7 +33,8 @@ async def save_audio(
     """
     Save an uploaded audio file to disk.
 
-    The file is stored as {audio_dir}/{attempt_id}.webm.
+    The file is stored as {audio_dir}/{attempt_id}{ext}, where ext is derived
+    from the upload's content_type (e.g. .mp4 for audio/mp4 from Android).
 
     Returns:
         The absolute file path as a string.
@@ -29,7 +42,8 @@ async def save_audio(
     audio_path = Path(audio_dir)
     audio_path.mkdir(parents=True, exist_ok=True)
 
-    dest = audio_path / f"{attempt_id}.webm"
+    ext = _MIME_TO_EXT.get(upload_file.content_type or "", ".webm")
+    dest = audio_path / f"{attempt_id}{ext}"
 
     async with aiofiles.open(dest, "wb") as f:
         while True:
@@ -38,7 +52,10 @@ async def save_audio(
                 break
             await f.write(chunk)
 
-    logger.info("Saved audio for attempt %d to %s", attempt_id, dest)
+    logger.info(
+        "Saved audio for attempt %d as %s (content_type=%s)",
+        attempt_id, dest.name, upload_file.content_type,
+    )
     return str(dest)
 
 
@@ -60,9 +77,11 @@ async def cleanup_old_audio(
 
     cutoff = datetime.now() - timedelta(days=retention_days)
 
-    # Collect all .webm files with their metadata
+    # Collect all audio files with their metadata
     files = []
-    for f in audio_path.glob("*.webm"):
+    for f in audio_path.iterdir():
+        if f.suffix not in AUDIO_EXTENSIONS:
+            continue
         try:
             stat = f.stat()
             files.append((f, stat.st_mtime, stat.st_size))

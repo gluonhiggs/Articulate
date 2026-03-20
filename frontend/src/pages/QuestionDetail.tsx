@@ -22,6 +22,7 @@ import type { Attempt, Part3Group, Question } from '../types'
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const PROCESSING_STATUSES = ['processing', 'transcribing', 'scoring']
+const COMPANION_MAX_AGE_MS = 5 * 60 * 1000 // ignore attempts older than 5 min
 const ERROR_MESSAGES: Record<string, string> = {
   'failed:transcription': 'Could not transcribe audio',
   'failed:empty_audio':   'Audio was too quiet or silent',
@@ -232,8 +233,16 @@ export function QuestionDetail() {
     queryFn: () => fetchAttemptHistory(questionId),
     enabled: attemptId === null && !isNaN(questionId),
     refetchInterval: 4000,
-    select: (data: Attempt[]) =>
-      data.find((a) => PROCESSING_STATUSES.includes(a.status)) ?? null,
+    select: (data: Attempt[]) => {
+      const cutoff = Date.now() - COMPANION_MAX_AGE_MS
+      return (
+        data.find(
+          (a) =>
+            PROCESSING_STATUSES.includes(a.status) &&
+            new Date(a.created_at).getTime() > cutoff,
+        ) ?? null
+      )
+    },
     staleTime: 0,
   })
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 from datetime import date, datetime, timedelta, timezone
 from typing import List, Optional
 
@@ -18,6 +19,8 @@ from backend.database import AsyncSessionLocal, get_db
 from backend.models import Attempt, DailyActivity, Question, UserStats
 from backend.schemas import AttemptOut, AttemptStatusOut, ImproveOut, PronunciationOut, PronunciationWord
 from backend.services import audio as audio_service
+from pathlib import Path
+from backend.services.audio import EXT_TO_MIME
 from backend.services import improve as improve_service
 from backend.services import scoring as scoring_service
 from backend.services import transcription as transcription_service
@@ -73,7 +76,18 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             # 1. Transcription
             # ----------------------------------------------------------------
             try:
-                transcription_result = await transcription_service.transcribe(audio_path)
+                transcription_result = await asyncio.wait_for(
+                    transcription_service.transcribe(audio_path),
+                    timeout=120.0,
+                )
+            except asyncio.TimeoutError:
+                logger.error("Pipeline %d: transcription timed out after 120s", attempt_id)
+                t2 = await session.execute(select(Attempt).where(Attempt.id == attempt_id))
+                a = t2.scalar_one_or_none()
+                if a is not None:
+                    a.status = "failed:transcription"
+                    await session.commit()
+                return
             except Exception as exc:
                 logger.exception("Pipeline %d: transcription failed: %s", attempt_id, exc)
                 t2 = await session.execute(select(Attempt).where(Attempt.id == attempt_id))
@@ -89,6 +103,11 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
 
             # Guard: empty or silent audio
             if not transcript or not transcript.strip():
+                file_size = os.path.getsize(audio_path) if os.path.exists(audio_path) else -1
+                logger.warning(
+                    "Pipeline %d: empty transcript — audio=%s (%.1f KB)",
+                    attempt_id, audio_path, file_size / 1024,
+                )
                 t2 = await session.execute(select(Attempt).where(Attempt.id == attempt_id))
                 a = t2.scalar_one_or_none()
                 if a is not None:
@@ -559,7 +578,8 @@ async def get_attempt_audio(
         raise HTTPException(status_code=404, detail="No audio recorded for this attempt")
 
     try:
-        return FileResponse(attempt.audio_path, media_type="audio/webm")
+        media_type = EXT_TO_MIME.get(Path(attempt.audio_path).suffix, "audio/webm")
+        return FileResponse(attempt.audio_path, media_type=media_type)
     except FileNotFoundError:
         raise HTTPException(
             status_code=404,

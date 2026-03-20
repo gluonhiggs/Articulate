@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import threading
 from typing import Any, Dict, List
 
@@ -40,11 +41,19 @@ def _get_model():
 def _sync_transcribe(audio_path: str) -> Dict[str, Any]:
     """Synchronous transcription — called in a thread pool executor."""
     model = _get_model()
-    segments, _info = model.transcribe(
+    file_size = os.path.getsize(audio_path) if os.path.exists(audio_path) else -1
+    logger.info("Transcribing %s (%.1f KB)", audio_path, file_size / 1024)
+    segments, info = model.transcribe(
         audio_path,
         word_timestamps=True,
         vad_filter=True,
     )
+
+    # VAD found no speech — return empty immediately without iterating the
+    # generator. Iterating an empty chunk through the Whisper model can hang.
+    if info.duration_after_vad == 0.0:
+        logger.info("Transcribing %s: VAD found no speech (duration_after_vad=0)", audio_path)
+        return {"transcript": "", "words": []}
 
     full_transcript = []
     words: List[Dict[str, Any]] = []
