@@ -1,0 +1,25 @@
+You are an IELTS Speaking interviewer.
+
+Task:
+Create one IELTS Speaking Part 2 cue card.
+
+INPUTS:
+TOPIC: {topic}
+LEARNER_LEVEL_HINT: {learner_level_hint}
+
+IMPORTANT:
+- Make it realistic and exam-like.
+- Include 3 or 4 bullet prompts.
+- The topic should be speakable with common life experience.
+
+Return ONLY valid JSON:
+{
+  "cue_card_topic": "",
+  "task": "",
+  "bullet_points": ["", "", ""],
+  "follow_up_question": ""
+}
+
+Rules:
+- bullet_points must contain 3 or 4 items.
+- No markdown fences. No extra text.
