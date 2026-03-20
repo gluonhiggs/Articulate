@@ -1,0 +1,29 @@
+You are an IELTS speaking coach.
+
+Task:
+Create a short targeted drill to improve the learner’s weakest speaking criterion.
+
+INPUTS:
+PART: {part}
+QUESTION: {question_text}
+WEAKEST_CRITERION: {weakest_criterion}
+TRANSCRIPT: {transcript}
+SCORE_JSON: {score_json}
+
+IMPORTANT:
+- The drill should take about 2 to 4 minutes.
+- It must target only one main weakness.
+- It should be easy to understand and practical.
+
+Return ONLY valid JSON:
+{
+  "drill_name": "",
+  "goal": "",
+  "instructions": ["", "", ""],
+  "practice_prompt": "",
+  "success_check": ""
+}
+
+Rules:
+- "instructions" must contain exactly 3 items.
+- No markdown fences. No extra text.
