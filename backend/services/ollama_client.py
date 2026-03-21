@@ -44,6 +44,7 @@ async def generate(
     temperature: float = 0.4,
     num_predict: int = 1024,
     num_ctx: int = 2048,
+    num_gpu: int = 0,
     timeout: float = 120.0,
 ) -> str:
     """
@@ -53,15 +54,18 @@ async def generate(
     Raises RuntimeError on persistent failure.
     """
     client = _get_client()
+    options: dict = {
+        "temperature": temperature,
+        "num_predict": num_predict,
+        "num_ctx": num_ctx,
+    }
+    if num_gpu > 0:
+        options["num_gpu"] = num_gpu
     payload = {
         "model": model,
         "prompt": prompt,
         "stream": False,
-        "options": {
-            "temperature": temperature,
-            "num_predict": num_predict,
-            "num_ctx": num_ctx,
-        },
+        "options": options,
     }
     url = f"{base_url}/api/generate"
     attempt = 0

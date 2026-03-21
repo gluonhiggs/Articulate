@@ -124,6 +124,14 @@ export function fetchSystemInfo(): Promise<SystemInfo> {
   return apiFetch<SystemInfo>('/system/info')
 }
 
+export function patchOllamaModel(model: string): Promise<SystemInfo> {
+  return apiFetch<SystemInfo>('/system/model', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model }),
+  })
+}
+
 // ─── Forecast ────────────────────────────────────────────────────────────────
 
 export function fetchForecast(): Promise<ForecastEntry[]> {

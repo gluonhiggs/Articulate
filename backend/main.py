@@ -16,7 +16,7 @@ from backend.config import get_settings
 from backend.database import init_db
 from backend.services import ollama_client
 from backend.services.audio import cleanup_old_audio
-from backend.services.transcription import _get_model as _get_whisper_model
+from backend.services.transcription import _get_model as _get_whisper_model, warmup_probe as _warmup_probe
 from backend.services.tts import evict_tts_cache
 
 logging.basicConfig(
@@ -50,7 +50,9 @@ async def lifespan(app: FastAPI):
     logger.info("Pre-loading Whisper model…")
     loop = asyncio.get_running_loop()
     await loop.run_in_executor(None, _get_whisper_model)
-    logger.info("Whisper model ready.")
+    logger.info("Whisper model loaded — running CUDA warmup probe…")
+    await _warmup_probe()
+    logger.info("Whisper ready (device validated).")
 
     yield  # Application runs here
 

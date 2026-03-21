@@ -23,7 +23,7 @@ export function ScoreTags({
         return (
           <span key={t.key} className="inline-flex items-center gap-1">
             <span className={`px-3 py-1 rounded-full text-xs font-medium ${tagClass(t.value)}`}>
-              {t.label}: {t.value.toFixed(0)}
+              {t.label}: {t.value.toFixed(1)}
             </span>
             {isPronun && onPronunDetails && (
               <button

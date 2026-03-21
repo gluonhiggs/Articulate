@@ -4,18 +4,24 @@ import json
 import logging
 from typing import Any, Dict, List, Optional
 
-from backend.config import get_settings
+from backend.config import get_active_model, get_settings
 from backend.constants import PROMPTS_DIR, PROJECT_ROOT
 from backend.services import ollama_client
 
 # Load at module level so a missing file raises FileNotFoundError at startup, not per-request
 _BAND_DESCRIPTORS = (PROJECT_ROOT / "BAND-SCORES.md").read_text(encoding="utf-8")
 
+# Cache prompt templates so disk reads don't happen on every request
+_prompt_cache: dict[str, str] = {}
+
 logger = logging.getLogger(__name__)
 
 
 def _load_prompt(part: str) -> str:
-    """Load the appropriate prompt template based on IELTS part."""
+    """Load the appropriate prompt template based on IELTS part (cached after first read)."""
+    if part in _prompt_cache:
+        return _prompt_cache[part]
+
     if part == "2":
         prompt_file = PROMPTS_DIR / "score_part2.txt"
     elif part == "3":
@@ -25,9 +31,12 @@ def _load_prompt(part: str) -> str:
 
     try:
         with open(prompt_file, "r", encoding="utf-8") as f:
-            return f.read()
+            content = f.read()
     except FileNotFoundError:
         raise FileNotFoundError(f"Prompt file not found: {prompt_file}")
+
+    _prompt_cache[part] = content
+    return content
 
 
 def _build_prompt(
@@ -182,11 +191,12 @@ async def score_attempt(
     try:
         raw_text = await ollama_client.generate(
             base_url=settings.ollama_base_url,
-            model=settings.ollama_model,
+            model=get_active_model(),
             prompt=prompt,
-            temperature=0.2,
-            num_predict=2048,
-            num_ctx=4096,
+            temperature=0.3,    # allow natural band uncertainty; 0.0 locks in anchoring bias
+            num_predict=1024,   # restored; 600 was too tight for responses with many error highlights
+            num_ctx=8192,       # headroom for long Part 2 transcripts; was 4096
+            num_gpu=settings.ollama_gpu_layers,
             timeout=120.0,
         )
     except (RuntimeError, FileNotFoundError) as exc:

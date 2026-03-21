@@ -1,174 +1,41 @@
-9
-Fluency and coherence
-Speaks fluently with only rare repetition or self-correction; any hesitation is content-related rather than to find words or grammar
+**Band 9**
+F&C: Speaks fluently with only rare repetition or self-correction; any hesitation is content-related. Speaks coherently with fully appropriate cohesive features. Develops topics fully and appropriately.
+Vocab: Uses vocabulary with full flexibility and precision in all topics. Uses idiomatic language naturally and accurately.
+Grammar: Uses a full range of structures naturally and appropriately. Produces consistently accurate structures apart from 'slips'.
+Pronunciation: Uses a full range of features with precision and subtlety. Sustains flexible use throughout. Effortless to understand.
 
-Speaks coherently with fully appropriate cohesive features
+**Band 8**
+F&C: Speaks fluently with only occasional repetition or self-correction; hesitation is usually content-related. Develops topics coherently and appropriately.
+Vocab: Uses a wide vocabulary readily and flexibly to convey precise meaning. Uses less common and idiomatic vocabulary skilfully, with occasional inaccuracies. Uses paraphrase effectively.
+Grammar: Uses a wide range of structures flexibly. Produces a majority of error-free sentences with only very occasional errors.
+Pronunciation: Uses a wide range of features. Sustains flexible use with only occasional lapses. Easy to understand throughout; L1 accent has minimal effect on intelligibility.
 
-Develops topics fully and appropriately
+**Band 7**
+F&C: Speaks at length without noticeable effort or loss of coherence. May show language-related hesitation, repetition or self-correction at times. Uses a range of connectives and discourse markers with some flexibility.
+Vocab: Uses vocabulary resource flexibly across a variety of topics. Uses some less common and idiomatic vocabulary with some awareness of style and collocation, though with some inappropriate choices. Uses paraphrase effectively.
+Grammar: Uses a range of complex structures with some flexibility. Frequently produces error-free sentences, though some grammatical mistakes persist.
+Pronunciation: Shows all positive features of Band 6 and some, but not all, of Band 8.
 
-Lexical resource
-Uses vocabulary with full flexibility and precision in all topics
+**Band 6**
+F&C: Willing to speak at length but may lose coherence due to occasional repetition, self-correction or hesitation. Uses connectives and discourse markers but not always appropriately.
+Vocab: Wide enough vocabulary to discuss topics at length and make meaning clear despite inappropriacies. Generally paraphrases successfully.
+Grammar: Uses a mix of simple and complex structures but with limited flexibility. Frequent mistakes with complex structures, though these rarely cause comprehension problems.
+Pronunciation: Uses a range of features with mixed control. Some effective use but not sustained. Generally understood throughout, though individual mispronunciations reduce clarity at times.
 
-Uses idiomatic language naturally and accurately
+**Band 5**
+F&C: Usually maintains flow but uses repetition, self-correction or slow speech to keep going. May over-use certain connectives. Produces simple speech fluently; more complex communication causes fluency problems.
+Vocab: Can discuss familiar and unfamiliar topics but uses vocabulary with limited flexibility. Attempts paraphrase with mixed success.
+Grammar: Produces basic sentence forms with reasonable accuracy. Limited range of more complex structures, usually containing errors that may cause comprehension problems.
+Pronunciation: Shows features of Band 4 and some, but not all, positive features of Band 6.
 
-Grammatical range and accuracy
-Uses a full range of structures naturally and appropriately
+**Band 4**
+F&C: Cannot respond without noticeable pauses; may speak slowly with frequent repetition and self-correction. Links basic sentences but with repetitious use of simple connectives and some breakdowns in coherence.
+Vocab: Able to talk about familiar topics but can only convey basic meaning on unfamiliar topics; makes frequent errors in word choice. Rarely attempts paraphrase.
+Grammar: Produces basic sentence forms and some correct simple sentences but subordinate structures are rare. Errors are frequent and may lead to misunderstanding.
+Pronunciation: Uses a limited range of pronunciation features. Attempts to control features but lapses are frequent. Mispronunciations are frequent and cause some difficulty for the listener.
 
-Produces consistently accurate structures apart from ‘slips’
-
-Pronunciation
-Uses a full range of pronunciation features with precision and subtlety
-
-Sustains flexible use of features throughout
-
-Is effortless to understand
-8
-Fluency and coherence
-Speaks fluently with only occasional repetition or self- correction; hesitation is usually content-related and only rarely to search for language
-
-Develops topics coherently and appropriately
-
-Lexical resource
-Uses a wide vocabulary resource readily and flexibly to convey precise meaning
-
-Uses less common and idiomatic vocabulary skilfully, with occasional inaccuracies
-
-Uses paraphrase effectively as required
-
-Grammatical range and accuracy
-Uses a wide range of structures flexibly
-
-Produces a majority of error-free sentences with only very occasional inappropriacies or basic/non-systematic errors
-
-Pronunciation
-Uses a wide range of pronunciation features
-
-Sustains flexible use of features, with only occasional lapses
-
-Is easy to understand throughout; L1 accent has minimal effect on intelligibility
-7
-Fluency and coherence
-Speaks at length without noticeable effort or loss of coherence
-
-May demonstrate language-related hesitation at times, or some repetition and/or self-correction
-
-Uses a range of connectives and discourse markers with some flexibility
-Lexical resource
-Uses vocabulary resource flexibly to discuss a variety of topics
-
-Uses some less common and idiomatic vocabulary and shows some awareness of style and collocation, with some inappropriate choices
-
-Uses paraphrase effectively
-Grammatical range and accuracy
-Uses a range of complex structures with some flexibility
-
-Frequently produces error-free sentences, though some grammatical mistakes persist
-Pronunciation
-Shows all the positive features of Band 6 and some, but not all, of the positive features of Band 8
-6
-Fluency and coherence
-Is willing to speak at length, though may lose coherence at times due to occasional repetition, self-correction or hesitation
-
-Uses a range of connectives and discourse markers but not always appropriately
-Lexical resource
-Has a wide enough vocabulary to discuss topics at length and make meaning clear in spite of inappropriacies
-
-Generally paraphrases successfully
-Grammatical range and accuracy
-Uses a mix of simple and complex structures, but with limited flexibility
-
-May make frequent mistakes with complex structures, though these rarely cause comprehension problems
-Pronunciation
-Uses a range of pronunciation features with mixed control
-
-Shows some effective use of features but this is not sustained
-
-Can generally be understood throughout, though mispronunciation of individual words or sounds reduces clarity at times
-5
-Fluency and coherence
-Usually maintains flow of speech but uses repetition, self correction and/or slow speech to keep going
-
-May over-use certain connectives and discourse markers
-
-Produces simple speech fluently, but more complex communication causes fluency problems
-Lexical resource
-Manages to talk about familiar and unfamiliar topics but uses vocabulary with limited flexibility
-
-Attempts to use paraphrase but with mixed success
-Grammatical range and accuracy
-Produces basic sentence forms with reasonable accuracy
-
-Uses a limited range of more complex structures, but these usually contain errors and may cause some comprehension problems
-Pronunciation
-Shows all features of band 4 and some, but not all the positive features of band 6
-4
-Fluency and coherence
-Cannot respond without noticeable pauses and may speak slowly, with frequent repetition and self-correction
-
-Links basic sentences but with repetitious use of simple connectives and some breakdowns in coherence
-Lexical resource
-Is able to talk about familiar topics but can only convey basic meaning on unfamiliar topics and makes frequent errors in word choice
-
-Rarely attempts paraphrase
-Grammatical range and accuracy
-Produces basic sentence forms and some correct simple sentences but subordinate structures are rare
-
-Errors are frequent and may lead to misunderstanding
-Pronunciation
-Uses a limited range of pronunciation features
-
-Attempts to control features but lapses are frequent
-
-Mispronunciations are frequent and cause some difficulty for the listener
-3
-Fluency and coherence
-Speaks with long pauses
-
-Has limited ability to link simple sentences
-
-Gives only simple responses and is frequently unable to convey basic message
-
-Lexical resource
-Uses simple vocabulary to convey personal information
-
-Has insufficient vocabulary for less familiar topics
-
-Grammatical range and accuracy
-Attempts basic sentence forms but with limited success, or relies on apparently memorised utterances
-
-Makes numerous errors except in memorised expressions
-
-Pronunciation
-Shows some of the features of band 2 and some, but not all, of the positive features of band 4
-2
-Fluency and coherence
-Pauses lengthily before most words
-Little communication possible
-Lexical resource
-Only produces isolated words or memorised utterances
-Grammatical range and accuracy
-Cannot produce basic sentence forms
-Pronunciation
-Speech is often unintelligible
-1
-Fluency and coherence
-No communication possible
-No rateable language
-Lexical resource
-No communication possible
-No rateable language
-Grammatical range and accuracy
-No communication possible
-No rateable language
-Pronunciation
-No communication possible
-No rateable language
-0
-Fluency and coherence
-Does not attend
-Lexical resource
-Does not attend
-Grammatical range and accuracy
-Does not attend
-Pronunciation
-Does not attend
+**Band 3**
+F&C: Speaks with long pauses. Has limited ability to link simple sentences. Gives only simple responses and is frequently unable to convey the basic message.
+Vocab: Uses simple vocabulary to convey personal information. Has insufficient vocabulary for less familiar topics.
+Grammar: Attempts basic sentence forms but with limited success, or relies on apparently memorised utterances. Makes numerous errors except in memorised expressions.
+Pronunciation: Shows some features of Band 2 and some, but not all, positive features of Band 4.

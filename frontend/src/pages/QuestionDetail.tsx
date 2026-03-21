@@ -418,19 +418,6 @@ export function QuestionDetail() {
                   />
                 ),
               )}
-
-              {/* Processing card at bottom */}
-              {(status === 'uploading' || status === 'polling') &&
-                newestAttemptId !== null &&
-                !sortedAttempts.some((a) => a.id === newestAttemptId) && (
-                  <div className="rounded-xl p-5 glow-border-active bg-card slide-in-top">
-                    <div className="flex items-center gap-3">
-                      <span className="text-gray-500 text-xs font-mono">#{sortedAttempts.length + 1}</span>
-                      <div className="animate-spin h-4 w-4 border-2 border-teal-400 border-t-transparent rounded-full" />
-                      <span className="text-gray-400 text-sm">AI is analysing your response...</span>
-                    </div>
-                  </div>
-                )}
             </div>
           )}
 

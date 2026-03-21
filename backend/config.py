@@ -35,3 +35,16 @@ class Settings(BaseSettings):
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     return Settings()
+
+
+_runtime_model: str | None = None
+
+
+def get_active_model() -> str:
+    """Return runtime override if set, else the configured default."""
+    return _runtime_model if _runtime_model is not None else get_settings().ollama_model
+
+
+def set_runtime_model(model: str) -> None:
+    global _runtime_model
+    _runtime_model = model

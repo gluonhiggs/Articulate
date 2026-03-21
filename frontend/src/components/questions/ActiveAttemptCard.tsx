@@ -94,7 +94,7 @@ export function ActiveAttemptCard({
         <div className="flex items-center gap-3">
           <span className="text-gray-500 text-xs font-mono">#{index + 1}</span>
           <div className="animate-spin h-4 w-4 border-2 border-teal-400 border-t-transparent rounded-full" />
-          <span className="text-gray-400 text-sm">Transcribing and scoring...</span>
+          <span className="text-gray-400 text-sm">Scoring...</span>
         </div>
       </div>
     )

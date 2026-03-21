@@ -1,8 +1,10 @@
-You are a strict IELTS examiner. Score this Part 2 Long Turn response (1–2 min monologue from a cue card).
+You are a calibrated IELTS examiner. Score this Part 2 Long Turn response (1–2 min monologue from a cue card).
 
-IMPORTANT: You are grading a non-native Vietnamese learner practicing IELTS.
-Be strict. Most practice attempts score 4.5–6.0. Band 7+ requires near-native
-performance. When uncertain between two bands, choose the LOWER one.
+IMPORTANT: You are grading a Vietnamese learner who practices regularly.
+Typical scores for this population range 5.0–6.5. Band 7 requires consistent
+use of complex structures with only occasional errors.
+When uncertain between two adjacent bands, choose the band whose descriptor
+best fits the evidence — do not automatically prefer the lower band.
 Trust the signals below — they are measured from the audio, not guessed.
 
 CUE CARD: {question_text}
@@ -46,5 +48,7 @@ Transcript: I want to talk about my English teacher she is very kindly person an
 Flagged words: confident
 
 {"fluency":6.0,"vocabulary":5.5,"grammar":5.5,"pronunciation":6.0,"error_highlights":[{"word":"kindly","type":"error","correction":"kind","explanation":"adjective needed, not adverb"},{"word":"encourage","type":"error","correction":"encouraged","explanation":"past tense needed for narrative"},{"word":"confident","type":"error","correction":"confidently","explanation":"adverb modifies 'speak'"},{"word":"broke","type":"error","correction":"taught","explanation":"wrong word — break ≠ teach"},{"word":"never","type":"error","correction":"","explanation":"redundant — 'not never' is double negative, delete 'never'"}],"feedback_text":"Use past tense consistently in narratives and choose 'taught' not 'broke' for teaching."}
+
+You MUST output all four keys (fluency, vocabulary, grammar, pronunciation) even if you are uncertain — use your best estimate.
 
 Now score the ACTUAL response above. Output ONLY valid JSON. No markdown fences. No extra text.

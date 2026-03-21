@@ -13,8 +13,8 @@ interface RecordingBarProps {
 }
 
 const BACKEND_STEP_LABELS: Record<string, string> = {
-  transcribing:             'Transcribing your audio... (1/2)',
-  scoring:                  'AI scoring your response... (2/2)',
+  transcribing:             'Scoring...',
+  scoring:                  'Scoring...',
   'failed:transcription':   'Could not transcribe audio',
   'failed:empty_audio':     'Audio was too quiet or silent',
   'failed:scoring':         'AI scoring unavailable (is Ollama running?)',
@@ -150,7 +150,7 @@ export function RecordingBar({
             <p className="text-textSecondary text-sm">
               {status === 'uploading'
                 ? 'Uploading...'
-                : (BACKEND_STEP_LABELS[backendStatus ?? ''] ?? 'AI is scoring your response...')}
+                : (BACKEND_STEP_LABELS[backendStatus ?? ''] ?? 'Scoring...')}
             </p>
           </div>
         )}

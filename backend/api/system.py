@@ -3,8 +3,8 @@ from __future__ import annotations
 import httpx
 from fastapi import APIRouter
 
-from backend.config import get_settings
-from backend.schemas import SystemInfoOut
+from backend.config import get_active_model, get_settings, set_runtime_model
+from backend.schemas import SetModelRequest, SystemInfoOut
 
 router = APIRouter(prefix="/api/v1/system", tags=["system"])
 
@@ -21,7 +21,7 @@ async def _check_ollama(base_url: str) -> bool:
 @router.get("/info", response_model=SystemInfoOut)
 async def system_info() -> SystemInfoOut:
     settings = get_settings()
-    model = settings.ollama_model
+    model = get_active_model()
     is_low_accuracy = any(tag in model for tag in ("1b", "3b"))
     ollama_reachable = await _check_ollama(settings.ollama_base_url)
     return SystemInfoOut(
@@ -32,3 +32,9 @@ async def system_info() -> SystemInfoOut:
         is_low_accuracy=is_low_accuracy,
         ollama_reachable=ollama_reachable,
     )
+
+
+@router.patch("/model", response_model=SystemInfoOut)
+async def update_model(body: SetModelRequest) -> SystemInfoOut:
+    set_runtime_model(body.model.strip())
+    return await system_info()

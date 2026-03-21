@@ -1,6 +1,7 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { fetchSystemInfo } from '../../api/client'
+import { fetchSystemInfo, patchOllamaModel } from '../../api/client'
 import type { SystemInfo } from '../../types'
 
 interface NavItem {
@@ -114,13 +115,80 @@ const navItems: NavItem[] = [
   { label: 'Forecast', to: '/forecast', icon: <ChartIcon /> },
 ]
 
+function PencilIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className="h-3 w-3"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+      />
+    </svg>
+  )
+}
+
+function SpinnerIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className="h-3 w-3 animate-spin"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+    </svg>
+  )
+}
+
 export function Sidebar({ onClose }: { onClose?: () => void }) {
+  const queryClient = useQueryClient()
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
   const { data: systemInfo, isError: systemInfoError } = useQuery<SystemInfo>({
     queryKey: ['systemInfo'],
     queryFn: fetchSystemInfo,
     staleTime: 5 * 60 * 1000,
     retry: false,
   })
+
+  const modelMutation = useMutation({
+    mutationFn: patchOllamaModel,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['systemInfo'] })
+      setEditing(false)
+    },
+  })
+
+  function startEditing() {
+    setDraft(systemInfo?.ollama_model ?? '')
+    setEditing(true)
+    setTimeout(() => inputRef.current?.select(), 0)
+  }
+
+  function commitEdit() {
+    const trimmed = draft.trim()
+    if (trimmed && trimmed !== systemInfo?.ollama_model) {
+      modelMutation.mutate(trimmed)
+    } else {
+      setEditing(false)
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') commitEdit()
+    if (e.key === 'Escape') setEditing(false)
+  }
 
   return (
     <aside className="w-64 min-h-screen bg-sidebar flex flex-col border-r border-cardBorder">
@@ -214,9 +282,28 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
                 <p className="text-xs text-textSecondary truncate mt-0.5">
                   Whisper: {systemInfo.whisper_model}
                 </p>
-                <p className="text-xs text-textSecondary truncate">
-                  LLM: {systemInfo.ollama_model}
-                </p>
+                {editing ? (
+                  <input
+                    ref={inputRef}
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    onBlur={commitEdit}
+                    onKeyDown={handleKeyDown}
+                    className="text-xs w-full bg-card border border-accent/40 rounded px-1 py-0.5 text-textPrimary outline-none focus:border-accent"
+                    autoFocus
+                  />
+                ) : (
+                  <button
+                    onClick={startEditing}
+                    className="group flex items-center gap-1 text-xs text-textSecondary hover:text-textPrimary w-full text-left"
+                    title="Click to change model"
+                  >
+                    <span className="truncate">LLM: {systemInfo.ollama_model}</span>
+                    <span className="shrink-0 opacity-0 group-hover:opacity-60 transition-opacity">
+                      {modelMutation.isPending ? <SpinnerIcon /> : <PencilIcon />}
+                    </span>
+                  </button>
+                )}
                 {systemInfo.is_low_accuracy && (
                   <span className="mt-1.5 inline-block text-xs text-amber-400 border border-amber-400/30 rounded px-1.5 py-0.5">
                     Low-accuracy mode
