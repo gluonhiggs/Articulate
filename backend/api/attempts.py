@@ -52,6 +52,12 @@ def _get_lt_tool():
 
 async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> None:
     """Background task: transcribe → score → update attempt + stats."""
+    logger.info(
+        "\n\n========== PIPELINE START attempt_id=%d ==========\n"
+        "  question_id=%d\n"
+        "  audio=%s",
+        attempt_id, question_id, audio_path,
+    )
     settings = get_settings()
 
     async with AsyncSessionLocal() as session:
@@ -100,6 +106,19 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
 
             transcript = transcription_result.get("transcript", "")
             words = transcription_result.get("words", [])
+            logger.info(
+                "\n\n========== TRANSCRIPTION RESULT attempt_id=%d ==========\n"
+                "  raw keys: %s\n"
+                "  word_count=%d  duration=%.1fs\n"
+                "  transcript: %r\n"
+                "  first 3 words: %s",
+                attempt_id,
+                list(transcription_result.keys()),
+                len(words),
+                words[-1].get("end", 0) if words else 0,
+                transcript[:300],
+                words[:3],
+            )
 
             # Guard: empty or silent audio
             if not transcript or not transcript.strip():
@@ -198,6 +217,19 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                 or w["word"].lower() in disfluent
             ]
 
+            logger.info(
+                "\n\n========== SCORING SIGNALS attempt_id=%d ==========\n"
+                "  fluency : %d gaps / %d words = %.1f per 100\n"
+                "  vocab   : %s\n"
+                "  grammar : %s\n"
+                "  flagged : %s",
+                attempt_id,
+                gap_count, total_words, gaps_per_100,
+                vocab_signal,
+                grammar_context,
+                flagged_words,
+            )
+
             # ----------------------------------------------------------------
             # 4. Score
             # ----------------------------------------------------------------
@@ -238,6 +270,20 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                 scoring_result.get("error_highlights", [])
             )
             score = scoring_result.get("score")
+            logger.info(
+                "\n\n========== SCORING RESULT attempt_id=%d ==========\n"
+                "  raw keys : %s\n"
+                "  fluency  : %s\n"
+                "  vocab    : %s\n"
+                "  grammar  : %s\n"
+                "  pronun   : %s\n"
+                "  overall  : %s\n"
+                "  feedback : %r",
+                attempt_id,
+                list(scoring_result.keys()),
+                fluency, vocabulary, grammar, pronunciation, score,
+                (feedback_text or "")[:200],
+            )
 
             # ----------------------------------------------------------------
             # 5. Update Attempt
@@ -260,7 +306,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             attempt.feedback_text = feedback_text
             attempt.error_highlights = error_highlights
             attempt.status = "ready"
-            logger.info("Pipeline %d: ready", attempt_id)
+            logger.info("\n\n========== PIPELINE DONE attempt_id=%d ==========", attempt_id)
 
             # ----------------------------------------------------------------
             # 6. Update DailyActivity
@@ -390,6 +436,13 @@ async def submit_attempt(
         attempt.audio_path = audio_path
         await db.commit()
         await db.refresh(attempt)
+        file_size_kb = os.path.getsize(audio_path) / 1024 if os.path.exists(audio_path) else -1
+        logger.info(
+            "\n\n========== SUBMIT attempt_id=%d question_id=%d ==========\n"
+            "  audio saved → %s  (%.1f KB)\n"
+            "  content_type=%s",
+            attempt.id, question_id, audio_path, file_size_kb, audio.content_type,
+        )
     except Exception as exc:
         attempt.status = "failed"
         await db.commit()

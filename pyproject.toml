@@ -41,6 +41,15 @@ name = "pytorch-cpu"
 url = "https://download.pytorch.org/whl/cpu"
 explicit = true
 
+[project.optional-dependencies]
+# GPU inference (Windows/Linux, NVIDIA only).
+# Install with: uv pip install -e ".[gpu]"
+# run.ps1 handles this automatically on the pc profile.
+gpu = [
+    "nvidia-cublas-cu12",
+    "nvidia-cudnn-cu12",
+]
+
 [dependency-groups]
 dev = [
     "pytest>=8.0",

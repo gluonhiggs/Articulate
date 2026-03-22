@@ -178,6 +178,22 @@ async def score_attempt(
         }
     """
     settings = get_settings()
+    active_model = get_active_model()
+
+    logger.info(
+        "SCORE_INPUT part=%s model=%s transcript_words=%d flagged=%s",
+        part,
+        active_model,
+        len(transcript.split()),
+        flagged_words,
+    )
+    logger.info(
+        "SCORE_SIGNALS fluency_context=%r vocab_signal=%r grammar_context=%r",
+        fluency_context,
+        vocab_signal,
+        grammar_context,
+    )
+
     prompt = _build_prompt(
         question_text,
         part,
@@ -191,7 +207,7 @@ async def score_attempt(
     try:
         raw_text = await ollama_client.generate(
             base_url=settings.ollama_base_url,
-            model=get_active_model(),
+            model=active_model,
             prompt=prompt,
             temperature=0.3,    # allow natural band uncertainty; 0.0 locks in anchoring bias
             num_predict=1024,   # restored; 600 was too tight for responses with many error highlights
@@ -203,4 +219,15 @@ async def score_attempt(
         logger.exception("Scoring failed: %s", exc)
         raw_text = ""
 
-    return _parse_llm_response(raw_text)
+    logger.info("SCORE_RAW_RESPONSE %r", raw_text[:500] if raw_text else "(empty)")
+
+    result = _parse_llm_response(raw_text)
+    logger.info(
+        "SCORE_RESULT fluency=%s vocab=%s grammar=%s pronun=%s overall=%s",
+        result.get("fluency"),
+        result.get("vocabulary"),
+        result.get("grammar"),
+        result.get("pronunciation"),
+        result.get("score"),
+    )
+    return result

@@ -79,7 +79,7 @@ export function Home() {
         <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-4 mb-6">
           <p className="text-red-400 text-sm font-medium">Backend not responding</p>
           <p className="text-red-400/70 text-xs mt-1">
-            {error instanceof Error ? error.message : 'Hãy kiểm tra backend đang chạy.'}
+            {error instanceof Error ? error.message : 'Make sure the backend is running.'}
           </p>
         </div>
       )}

@@ -11,9 +11,9 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
     })
   } catch (err) {
     if (err instanceof DOMException && err.name === 'TimeoutError') {
-      throw new Error('Không thể kết nối server (timeout). Hãy kiểm tra backend đang chạy.')
+      throw new Error('Cannot connect to server (timeout). Make sure the backend is running.')
     }
-    throw new Error('Không thể kết nối server. Hãy kiểm tra backend đang chạy.')
+    throw new Error('Cannot connect to server. Make sure the backend is running.')
   }
   if (!response.ok) {
     const text = await response.text().catch(() => response.statusText)

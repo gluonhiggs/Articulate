@@ -5,9 +5,11 @@ import concurrent.futures
 import logging
 import os
 import threading
+import time
 from typing import Any, Dict, List
 
 from backend.config import get_settings
+
 
 logger = logging.getLogger(__name__)
 
@@ -143,32 +145,69 @@ def _sync_transcribe(audio_path: str) -> Dict[str, Any]:
 
     model = _get_model()
     file_size = os.path.getsize(audio_path) if os.path.exists(audio_path) else -1
-    logger.info("Transcribing %s (%.1f KB)", audio_path, file_size / 1024)
-
     settings = get_settings()
     configured_device = settings.whisper_device.lower()
+    active_device = "cpu" if _force_cpu_fallback else configured_device
 
+    logger.info(
+        "========== WHISPER START ==========\n"
+        "  file      : %s (%.1f KB)\n"
+        "  model     : %s\n"
+        "  device    : %s  compute_type=%s%s",
+        audio_path, file_size / 1024,
+        settings.whisper_model,
+        active_device,
+        "int8" if active_device == "cpu" else settings.whisper_compute_type,
+        "  [CPU fallback]" if _force_cpu_fallback else "",
+    )
+
+    t0 = time.perf_counter()
     try:
-        return _run_transcribe(model, audio_path)
+        result = _run_transcribe(model, audio_path)
+        elapsed = time.perf_counter() - t0
+        audio_duration = result["words"][-1]["end"] if result.get("words") else 0
+        rtf = elapsed / audio_duration if audio_duration > 0 else 0
+        logger.info(
+            "========== WHISPER DONE ==========\n"
+            "  device    : %s\n"
+            "  audio     : %.1fs\n"
+            "  wall time : %.2fs\n"
+            "  RTF       : %.2f  (real-time factor — lower is faster; <1.0 = faster than real time)",
+            active_device, audio_duration, elapsed, rtf,
+        )
+        return result
 
     except Exception as exc:
+        elapsed = time.perf_counter() - t0
         # If the model was on a non-CPU device, a CUDA runtime error can surface
         # here at inference time (e.g. cublas64_12.dll present enough for
         # WhisperModel() but missing for actual matrix ops).  Flag for CPU and
         # retry once — subsequent calls will skip CUDA entirely.
         if configured_device != "cpu":
             logger.warning(
-                "Transcription inference failed on device='%s' (%s). "
+                "Transcription inference failed on device='%s' after %.2fs (%s). "
                 "Switching to CPU/int8 for this and future calls.",
-                configured_device,
-                exc,
+                configured_device, elapsed, exc,
             )
             with _whisper_lock:
                 _force_cpu_fallback = True
                 _whisper_model = None  # force _get_model() to reload on CPU
 
             cpu_model = _get_model()
-            return _run_transcribe(cpu_model, audio_path)
+            t1 = time.perf_counter()
+            result = _run_transcribe(cpu_model, audio_path)
+            elapsed_cpu = time.perf_counter() - t1
+            audio_duration = result["words"][-1]["end"] if result.get("words") else 0
+            rtf = elapsed_cpu / audio_duration if audio_duration > 0 else 0
+            logger.info(
+                "========== WHISPER DONE (CPU fallback) ==========\n"
+                "  device    : cpu\n"
+                "  audio     : %.1fs\n"
+                "  wall time : %.2fs\n"
+                "  RTF       : %.2f",
+                audio_duration, elapsed_cpu, rtf,
+            )
+            return result
 
         raise  # already on CPU — propagate so the pipeline marks it as failed
 

@@ -3,7 +3,7 @@ import { useState } from 'react'
 type TestFilter = 'all' | 'part1' | 'part2' | 'part3' | 'full'
 
 const FILTERS: { id: TestFilter; label: string }[] = [
-  { id: 'all', label: 'Tất cả' },
+  { id: 'all', label: 'All' },
   { id: 'part1', label: 'Part 1' },
   { id: 'part2', label: 'Part 2' },
   { id: 'part3', label: 'Part 3' },
@@ -17,9 +17,9 @@ export function MockTest() {
     <div className="p-6 max-w-4xl mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-textPrimary">Thi thử</h1>
+        <h1 className="text-2xl font-bold text-textPrimary">Mock Test</h1>
         <p className="text-textSecondary text-sm mt-1">
-          Mô phỏng bài thi IELTS Speaking thực tế
+          Simulate a real IELTS Speaking exam
         </p>
       </div>
 
@@ -60,27 +60,27 @@ export function MockTest() {
           </svg>
         </div>
 
-        <h2 className="text-textPrimary text-xl font-semibold mb-2">Sắp ra mắt</h2>
+        <h2 className="text-textPrimary text-xl font-semibold mb-2">Coming Soon</h2>
         <p className="text-textSecondary text-sm max-w-sm leading-relaxed">
-          Tính năng thi thử đang được phát triển. Bạn sẽ có thể thực hành toàn bộ bài thi IELTS
-          Speaking với thời gian thực.
+          The mock test feature is under development. You'll be able to practice a full IELTS
+          Speaking exam in real time.
         </p>
 
         <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-lg">
           {[
             {
               title: 'Part 1',
-              desc: '4-5 phút, câu hỏi ngắn về bản thân',
+              desc: '4–5 min, short questions about yourself',
               icon: '💬',
             },
             {
               title: 'Part 2',
-              desc: '3-4 phút, nói về cue card',
+              desc: '3–4 min, speak about a cue card',
               icon: '📋',
             },
             {
               title: 'Part 3',
-              desc: '4-5 phút, thảo luận chủ đề',
+              desc: '4–5 min, topic discussion',
               icon: '🗣️',
             },
           ].map((part) => (
@@ -96,10 +96,10 @@ export function MockTest() {
         </div>
 
         <div className="mt-8 bg-card border border-accent/20 rounded-xl p-4 max-w-sm w-full">
-          <p className="text-accent text-sm font-medium">Khi nào ra mắt?</p>
+          <p className="text-accent text-sm font-medium">When will it launch?</p>
           <p className="text-textSecondary text-xs mt-1">
-            Tính năng Full Mock Test sẽ có trong phiên bản tiếp theo. Trong lúc đó, hãy luyện từng
-            câu qua các trang Part 1, 2, 3.
+            The Full Mock Test feature will be available in the next version. In the meantime,
+            practice individual questions in Part 1, 2, and 3.
           </p>
         </div>
       </div>

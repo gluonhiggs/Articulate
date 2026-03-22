@@ -29,6 +29,15 @@ if ($Profile -eq "pc") {
     } else {
         Write-Host "CUDA torch already installed." -ForegroundColor Green
     }
+    # Ensure CUDA runtime libs for ctranslate2/faster-whisper (cublas, cudnn)
+    $hasCublas = uv pip show nvidia-cublas-cu12 2>$null
+    $hasCudnn  = uv pip show nvidia-cudnn-cu12  2>$null
+    if (-not $hasCublas -or -not $hasCudnn) {
+        Write-Host "Installing GPU extras (nvidia CUDA libs)..." -ForegroundColor Yellow
+        uv pip install nvidia-cublas-cu12 nvidia-cudnn-cu12
+    } else {
+        Write-Host "GPU extras already installed." -ForegroundColor Green
+    }
 }
 
 
@@ -40,6 +49,24 @@ if (Test-Path "certs/cert.pem") {
     Write-Host "HTTPS enabled (certs/cert.pem found)" -ForegroundColor Green
 } else {
     Write-Warning "certs/ not found, running HTTP only (for phone mic: enable chrome://flags/#unsafely-treat-insecure-origin-as-secure)"
+}
+
+# On Windows, ctranslate2's C extension (_ext.pyd) loads CUDA DLLs at import time
+# via the OS loader — before any Python code in transcription.py can run.
+# The nvidia-cublas-cu12 package installs cublas64_12.dll under site-packages/nvidia/cublas/bin/
+# but does NOT register that directory (no __init__.py → no os.add_dll_directory()).
+# Adding the nvidia bin dirs to PATH here ensures the OS DLL loader finds them.
+$SitePackages = uv run python -c "import sysconfig; print(sysconfig.get_path('purelib'))" 2>$null
+if ($SitePackages) {
+    $NvidiaCublasBin = Join-Path $SitePackages "nvidia\cublas\bin"
+    $NvidiaCudnnBin  = Join-Path $SitePackages "nvidia\cudnn\bin"
+    $NvidiaCudartBin = Join-Path $SitePackages "nvidia\cuda_runtime\bin"
+    foreach ($dir in @($NvidiaCublasBin, $NvidiaCudnnBin, $NvidiaCudartBin)) {
+        if (Test-Path $dir) {
+            $env:PATH = "$dir;$env:PATH"
+            Write-Host "Added to PATH: $dir" -ForegroundColor Cyan
+        }
+    }
 }
 
 Write-Host "Starting Articulate ($Profile profile)..." -ForegroundColor Green
