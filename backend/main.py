@@ -47,6 +47,16 @@ async def lifespan(app: FastAPI):
     evict_tts_cache(settings.tts_cache_dir, settings.tts_cache_max_mb)
     logger.info("TTS cache eviction done.")
 
+    logger.info("Verifying vocab signal dependencies…")
+    try:
+        import simplemma, lexicalrichness  # noqa: F401
+        logger.info("Vocab signal deps OK (simplemma + lexicalrichness).")
+    except ImportError as exc:
+        logger.warning("Vocab signal deps missing: %s — run `uv sync`", exc)
+
+    from backend.data.oxford import WORD_TO_CEFR
+    logger.info("Oxford 5000 loaded: %d words", len(WORD_TO_CEFR))
+
     logger.info("Pre-loading Whisper model…")
     loop = asyncio.get_running_loop()
     await loop.run_in_executor(None, _get_whisper_model)

@@ -14,7 +14,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.config import get_settings
 from backend.constants import BAND_ROLLING_WINDOW
-from backend.data.cefr_wordlist import CEFR
 from backend.database import AsyncSessionLocal, get_db
 from backend.models import Attempt, DailyActivity, Question, UserStats
 from backend.schemas import AttemptOut, AttemptStatusOut, ImproveOut, PronunciationOut, PronunciationWord
@@ -24,6 +23,7 @@ from backend.services.audio import EXT_TO_MIME
 from backend.services import improve as improve_service
 from backend.services import scoring as scoring_service
 from backend.services import transcription as transcription_service
+from backend.services.vocab import compute_vocab_signal
 
 logger = logging.getLogger(__name__)
 
@@ -167,21 +167,8 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                 f"{gap_count} long pause(s) in {total_words} words ({gaps_per_100}/100 words)"
             )
 
-            # Signal 2: CEFR vocabulary distribution
-            vocab_signal = "insufficient vocabulary data"
-            try:
-                content_words = [
-                    w["word"].lower().strip(".,!?;:'\"")
-                    for w in words
-                    if len(w.get("word", "")) > 2
-                ]
-                known = [w for w in content_words if w in CEFR]
-                high_level = sum(1 for w in known if CEFR[w] in ("B2", "C1"))
-                if known:
-                    pct = round(high_level / len(known) * 100)
-                    vocab_signal = f"{high_level}/{len(known)} known words are B2+ ({pct}%)"
-            except Exception as exc:
-                logger.warning("CEFR vocab signal failed: %s", exc)
+            # Signal 2: CEFR vocabulary distribution + lexical diversity (MTLD)
+            vocab_signal = compute_vocab_signal(words, transcript)
 
             # Signal 3: Grammar checker (LanguageTool — requires Java)
             grammar_context = "grammar checker unavailable"

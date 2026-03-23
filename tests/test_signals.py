@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import pytest
 
-from backend.data.cefr_wordlist import CEFR
+from backend.data.oxford import WORD_TO_CEFR, WORD_TO_DATA
 
 # ---------------------------------------------------------------------------
 # CEFR vocabulary signal
@@ -23,8 +23,8 @@ def _compute_vocab_signal(words: list[dict]) -> str:
         for w in words
         if len(w.get("word", "")) > 2
     ]
-    known = [w for w in content_words if w in CEFR]
-    high_level = sum(1 for w in known if CEFR[w] in ("B2", "C1"))
+    known = [w for w in content_words if w in WORD_TO_CEFR]
+    high_level = sum(1 for w in known if WORD_TO_CEFR[w] in ("B2", "C1"))
     if not known:
         return "insufficient vocabulary data"
     pct = round(high_level / len(known) * 100)
@@ -52,20 +52,29 @@ def _compute_fluency(words: list[dict]) -> tuple[int, set[str], float]:
 
 class TestCEFRWordlist:
     def test_wordlist_is_non_empty(self):
-        assert len(CEFR) > 100
+        assert len(WORD_TO_CEFR) > 4000
 
     def test_a1_word_present(self):
-        # "house" is universally A1 — sanity check the dict loaded
-        assert "house" in CEFR
+        assert "house" in WORD_TO_CEFR
 
     def test_levels_are_valid_cefr(self):
         valid_levels = {"A1", "A2", "B1", "B2", "C1"}
-        for word, level in list(CEFR.items())[:50]:
+        for word, level in list(WORD_TO_CEFR.items())[:50]:
             assert level in valid_levels, f"Unexpected level {level!r} for word {word!r}"
 
     def test_b2_words_exist(self):
-        b2_words = [w for w, lvl in CEFR.items() if lvl == "B2"]
-        assert len(b2_words) > 10, "Expected at least 10 B2 words in wordlist"
+        b2_words = [w for w, lvl in WORD_TO_CEFR.items() if lvl == "B2"]
+        assert len(b2_words) > 100, "Expected at least 100 B2 words"
+
+    def test_us_alias_resolves(self):
+        # "color" (US) should resolve to same level as "colour" (UK)
+        assert "color" in WORD_TO_CEFR
+        assert WORD_TO_CEFR["color"] == WORD_TO_CEFR["colour"]
+
+    def test_b2_word_has_ipa(self):
+        # Any B2 word should have a North American IPA transcription
+        b2_word = next(w for w, lvl in WORD_TO_CEFR.items() if lvl == "B2")
+        assert WORD_TO_DATA[b2_word]["phon_n_am"] != ""
 
 
 class TestCEFRSignal:
@@ -92,8 +101,8 @@ class TestCEFRSignal:
 
     def test_b2_word_detected(self):
         # Find any B2 word in the dict to test with
-        b2_word = next(w for w, lvl in CEFR.items() if lvl == "B2" and len(w) > 2)
-        a1_word = next(w for w, lvl in CEFR.items() if lvl == "A1" and len(w) > 2)
+        b2_word = next(w for w, lvl in WORD_TO_CEFR.items() if lvl == "B2" and len(w) > 2)
+        a1_word = next(w for w, lvl in WORD_TO_CEFR.items() if lvl == "A1" and len(w) > 2)
         words = [{"word": b2_word}, {"word": a1_word}]
         signal = _compute_vocab_signal(words)
         assert "B2+" in signal

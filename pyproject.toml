@@ -22,6 +22,8 @@ dependencies = [
     # Grammar checker — optional enhancement, requires Java on host system.
     # Falls back gracefully if Java is not installed.
     "language-tool-python>=2.7",
+    "simplemma>=1.0",
+    "lexicalrichness>=0.5",
 ]
 
 [build-system]
