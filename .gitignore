@@ -44,6 +44,7 @@ __pycache__/
 # App data
 data/articulate.db
 data/audio/
+data/tts_cache/
 
 # Frontend build
 frontend/dist/

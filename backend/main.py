@@ -17,7 +17,7 @@ from backend.database import init_db
 from backend.services import ollama_client
 from backend.services.audio import cleanup_old_audio
 from backend.services.transcription import _get_model as _get_whisper_model, warmup_probe as _warmup_probe
-from backend.services.tts import evict_tts_cache
+from backend.services.tts import evict_tts_cache, _ensure_pipeline as _ensure_tts_pipeline
 
 logging.basicConfig(
     level=logging.INFO,
@@ -63,6 +63,10 @@ async def lifespan(app: FastAPI):
     logger.info("Whisper model loaded — running CUDA warmup probe…")
     await _warmup_probe()
     logger.info("Whisper ready (device validated).")
+
+    logger.info("Pre-loading Kokoro TTS model…")
+    await _ensure_tts_pipeline()
+    logger.info("Kokoro TTS model ready.")
 
     yield  # Application runs here
 

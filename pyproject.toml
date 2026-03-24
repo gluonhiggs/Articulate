@@ -19,6 +19,7 @@ dependencies = [
     #   uv pip install torch --index-url https://download.pytorch.org/whl/cu121
     "torch>=2.3",
     "kokoro>=0.3",
+    "en-core-web-sm>=3.8.0",
     # Grammar checker — optional enhancement, requires Java on host system.
     # Falls back gracefully if Java is not installed.
     "language-tool-python>=2.7",
@@ -37,6 +38,7 @@ packages = ["backend"]
 # PC users override with CUDA torch after sync (see run.ps1).
 [tool.uv.sources]
 torch = { index = "pytorch-cpu" }
+en-core-web-sm = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl" }
 
 [[tool.uv.index]]
 name = "pytorch-cpu"
