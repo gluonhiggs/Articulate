@@ -8,27 +8,18 @@ from __future__ import annotations
 import pytest
 
 from backend.data.oxford import WORD_TO_CEFR, WORD_TO_DATA
+from backend.services.vocab import compute_vocab_signal
 
 # ---------------------------------------------------------------------------
-# CEFR vocabulary signal
+# CEFR vocabulary signal helpers
 # ---------------------------------------------------------------------------
 
 GAP_THRESHOLD = 0.5  # mirrors Settings.gap_threshold default
 
 
-def _compute_vocab_signal(words: list[dict]) -> str:
-    """Replicate the CEFR signal logic from _run_pipeline()."""
-    content_words = [
-        w["word"].lower().strip(".,!?;:'\"")
-        for w in words
-        if len(w.get("word", "")) > 2
-    ]
-    known = [w for w in content_words if w in WORD_TO_CEFR]
-    high_level = sum(1 for w in known if WORD_TO_CEFR[w] in ("B2", "C1"))
-    if not known:
-        return "insufficient vocabulary data"
-    pct = round(high_level / len(known) * 100)
-    return f"{high_level}/{len(known)} known words are B2+ ({pct}%)"
+def _w(word: str) -> dict:
+    """Build a minimal word dict (no timestamps) for vocab signal tests."""
+    return {"word": word}
 
 
 def _compute_fluency(words: list[dict]) -> tuple[int, set[str], float]:
@@ -78,42 +69,57 @@ class TestCEFRWordlist:
 
 
 class TestCEFRSignal:
+    """Tests for compute_vocab_signal() in backend.services.vocab."""
+
     def test_no_words_returns_insufficient(self):
-        signal = _compute_vocab_signal([])
-        assert signal == "insufficient vocabulary data"
+        signal = compute_vocab_signal([], "")
+        assert "insufficient" in signal
+
+    def test_stop_words_excluded_from_cefr_distribution(self):
+        # "the", "and", "for" are stop words — should not inflate A1 count
+        words = [_w("the"), _w("and"), _w("for")]
+        signal = compute_vocab_signal(words, "the and for")
+        # All tokens filtered → matched=0 → CEFR insufficient
+        assert "insufficient" in signal
 
     def test_short_words_filtered_out(self):
-        # Words with len <= 2 are excluded from content_words
-        words = [{"word": "is"}, {"word": "a"}, {"word": "to"}]
-        signal = _compute_vocab_signal(words)
-        assert signal == "insufficient vocabulary data"
+        # Words with len <= 2 (after stripping) are excluded
+        words = [_w("is"), _w("a"), _w("to")]
+        signal = compute_vocab_signal(words, "is a to")
+        assert "insufficient" in signal
 
-    def test_unknown_words_return_insufficient(self):
-        words = [{"word": "xyzabc"}, {"word": "qqqrrr"}, {"word": "zzznnn"}]
-        signal = _compute_vocab_signal(words)
-        assert signal == "insufficient vocabulary data"
-
-    def test_only_a1_words_zero_b2_percent(self):
-        # "house" is A1 — should give 0% B2+
-        words = [{"word": "house"}, {"word": "house"}, {"word": "house"}]
-        signal = _compute_vocab_signal(words)
-        assert "0%" in signal or "0/" in signal
+    def test_only_a1_content_words(self):
+        # "house" (A1) is a content word and not a stop word
+        words = [_w("house"), _w("house"), _w("house")]
+        signal = compute_vocab_signal(words, "house house house")
+        # A1:100% and 0 B2+ words
+        assert "0 B2+ words" in signal
+        assert "A1:100%" in signal
 
     def test_b2_word_detected(self):
-        # Find any B2 word in the dict to test with
-        b2_word = next(w for w, lvl in WORD_TO_CEFR.items() if lvl == "B2" and len(w) > 2)
-        a1_word = next(w for w, lvl in WORD_TO_CEFR.items() if lvl == "A1" and len(w) > 2)
-        words = [{"word": b2_word}, {"word": a1_word}]
-        signal = _compute_vocab_signal(words)
-        assert "B2+" in signal
-        assert "50%" in signal  # 1 of 2 known words is B2+
+        # "abandon" is B2 in Oxford 5000 and not a stop word; "house" is A1
+        words = [_w("abandon"), _w("house")]
+        signal = compute_vocab_signal(words, "abandon house")
+        assert "B2+" in signal  # from "X B2+ words"
+        assert "B2:50%" in signal  # 1 of 2 matched words is B2
+
+    def test_unmatched_words_reported(self):
+        # "entrepreneurial" is C2+ / outside Oxford 5000
+        words = [_w("entrepreneurial"), _w("house")]
+        signal = compute_vocab_signal(words, "entrepreneurial house")
+        assert "unmatched" in signal
+        assert "entrepreneurial" in signal
+
+    def test_unique_lemma_ratio_present(self):
+        words = [_w("house"), _w("financial"), _w("plan")]
+        signal = compute_vocab_signal(words, "house financial plan")
+        assert "unique lemmas" in signal
 
     def test_punctuation_stripped_from_words(self):
-        # "house." should be treated same as "house"
-        words = [{"word": "house."}]
-        signal = _compute_vocab_signal(words)
-        # "house" (A1) is known → 0% B2+
-        assert "0/" in signal or "insufficient" in signal
+        # "house." should match the same as "house"
+        words = [_w("house."), _w("house,")]
+        signal = compute_vocab_signal(words, "house. house,")
+        assert "A1:100%" in signal
 
 
 class TestFluencySignal:

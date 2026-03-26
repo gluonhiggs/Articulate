@@ -8,6 +8,43 @@ from backend.data.oxford import WORD_TO_CEFR, WORD_TO_DATA
 
 logger = logging.getLogger(__name__)
 
+# English function words excluded from CEFR distribution.
+# Counting determiners, prepositions, auxiliaries, pronouns etc. as "A1 vocabulary"
+# distorts the distribution — speakers at band 7 still use "the" and "and".
+_STOP_WORDS: frozenset[str] = frozenset({
+    # articles / determiners
+    "the", "a", "an", "this", "that", "these", "those", "my", "your", "his",
+    "her", "its", "our", "their", "each", "every", "any", "all", "both",
+    "few", "more", "most", "other", "some", "such", "no", "nor", "not",
+    # pronouns
+    "i", "me", "we", "us", "you", "he", "him", "she", "they", "them",
+    "who", "whom", "which", "what", "it",
+    # prepositions
+    "in", "on", "at", "by", "for", "with", "about", "against", "between",
+    "into", "through", "during", "before", "after", "above", "below",
+    "from", "up", "down", "out", "off", "over", "under", "again", "then",
+    "once", "here", "there", "when", "where", "why", "how", "of", "to",
+    "as", "per",
+    # conjunctions
+    "and", "but", "or", "yet", "so", "nor", "although", "because", "since",
+    "unless", "until", "while", "whereas", "whether", "though",
+    # auxiliary / modal verbs
+    "be", "is", "are", "was", "were", "been", "being", "am",
+    "have", "has", "had", "having", "do", "does", "did", "done", "doing",
+    "will", "would", "shall", "should", "may", "might", "must", "can",
+    "could", "need", "dare", "ought",
+    # common function words that pass len > 2 filter
+    "the", "and", "for", "are", "but", "not", "you", "all", "can", "her",
+    "was", "one", "our", "out", "who", "get", "now", "him", "his", "how",
+    "its", "two", "own", "did", "let", "put", "say", "she", "too", "use",
+    "way", "yes", "ago", "due", "per", "via", "etc", "lot", "bit",
+    # relative / question words often used as connectors
+    "that", "than", "then", "also", "just", "even", "like", "well",
+    "much", "many", "own", "same", "very", "also", "back", "after",
+    "think", "know", "said", "want", "going", "gonna", "wanna", "kind",
+    "sort", "mean", "okay", "yeah", "really", "actually",
+})
+
 
 def compute_vocab_signal(words: List[Dict[str, Any]], transcript: str) -> str:
     """
@@ -35,17 +72,24 @@ def compute_vocab_signal(words: List[Dict[str, Any]], transcript: str) -> str:
 
     try:
         # ── CEFR level distribution ───────────────────────────────────────
+        # Strip punctuation, lower-case, drop very short tokens and function
+        # words so the CEFR distribution reflects lexical choices only.
         content_words = [
-            w["word"].lower().strip(".,!?;:'\"()[]")
+            token
             for w in words
-            if len(w.get("word", "").strip()) > 2
+            for token in [w.get("word", "").lower().strip(".,!?;:'\"()[]—-")]
+            if len(token) > 2 and token not in _STOP_WORDS
         ]
 
         counts: Dict[str, int] = {"A1": 0, "A2": 0, "B1": 0, "B2": 0, "C1": 0}
         matched = 0
+        seen_lemmas: set[str] = set()           # unique lemmas for type diversity
+        unmatched_lemmas: list[str] = []         # distinct content lemmas not in Oxford 5000
+        seen_unmatched: set[str] = set()
         flagged_ipa: list[tuple[str, str]] = []  # (word, phon_n_am) for B2+ words
         for word in content_words:
             lemma = simplemma.lemmatize(word, lang="en")
+            seen_lemmas.add(lemma)
             level = WORD_TO_CEFR.get(lemma) or WORD_TO_CEFR.get(word)
             if level and level in counts:
                 counts[level] += 1
@@ -54,18 +98,31 @@ def compute_vocab_signal(words: List[Dict[str, Any]], transcript: str) -> str:
                     data = WORD_TO_DATA.get(lemma) or WORD_TO_DATA.get(word)
                     if data and data.get("phon_n_am"):
                         flagged_ipa.append((word, data["phon_n_am"]))
+            else:
+                # Collect distinct unmatched lemmas — may be C2+, proper nouns, or errors
+                if lemma not in seen_unmatched:
+                    seen_unmatched.add(lemma)
+                    unmatched_lemmas.append(lemma)
 
         total = len(content_words)
+        unique_lemmas = len(seen_lemmas)
         if matched == 0 or total == 0:
             cefr_part = "CEFR: insufficient data (too few matched words)"
         else:
             high = counts["B2"] + counts["C1"]
             pct = {lvl: round(counts[lvl] / matched * 100) for lvl in counts}
+            # Unique lemma ratio: how varied is the vocabulary (works for short texts too)
+            unique_ratio = round(unique_lemmas / total * 100) if total > 0 else 0
             cefr_part = (
-                f"CEFR ({matched}/{total} words matched): "
+                f"CEFR ({matched}/{total} content words matched, "
+                f"{unique_lemmas} unique lemmas, {unique_ratio}% variety): "
                 f"A1:{pct['A1']}% A2:{pct['A2']}% B1:{pct['B1']}% "
                 f"B2:{pct['B2']}% C1:{pct['C1']}% — {high} B2+ words"
             )
+            # Report unmatched words (capped at 8) — these may be C2+ or specialist vocab
+            if unmatched_lemmas:
+                sample = ", ".join(unmatched_lemmas[:8])
+                cefr_part += f" | unmatched (possible C2+/specialist): {sample}"
             if flagged_ipa:
                 ipa_hints = "; ".join(
                     f"{w} {ipa}" for w, ipa in flagged_ipa[:5]
