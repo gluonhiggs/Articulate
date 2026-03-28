@@ -4,8 +4,8 @@ This file maps every distinct signal needed to score the **Lexical Resource** cr
 to its evidence in `BAND-SCORES.original.md`.
 
 At the UI level this criterion is labelled "Vocabulary". Underneath, the rubric assesses
-seven distinct properties. Three are computable; two are partially computable (not yet
-implemented); two can only be assessed by the LLM reading the transcript.
+seven distinct properties. Five are fully or partially computable; two can only be assessed
+by the LLM reading the transcript.
 
 ---
 
@@ -61,8 +61,8 @@ only familiar/personal ones?
 - **What we cannot compute:** Whether the vocabulary is appropriate *for the topic asked*
   (e.g., using cooking vocabulary on an economics question). LLM judges this from context.
 
-**Status:** ✅ Partially implemented — CEFR distribution + B2+ count in `vocab_signal`.
-❌ Word count (response length) not yet included in signal.
+**Status:** ✅ Fully implemented — CEFR distribution + B2+ count + response word count (with
+band-aligned label: very short / short / adequate / extended) all in `vocab_signal`.
 
 ---
 
@@ -131,13 +131,17 @@ that native speakers reach for naturally ("a wide range", "it goes without sayin
 | 6 | (not mentioned — absence of idioms is implied at this level) |
 | 5–2 | (not mentioned) |
 
-**Measurability:** Partially computable (not yet implemented).
-- Formulaic sequence density: compare the speaker's n-grams (bigrams/trigrams) against a
-  native-speaker corpus. High overlap = uses natural idiomatic chunks.
-- A simpler proxy: a curated list of IELTS-relevant collocational phrases can be matched
-  against the transcript.
+**Measurability:** Partially computable.
+- A curated list of IELTS-relevant formulaic phrases (`backend/data/idioms.py`) is matched
+  against the transcript. Density is computed as matches per 100 words and mapped to a
+  band-aligned label (none → Band 5–6, limited → Band 6, adequate → Band 6–7, good → Band 7,
+  high → Band 7–8+).
+- **Limitation:** The list is a fixed lower-bound — idioms not on it are invisible to the
+  counter. The prompts explicitly instruct the LLM to detect additional idiomatic language
+  from the transcript and weigh it in the score.
 
-**Status:** ❌ Not implemented. LLM must infer from transcript.
+**Status:** ✅ Implemented — `_compute_idiom_signal()` in `vocab_signal`.
+LLM also reads transcript for idioms beyond the list (prompt instruction in place).
 
 ---
 
@@ -159,12 +163,19 @@ combination sounds unnatural to a native speaker.
 Note: Collocation only appears explicitly at Band 7–8. This is why it is the primary
 discriminator between Band 6 and Band 7.
 
-**Measurability:** Partially computable (not yet implemented).
-- Bigram/trigram frequency against a native corpus (COCA or BNC) can score how natural
-  a word pair is. Low-frequency pairs in native corpora = likely collocation error.
-- This is the highest-value missing signal for Band 6 vs Band 7 discrimination.
+**Measurability:** Partially computable.
+- spaCy dependency parsing extracts verb→object (`dobj`/`obj`) and adjective→noun (`amod`)
+  pairs from the transcript. Very common pairs (e.g. `have→time`, `make→decision`) are
+  filtered out via `_COMMON_NATURAL_PAIRS` to keep the inventory concise.
+- The extracted pairs are passed as a raw inventory to the LLM, which evaluates naturalness.
+  This avoids false positives from a fixed lookup table — the LLM's linguistic knowledge
+  judges any pair regardless of whether it's in a predefined list.
+- **Limitation:** spaCy extracts surface pairs but cannot detect omitted collocations (e.g.
+  if the speaker avoided "heavy rain" by saying "big rain" — the pair `big→rain` will appear
+  and the LLM should flag it). Pairs not mentioned in the transcript are invisible.
 
-**Status:** ❌ Not implemented. LLM must infer from reading transcript.
+**Status:** ✅ Implemented — `_compute_collocation_signal()` sends pair inventory to LLM.
+LLM evaluates each pair for naturalness (prompt instruction in place).
 
 ---
 
@@ -223,45 +234,57 @@ At higher bands, speakers avoid word repetition and deploy a broad range of form
 
 | # | Signal | Bands it distinguishes | Computable? | Status |
 |---|--------|------------------------|-------------|--------|
-| 1 | Vocabulary Range | B2 ↔ B3 ↔ B4 ↔ B5 ↔ B6 ↔ B7 ↔ B9 | Partially | ✅ CEFR distribution — ❌ word count missing |
+| 1 | Vocabulary Range | B2 ↔ B3 ↔ B4 ↔ B5 ↔ B6 ↔ B7 ↔ B9 | Partially | ✅ CEFR distribution + word count + length label |
 | 2 | Vocabulary Sophistication (less common words) | B6 ↔ B7 ↔ B8 ↔ B9 | Yes | ✅ B2+ count + unmatched words |
-| 3 | Precision / Accuracy in word choice | B4 ↔ B6 ↔ B7 ↔ B8 ↔ B9 | No | LLM-only |
-| 4 | Idiomatic Language | B7 ↔ B8 ↔ B9 | Partially | ❌ Not implemented |
-| 5 | Collocation Awareness | **B6 ↔ B7** ↔ B8 | Partially | ❌ Not implemented |
-| 6 | Paraphrase Ability | B4 ↔ B5 ↔ B6 ↔ B7 | No | LLM-only |
+| 3 | Precision / Accuracy in word choice | B4 ↔ B6 ↔ B7 ↔ B8 ↔ B9 | No | LLM-only (reads transcript) |
+| 4 | Idiomatic Language | B7 ↔ B8 ↔ B9 | Partially | ✅ Density from `idioms.py` (lower-bound) + LLM reads transcript for remainder |
+| 5 | Collocation Awareness | **B6 ↔ B7** ↔ B8 | Partially | ✅ spaCy pair inventory → LLM evaluates naturalness |
+| 6 | Paraphrase Ability | B4 ↔ B5 ↔ B6 ↔ B7 | No | LLM-only (reads transcript) |
 | 7 | Lexical Diversity / Flexibility | B5 ↔ B6 ↔ B7 ↔ B8 ↔ B9 | Yes | ✅ MTLD + unique lemma ratio |
 
-**Critical gap:** Signal 5 (Collocation) is the boundary between Band 6 and Band 7 but
-is not yet computed. The LLM must detect collocation errors from the raw transcript with
-no numerical anchor — the most error-prone part of the current scoring pipeline.
+**Remaining gap:** Signals 3 and 6 are LLM-only and always will be — they require semantic
+understanding. Signals 4 and 5 have known limitations (fixed list / surface-only extraction)
+but the prompts instruct the LLM to compensate with its own transcript reading.
 
 ---
 
 ## What `vocab_signal` currently sends to the LLM
 
+Five sections, newline-separated:
+
 ```
-CEFR ({matched}/{total} content words matched, {unique} unique lemmas, {ratio}% variety):
+response length: {N} words (very short|short|adequate|extended)
+
+CEFR ({matched}/{total_content} content words matched, {unique} unique lemmas, {ratio}% variety):
 A1:{pct}% A2:{pct}% B1:{pct}% B2:{pct}% C1:{pct}% — {high} B2+ words
-| unmatched (possible C2+/specialist): {words}
-| B2+ pronunciation refs: {word /ipa/; ...}
-lexical diversity MTLD={score} ({level}) OR insufficient data (<50 words)
+[| unmatched (possible C2+/specialist): {words}]
+[| B2+ refs: {word /ipa/; ...}]
+
+lexical diversity MTLD={score} ({level})   OR   lexical diversity: insufficient data (<50 words) …
+
+idiomatic density: {per_100}/100 words ({level}); matched: 'phrase' | 'phrase' | …
+
+collocation pairs (spaCy): verb→obj: [v→n, …]; adj→noun: [adj→n, …]
 ```
 
-Covers: Signal 1 (via CEFR distribution), Signal 2 (via B2+ count), Signal 7 (via
-MTLD and unique lemma ratio).
+Signal coverage:
 
-Signals 3, 4, 5, 6 — the LLM infers from the raw transcript and BAND-SCORES.md.
+| Section | Signals covered |
+|---|---|
+| Response length | Signal 1 (length proxy for "at length" vs "basic meaning") |
+| CEFR distribution | Signal 1 (range), Signal 2 (sophistication via B2+) |
+| Lexical diversity | Signal 7 (flexibility/repetition) |
+| Idiomatic density | Signal 4 (lower-bound; LLM supplements from transcript) |
+| Collocation pairs | Signal 5 (raw inventory; LLM judges naturalness) |
+| LLM transcript reading | Signal 3 (precision), Signal 4 (remainder), Signal 6 (paraphrase) |
 
 ---
 
-## Planned improvements (priority order)
+## Known limitations and future improvements
 
-1. **Add response word count** to `vocab_signal` — trivial, fixes Signal 1 gap.
-   Explicitly tells LLM when an answer is too short to assess "at length" (Band 6 floor).
-
-2. **Add collocation score** — compute bigram frequency against a reference corpus
-   (COCA or pre-built BNC frequency list). Fixes Signal 5 gap — the most critical one
-   for Band 6↔7 discrimination.
-
-3. **Add idiomatic/formulaic density** — n-gram overlap against a curated phrase list.
-   Fixes Signal 4 gap for Band 7↔8 discrimination.
+| Area | Limitation | Possible improvement |
+|---|---|---|
+| Signal 4 (idioms) | Fixed phrase list — unlisted idioms not counted | Two-pass: ask LLM to extract idioms first, then compute density |
+| Signal 5 (collocation) | spaCy extracts surface pairs only — cannot detect avoided collocations | Bigram frequency against COCA/BNC corpus for objective naturalness score |
+| Signal 3 (precision) | LLM-only, no anchor | Inherently uncomputable — acceptable as-is |
+| Signal 6 (paraphrase) | LLM-only, no anchor | Inherently uncomputable — acceptable as-is |

@@ -5,14 +5,14 @@ Typical scores for this population range 5.0–6.5. Band 7 requires consistent
 use of complex structures with only occasional errors.
 When uncertain between two adjacent bands, choose the band whose descriptor
 best fits the evidence — do not automatically prefer the lower band.
-Trust the signals below — they are measured from the audio, not guessed.
+The fluency and CEFR signals are computed from the audio — trust them fully. The idiomatic density is a lower-bound estimate from a fixed phrase list, not a ceiling. The collocation pairs are raw extractions for you to evaluate, not pre-judged results.
 
 QUESTION: {question_text}
 TRANSCRIPT: {transcript}
 FLAGGED WORDS (low STT confidence or long pause before word): {flagged_words}
 
 FLUENCY SIGNAL: {fluency_context}
-VOCABULARY SIGNAL: {vocab_signal}
+LEXICAL RESOURCE SIGNAL: {vocab_signal}
 GRAMMAR SIGNALS: {grammar_context}
 
 OFFICIAL IELTS BAND DESCRIPTORS:
@@ -20,7 +20,7 @@ OFFICIAL IELTS BAND DESCRIPTORS:
 
 CRITERIA — score each 0–9 in steps of 0.5:
 - fluency: coherence, flow, absence of long hesitations
-- vocabulary: range, precision, use of collocations and idiomatic language
+- vocabulary (IELTS: Lexical Resource — use the Lexical Resource descriptors above): range and sophistication of word choice; use the CEFR distribution to anchor your score; the idiomatic density counts only phrases from a fixed list — if you find additional idiomatic or formulaic language in the transcript not reflected in the count, weigh it in your score; evaluate the collocation pairs for naturalness and flag any non-native combinations; also judge precision and paraphrase from the transcript
 - grammar: accuracy and variety of structures
 - pronunciation: clarity and intelligibility; penalise flagged words as evidence of mispronunciation
 

@@ -121,6 +121,80 @@ class TestCEFRSignal:
         signal = compute_vocab_signal(words, "house. house,")
         assert "A1:100%" in signal
 
+    def test_response_length_in_signal(self):
+        # Word count (Signal 1 gap fix) must appear in output
+        words = [_w("house"), _w("abandon"), _w("creative")]
+        signal = compute_vocab_signal(words, "house abandon creative")
+        assert "response length:" in signal
+        assert "3 words" in signal
+
+    def test_short_response_labelled(self):
+        words = [_w("house")]
+        signal = compute_vocab_signal(words, "house")
+        assert "very short" in signal or "short" in signal
+
+
+class TestIdiomSignal:
+    """Tests for idiomatic / formulaic phrase detection."""
+
+    def test_known_phrase_detected(self):
+        from backend.services.vocab import _compute_idiom_signal
+        signal = _compute_idiom_signal("On the other hand, I think this is important.", 10)
+        assert "on the other hand" in signal
+
+    def test_no_phrases_gives_none_label(self):
+        from backend.services.vocab import _compute_idiom_signal
+        signal = _compute_idiom_signal("house big car dog run", 5)
+        assert "none detected" in signal
+
+    def test_multiple_phrases_counted(self):
+        from backend.services.vocab import _compute_idiom_signal
+        text = "In my opinion, to some extent this is true. On the other hand, it depends on the situation."
+        signal = _compute_idiom_signal(text, len(text.split()))
+        # Should detect at least 3 phrases
+        assert "matched:" in signal
+
+    def test_empty_transcript(self):
+        from backend.services.vocab import _compute_idiom_signal
+        signal = _compute_idiom_signal("", 0)
+        assert "insufficient" in signal
+
+
+class TestCollocationSignal:
+    """Tests for collocation pair extraction (spaCy inventory for LLM evaluation)."""
+
+    def test_returns_string_always(self):
+        from backend.services.vocab import _compute_collocation_signal
+        result = _compute_collocation_signal("I went to school today.")
+        assert isinstance(result, str)
+        assert len(result) > 0
+
+    def test_output_starts_with_prefix(self):
+        from backend.services.vocab import _compute_collocation_signal
+        signal = _compute_collocation_signal("She cooked a delicious meal.")
+        assert signal.startswith("collocation pairs")
+
+    def test_common_pair_skipped(self):
+        # "make a decision" is in _COMMON_NATURAL_PAIRS — should not appear in inventory
+        from backend.services.vocab import _compute_collocation_signal, _get_spacy
+        signal = _compute_collocation_signal("She made a decision to leave.")
+        if _get_spacy() is not None:
+            assert "make→decision" not in signal
+
+    def test_unusual_pair_reported_in_inventory(self):
+        # "do a mistake" — verb→obj pair "do→mistake" should appear in inventory
+        from backend.services.vocab import _compute_collocation_signal, _get_spacy
+        signal = _compute_collocation_signal("He did a mistake in his work.")
+        if _get_spacy() is not None:
+            assert "do→mistake" in signal
+
+    def test_adj_noun_pair_extracted(self):
+        # "delicious meal" — adj→noun pair should appear
+        from backend.services.vocab import _compute_collocation_signal, _get_spacy
+        signal = _compute_collocation_signal("She cooked a delicious meal.")
+        if _get_spacy() is not None:
+            assert "delicious→meal" in signal
+
 
 class TestFluencySignal:
     def test_empty_words_zero_gaps(self):
