@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     ollama_model: str = "gemma3:1b"
     ollama_base_url: str = "http://localhost:11434"
     ollama_gpu_layers: int = 0
+    llm_api_key: str = ""  # set to use any OpenAI-compatible cloud API (Gemini, Groq, etc.)
     pronunciation_tier: int = 1
     max_audio_size_mb: int = 300
     audio_retention_days: int = 60

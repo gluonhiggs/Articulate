@@ -77,12 +77,13 @@ async def generate_improvement(
             base_url=settings.ollama_base_url,
             model=settings.ollama_model,
             prompt=prompt,
+            api_key=settings.llm_api_key,
             temperature=0.4,
             num_predict=1024,
             timeout=120.0,
         )
     except RuntimeError as exc:
-        logger.exception("Ollama request failed for improve: %s", exc)
+        logger.exception("LLM request failed for improve: %s", exc)
         raise
 
     return _parse_response(raw_text)

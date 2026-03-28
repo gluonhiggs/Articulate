@@ -9,8 +9,13 @@ from backend.schemas import SetModelRequest, SystemInfoOut
 router = APIRouter(prefix="/api/v1/system", tags=["system"])
 
 
-async def _check_ollama(base_url: str) -> bool:
+async def _check_llm_reachable(base_url: str, api_key: str) -> bool:
     try:
+        if api_key:
+            # Cloud API — assume reachable if key is configured; actual errors
+            # surface on first scoring call with a clear HTTP status message.
+            return True
+        # Ollama local — ping the model list endpoint
         async with httpx.AsyncClient(timeout=2.0) as c:
             r = await c.get(f"{base_url}/api/tags")
             return r.status_code == 200
@@ -22,8 +27,10 @@ async def _check_ollama(base_url: str) -> bool:
 async def system_info() -> SystemInfoOut:
     settings = get_settings()
     model = get_active_model()
-    is_low_accuracy = any(tag in model for tag in ("1b", "3b"))
-    ollama_reachable = await _check_ollama(settings.ollama_base_url)
+    is_low_accuracy = any(tag in model for tag in ("1b", "3b", "1b-it", "3b-it"))
+    ollama_reachable = await _check_llm_reachable(
+        settings.ollama_base_url, settings.llm_api_key
+    )
     return SystemInfoOut(
         profile=settings.profile,
         whisper_model=settings.whisper_model,

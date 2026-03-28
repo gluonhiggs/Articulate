@@ -1,8 +1,32 @@
-# run.ps1 — Start Articulate backend on Windows (PC profile)
-# Usage: .\run.ps1 [laptop|pc]
+# run.ps1 — Start Articulate backend on Windows
+# Usage: .\run.ps1 [auto|laptop|pc|gemini]
+#
+# auto (default): uses API mode if LLM_API_KEY is set in .env.gemini,
+#                 falls back to GPU (pc) mode otherwise.
 param(
-    [string]$Profile = "pc"
+    [string]$Profile = "auto"
 )
+
+# ── Auto-detect mode ──────────────────────────────────────────────────────────
+if ($Profile -eq "auto") {
+    $geminiEnv = ".env.gemini"
+    $hasApiKey = $false
+    if (Test-Path $geminiEnv) {
+        $keyLine = Get-Content $geminiEnv | Where-Object { $_ -match '^LLM_API_KEY=' }
+        if ($keyLine) {
+            $keyValue = ($keyLine -split '=', 2)[1].Trim()
+            # A real key: non-empty and not the placeholder string
+            $hasApiKey = $keyValue -and $keyValue -ne "" -and $keyValue -notlike "your-*"
+        }
+    }
+    if ($hasApiKey) {
+        $Profile = "gemini"
+        Write-Host "[auto] API key found  -> using API mode (no GPU)" -ForegroundColor Cyan
+    } else {
+        $Profile = "pc"
+        Write-Host "[auto] No API key     -> using GPU mode (Ollama)" -ForegroundColor Cyan
+    }
+}
 
 $EnvFile = ".env.$Profile"
 if (-not (Test-Path $EnvFile)) {

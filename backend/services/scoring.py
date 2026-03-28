@@ -209,6 +209,7 @@ async def score_attempt(
             base_url=settings.ollama_base_url,
             model=active_model,
             prompt=prompt,
+            api_key=settings.llm_api_key,
             temperature=0.3,    # allow natural band uncertainty; 0.0 locks in anchoring bias
             num_predict=1024,   # restored; 600 was too tight for responses with many error highlights
             num_ctx=8192,       # headroom for long Part 2 transcripts; was 4096
