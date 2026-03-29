@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { fetchAttemptStatus } from '../api/client'
 import type { Attempt } from '../types'
 
@@ -8,6 +8,14 @@ const POLLING_TIMEOUT_MS = 3 * 60 * 1000 // 3 minutes
 export function usePolling(attemptId: number | null): { data: Attempt | null; isTimedOut: boolean } {
   const startedAtRef = useRef<number | null>(null)
   const [isTimedOut, setIsTimedOut] = useState(false)
+
+  // Reset timer and timeout flag whenever a new attempt starts.
+  // Without this, a timed-out attempt leaves startedAtRef holding a stale
+  // timestamp, causing the very next attempt's polling to time out immediately.
+  useEffect(() => {
+    startedAtRef.current = null
+    setIsTimedOut(false)
+  }, [attemptId])
 
   const { data } = useQuery<Attempt>({
     queryKey: ['attempt', attemptId],
