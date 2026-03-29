@@ -66,6 +66,55 @@ if ($Profile -eq "pc") {
 
 
 
+# ── Java check (required for LanguageTool grammar checker) ───────────────────
+# Refresh PATH from registry first — picks up Java installed in a prior session
+# before we decide whether to call winget at all.
+$env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" +
+            [System.Environment]::GetEnvironmentVariable("PATH", "User")
+
+if (-not (Get-Command java -ErrorAction SilentlyContinue)) {
+    # Resolve winget — it lives in WindowsApps which is often absent from PATH
+    # in non-interactive / no-profile PowerShell sessions.
+    $wingetCmd = Get-Command winget -ErrorAction SilentlyContinue
+    $wingetExe = if ($wingetCmd) { $wingetCmd.Source } else { $null }
+    if (-not $wingetExe) {
+        $wingetExe = "$env:LOCALAPPDATA\Microsoft\WindowsApps\winget.exe"
+        if (-not (Test-Path $wingetExe)) { $wingetExe = $null }
+    }
+
+    if ($wingetExe) {
+        Write-Host "Java not found - installing Microsoft OpenJDK 21 via winget..." -ForegroundColor Yellow
+        & $wingetExe install --id Microsoft.OpenJDK.21 --silent --accept-package-agreements --accept-source-agreements
+        # winget exits -1978335189 when the package is already installed — treat as success.
+        if ($LASTEXITCODE -eq 0 -or $LASTEXITCODE -eq -1978335189) {
+            # Re-read registry PATH so this session can use the new java binary.
+            $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" +
+                        [System.Environment]::GetEnvironmentVariable("PATH", "User")
+            if (Get-Command java -ErrorAction SilentlyContinue) {
+                Write-Host "Java installed successfully." -ForegroundColor Green
+            } else {
+                Write-Warning "Java installed but not yet in PATH - restart your terminal then re-run to enable local LanguageTool."
+            }
+        } else {
+            Write-Warning "Java installation failed (exit $LASTEXITCODE). Try re-running as Administrator or install manually: https://adoptium.net"
+            Write-Warning "Grammar checking will fall back to LanguageTool public API."
+        }
+    } else {
+        Write-Warning "winget not found. Install Java manually (https://adoptium.net) or re-run from Windows Terminal."
+        Write-Warning "Grammar checking will fall back to LanguageTool public API."
+    }
+} else {
+    # Validate minimum version — LanguageTool 6.x requires Java 11+.
+    $javaVerLine = (java -version 2>&1)[0] -as [string]
+    Write-Host "Java: $javaVerLine" -ForegroundColor Green
+    if ($javaVerLine -match '"(\d+)[\._]') {
+        $javaMajor = [int]$Matches[1]
+        if ($javaMajor -lt 11) {
+            Write-Warning "Java $javaMajor detected - LanguageTool requires Java 11+. Grammar checking may fail."
+        }
+    }
+}
+
 # Conditional SSL
 $sslArgs = @()
 if (Test-Path "certs/cert.pem") {
