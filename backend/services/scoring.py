@@ -220,7 +220,7 @@ async def score_attempt(
         logger.exception("Scoring failed: %s", exc)
         raw_text = ""
 
-    logger.info("SCORE_RAW_RESPONSE %r", raw_text[:500] if raw_text else "(empty)")
+    logger.info("SCORE_RAW_RESPONSE %r", raw_text if raw_text else "(empty)")
 
     result = _parse_llm_response(raw_text)
     logger.info(

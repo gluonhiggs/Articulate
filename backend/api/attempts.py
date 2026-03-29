@@ -43,10 +43,17 @@ def _get_lt_tool():
     try:
         import language_tool_python  # type: ignore[import]
         _lt_tool = language_tool_python.LanguageTool('en-US')
-        logger.info("LanguageTool initialized successfully")
+        logger.info("LanguageTool initialized (local)")
     except Exception as exc:
-        logger.warning("LanguageTool unavailable (Java required): %s", exc)
-        _lt_tool = None
+        logger.warning("LanguageTool local unavailable (Java required): %s", exc)
+        try:
+            import language_tool_python  # type: ignore[import]
+            # Fallback: sends transcript to languagetool.org — no Java needed.
+            _lt_tool = language_tool_python.LanguageToolPublicAPI('en-US')
+            logger.info("LanguageTool initialized (public API fallback)")
+        except Exception as exc2:
+            logger.warning("LanguageTool public API also unavailable: %s", exc2)
+            _lt_tool = None
     return _lt_tool
 
 
@@ -178,6 +185,25 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                     if lt is not None:
                         loop = asyncio.get_event_loop()
                         matches = await loop.run_in_executor(None, lt.check, transcript)
+                        logger.info(
+                            "\n\n========== LT_RAW_MATCHES attempt_id=%d ==========\n"
+                            "  source : %s\n"
+                            "  count  : %d\n"
+                            "  matches: %s",
+                            attempt_id,
+                            "local" if type(lt).__name__ == "LanguageTool" else "public API",
+                            len(matches),
+                            [
+                                {
+                                    "rule": m.ruleId,
+                                    "word": transcript[m.offset:m.offset + m.errorLength],
+                                    "offset": m.offset,
+                                    "suggestions": list(m.replacements[:3]),
+                                    "message": m.message,
+                                }
+                                for m in matches[:10]
+                            ],
+                        )
                         grammar_errors = [
                             f"{m.ruleId}: '{transcript[m.offset:m.offset + m.errorLength]}'"
                             f" → {list(m.replacements[:2])}"
@@ -253,9 +279,16 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             grammar = scoring_result.get("grammar")
             pronunciation = scoring_result.get("pronunciation")
             feedback_text = scoring_result.get("feedback_text")
-            error_highlights = json.dumps(
-                scoring_result.get("error_highlights", [])
+            _highlights_list = scoring_result.get("error_highlights", [])
+            logger.info(
+                "\n\n========== LLM_ERROR_HIGHLIGHTS attempt_id=%d ==========\n"
+                "  count : %d\n"
+                "  items : %s",
+                attempt_id,
+                len(_highlights_list),
+                _highlights_list,
             )
+            error_highlights = json.dumps(_highlights_list)
             score = scoring_result.get("score")
             logger.info(
                 "\n\n========== SCORING RESULT attempt_id=%d ==========\n"
