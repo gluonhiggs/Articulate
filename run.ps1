@@ -142,5 +142,53 @@ if ($SitePackages) {
     }
 }
 
+# ── Frontend: staleness check + build if needed ───────────────────────────────
+$distIndex = "frontend\dist\index.html"
+$mustBuild = $false
+
+if (-not (Test-Path $distIndex)) {
+    Write-Host "Frontend dist not found - building..." -ForegroundColor Yellow
+    $mustBuild = $true
+} else {
+    $distMtime  = (Get-Item $distIndex).LastWriteTime
+    $watchPaths = @("frontend\src", "frontend\index.html", "frontend\package.json", "frontend\vite.config.ts")
+    $newerFile  = $null
+    foreach ($p in $watchPaths) {
+        if (-not (Test-Path $p)) { continue }
+        $items = if ((Get-Item $p).PSIsContainer) {
+            Get-ChildItem $p -Recurse -File
+        } else {
+            @(Get-Item $p)
+        }
+        foreach ($f in $items) {
+            if ($f.LastWriteTime -gt $distMtime) { $newerFile = $f.FullName; break }
+        }
+        if ($newerFile) { break }
+    }
+    if ($newerFile) {
+        Write-Host "Frontend source changed ($newerFile) - rebuilding..." -ForegroundColor Yellow
+        $mustBuild = $true
+    } else {
+        Write-Host "Frontend dist is up to date, skipping build." -ForegroundColor Green
+    }
+}
+
+if ($mustBuild) {
+    Push-Location frontend
+    bun run build
+    if ($LASTEXITCODE -ne 0) {
+        Pop-Location
+        Write-Error "Frontend build failed (exit $LASTEXITCODE). Aborting."
+        exit 1
+    }
+    Pop-Location
+    Write-Host "Frontend built successfully." -ForegroundColor Green
+}
+
+# ── Frontend dev server in a new terminal window ──────────────────────────────
+$frontendDir = Join-Path $PSScriptRoot "frontend"
+Write-Host "Starting frontend dev server (port 5173) in new window..." -ForegroundColor Cyan
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$frontendDir'; bun run dev"
+
 Write-Host "Starting Articulate ($Profile profile)..." -ForegroundColor Green
 uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 1 --reload @sslArgs

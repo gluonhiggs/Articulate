@@ -78,4 +78,46 @@ else
   echo "WARNING: certs/ not found, running HTTP only (phone mic will not work)"
 fi
 
+# ── Frontend: staleness check + build if needed ───────────────────────────────
+DIST_INDEX="frontend/dist/index.html"
+MUST_BUILD=0
+
+if [ ! -f "$DIST_INDEX" ]; then
+  echo "Frontend dist not found - building..."
+  MUST_BUILD=1
+else
+  NEWER=$(find frontend/src frontend/index.html frontend/package.json frontend/vite.config.ts \
+          -newer "$DIST_INDEX" 2>/dev/null | head -1)
+  if [ -n "$NEWER" ]; then
+    echo "Frontend source changed ($NEWER) - rebuilding..."
+    MUST_BUILD=1
+  else
+    echo "Frontend dist is up to date, skipping build."
+  fi
+fi
+
+if [ "$MUST_BUILD" = "1" ]; then
+  (cd frontend && bun run build) || { echo "Frontend build failed. Aborting."; exit 1; }
+  echo "Frontend built successfully."
+fi
+
+# ── Frontend dev server in a new terminal window ──────────────────────────────
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+echo "Starting frontend dev server (port 5173) in new terminal..."
+
+_open_terminal() {
+  local title="$1" cmd="$2"
+  if command -v gnome-terminal &>/dev/null; then
+    gnome-terminal --title="$title" -- bash -c "$cmd; exec bash"
+  elif command -v xterm &>/dev/null; then
+    xterm -title "$title" -e bash -c "$cmd; exec bash" &
+  elif [[ "$OSTYPE" == darwin* ]]; then
+    osascript -e "tell app \"Terminal\" to do script \"$cmd\""
+  else
+    echo "WARNING: No supported terminal emulator found. Run manually: cd '$ROOT/frontend' && bun run dev"
+  fi
+}
+
+_open_terminal "Articulate frontend" "cd '$ROOT/frontend' && bun run dev"
+
 exec uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 1 --reload $SSL_ARGS
