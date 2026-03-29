@@ -18,6 +18,7 @@ from backend.services import ollama_client
 from backend.services.audio import cleanup_old_audio
 from backend.services.transcription import _get_model as _get_whisper_model, warmup_probe as _warmup_probe
 from backend.services.tts import evict_tts_cache, _ensure_pipeline as _ensure_tts_pipeline
+from backend.api.attempts import _get_lt_tool
 
 logging.basicConfig(
     level=logging.INFO,
@@ -67,6 +68,13 @@ async def lifespan(app: FastAPI):
     logger.info("Pre-loading Kokoro TTS model…")
     await _ensure_tts_pipeline()
     logger.info("Kokoro TTS model ready.")
+
+    logger.info("Initialising LanguageTool grammar checker…")
+    lt = await loop.run_in_executor(None, _get_lt_tool)
+    if lt is not None:
+        logger.info("LanguageTool ready (%s).", type(lt).__name__)
+    else:
+        logger.warning("LanguageTool unavailable — grammar context will be skipped.")
 
     yield  # Application runs here
 
