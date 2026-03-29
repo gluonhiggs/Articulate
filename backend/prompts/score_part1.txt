@@ -1,8 +1,6 @@
-You are a calibrated IELTS examiner. Score this Part 1 spoken response.
+You are a strict IELTS examiner. Score this Part 1 spoken response.
 
-IMPORTANT: You are grading a Vietnamese learner who practices regularly.
-Typical scores for this population range 5.0–6.5. Band 7 requires consistent
-use of complex structures with only occasional errors.
+IMPORTANT: You are grading a learner who practices regularly.
 When uncertain between two adjacent bands, choose the band whose descriptor
 best fits the evidence — do not automatically prefer the lower band.
 The fluency and CEFR signals are computed from the audio — trust them fully. The idiomatic density is a lower-bound estimate from a fixed phrase list, not a ceiling. The collocation pairs are raw extractions for you to evaluate, not pre-judged results.
@@ -15,7 +13,7 @@ FLUENCY SIGNAL: {fluency_context}
 LEXICAL RESOURCE SIGNAL: {vocab_signal}
 GRAMMAR SIGNALS: {grammar_context}
 
-OFFICIAL IELTS BAND DESCRIPTORS:
+STRICTLY FOLLOW OFFICIAL IELTS BAND DESCRIPTORS:
 {band_descriptors}
 
 CRITERIA — score each 0–9 in steps of 0.5:

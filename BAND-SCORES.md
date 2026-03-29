@@ -139,3 +139,73 @@
 - Attempts to use intonation and stress, but control is limited.
 - Individual words or phonemes are frequently mispronounced, causing lack of clarity.
 - Understanding requires some effort and there may be patches of speech that cannot be understood.
+
+---
+
+## Band 3
+
+### Fluency and Coherence
+- Speaks with long pauses.
+- Has limited ability to link simple sentences.
+- Gives only simple responses and is frequently unable to convey basic message.
+
+### Lexical Resource
+- Uses simple vocabulary to convey personal information.
+- Has insufficient vocabulary for less familiar topics.
+
+### Grammatical Range and Accuracy
+- Attempts basic sentence forms but with limited success, or relies on apparently memorised utterances.
+- Makes numerous errors except in memorised expressions.
+
+### Pronunciation
+- Shows some of the features of band 2 and some, but not all, of the positive features of band 4.
+
+---
+
+## Band 2
+
+### Fluency and Coherence
+- Pauses lengthily before most words.
+- Little communication possible.
+
+### Lexical Resource
+- Only produces isolated words or memorised utterances.
+
+### Grammatical Range and Accuracy
+- Cannot produce basic sentence forms.
+
+---
+
+## Band 1
+
+### Fluency and Coherence
+- No communication possible.
+- No rateable language.
+
+### Lexical Resource
+- No communication possible.
+- No rateable language.
+
+### Grammatical Range and Accuracy
+- No communication possible.
+- No rateable language.
+
+### Pronunciation
+- No communication possible.
+- No rateable language.
+
+---
+
+## Band 0
+
+### Fluency and Coherence
+- Does not attend.
+
+### Lexical Resource
+- Does not attend.
+
+### Grammatical Range and Accuracy
+- Does not attend.
+
+### Pronunciation
+- Does not attend.
