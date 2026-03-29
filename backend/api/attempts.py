@@ -57,6 +57,41 @@ def _get_lt_tool():
     return _lt_tool
 
 
+# ── LanguageTool artifact filter ─────────────────────────────────────────────
+# faster-whisper auto-capitalises the first word of every VAD segment (any
+# pause ≥ 500 ms starts a new segment). LanguageTool flags these boundaries as
+# UPPERCASE_SENTENCE_START and related casing/punctuation rules. These are
+# transcription artefacts, not speaker errors. Filtering them out before
+# building grammar_context prevents the LLM from penalising phantom mistakes
+# (e.g. identical responses scoring 7.0 vs 6.0 due to a single lowercase "but"
+# at a segment start).
+#
+# Kept: GRAMMAR, CONFUSED_WORDS, MISC, TYPOS — all genuine error categories.
+
+_LT_FILTERED_RULE_IDS: frozenset[str] = frozenset({
+    # VAD segment-boundary capitalisation — primary transcription artefact
+    "UPPERCASE_SENTENCE_START",
+    # Whitespace / formatting — concepts absent from speech
+    "WHITESPACE_RULE",
+    "EN_QUOTES",
+    # Punctuation absence — spoken language has no terminal punctuation
+    "COMMA_PARENTHESIS_WHITESPACE",
+    "PUNCTUATION_PARAGRAPH_END",
+    "UNLIKELY_OPENING_PUNCTUATION",
+    # Style rules outside the IELTS speaking rubric
+    "TOO_LONG_SENTENCE",
+    "ENGLISH_WORD_REPEAT_BEGINNING_RULE",
+})
+
+_LT_FILTERED_CATEGORIES: frozenset[str] = frozenset({
+    "CASING",       # all casing rules — meaningless in speech
+    "TYPOGRAPHY",   # formatting rules — meaningless in speech
+    "PUNCTUATION",  # missing / wrong punctuation — transcription artefact
+    "STYLE",        # subjective style — not an IELTS speaking criterion
+    "REDUNDANCY",   # wordy phrasing — not penalised in IELTS speaking
+})
+
+
 async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> None:
     """Background task: transcribe → score → update attempt + stats."""
     logger.info(
@@ -185,29 +220,36 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                     if lt is not None:
                         loop = asyncio.get_event_loop()
                         matches = await loop.run_in_executor(None, lt.check, transcript)
+                        filtered_matches = [
+                            m for m in matches
+                            if m.ruleId not in _LT_FILTERED_RULE_IDS
+                            and m.category not in _LT_FILTERED_CATEGORIES
+                        ]
                         logger.info(
                             "\n\n========== LT_RAW_MATCHES attempt_id=%d ==========\n"
                             "  source : %s\n"
-                            "  count  : %d\n"
+                            "  count  : %d (raw) → %d (after artifact filter)\n"
                             "  matches: %s",
                             attempt_id,
                             "local" if type(lt).__name__ == "LanguageTool" else "public API",
                             len(matches),
+                            len(filtered_matches),
                             [
                                 {
                                     "rule": m.ruleId,
+                                    "category": m.category,
                                     "word": transcript[m.offset:m.offset + m.errorLength],
                                     "offset": m.offset,
                                     "suggestions": list(m.replacements[:3]),
                                     "message": m.message,
                                 }
-                                for m in matches[:10]
+                                for m in filtered_matches[:10]
                             ],
                         )
                         grammar_errors = [
                             f"{m.ruleId}: '{transcript[m.offset:m.offset + m.errorLength]}'"
                             f" → {list(m.replacements[:2])}"
-                            for m in matches[:8]
+                            for m in filtered_matches[:8]
                         ]
                         grammar_context = (
                             "; ".join(grammar_errors)
@@ -315,6 +357,16 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             if attempt is None:
                 logger.error("Attempt %d not found during pipeline, aborting.", attempt_id)
                 return
+            if score is None:
+                logger.error(
+                    "Pipeline %d: LLM returned no score — marking failed:scoring. "
+                    "scoring_result keys: %s",
+                    attempt_id, list(scoring_result.keys()),
+                )
+                attempt.status = "failed:scoring"
+                await session.commit()
+                return
+
             attempt.transcript = transcript
             attempt.word_timestamps = word_timestamps_json
             attempt.duration_seconds = duration_seconds
@@ -326,7 +378,6 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             attempt.feedback_text = feedback_text
             attempt.error_highlights = error_highlights
             attempt.status = "ready"
-            logger.info("\n\n========== PIPELINE DONE attempt_id=%d ==========", attempt_id)
 
             # ----------------------------------------------------------------
             # 6. Update DailyActivity
@@ -407,6 +458,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                     ) / 2
 
             await session.commit()
+            logger.info("\n\n========== PIPELINE DONE attempt_id=%d ==========", attempt_id)
 
         except Exception as exc:
             logger.exception("Pipeline failed for attempt %d: %s", attempt_id, exc)
