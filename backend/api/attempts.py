@@ -222,7 +222,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                         matches = await loop.run_in_executor(None, lt.check, transcript)
                         filtered_matches = [
                             m for m in matches
-                            if m.ruleId not in _LT_FILTERED_RULE_IDS
+                            if m.rule_id not in _LT_FILTERED_RULE_IDS
                             and m.category not in _LT_FILTERED_CATEGORIES
                         ]
                         logger.info(
@@ -236,9 +236,9 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                             len(filtered_matches),
                             [
                                 {
-                                    "rule": m.ruleId,
+                                    "rule": m.rule_id,
                                     "category": m.category,
-                                    "word": transcript[m.offset:m.offset + m.errorLength],
+                                    "word": transcript[m.offset:m.offset + m.error_length],
                                     "offset": m.offset,
                                     "suggestions": list(m.replacements[:3]),
                                     "message": m.message,
@@ -247,7 +247,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                             ],
                         )
                         grammar_errors = [
-                            f"{m.ruleId}: '{transcript[m.offset:m.offset + m.errorLength]}'"
+                            f"{m.rule_id}: '{transcript[m.offset:m.offset + m.error_length]}'"
                             f" → {list(m.replacements[:2])}"
                             for m in filtered_matches[:8]
                         ]
