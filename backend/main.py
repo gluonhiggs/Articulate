@@ -16,7 +16,6 @@ from backend.config import get_settings
 from backend.database import init_db
 from backend.services import ollama_client
 from backend.services.audio import cleanup_old_audio
-from backend.services.transcription import _get_model as _get_whisper_model, warmup_probe as _warmup_probe
 from backend.services.tts import evict_tts_cache, _ensure_pipeline as _ensure_tts_pipeline
 from backend.api.attempts import _get_lt_tool
 
@@ -58,18 +57,14 @@ async def lifespan(app: FastAPI):
     from backend.data.oxford import WORD_TO_CEFR
     logger.info("Oxford 5000 loaded: %d words", len(WORD_TO_CEFR))
 
-    logger.info("Pre-loading Whisper model…")
-    loop = asyncio.get_running_loop()
-    await loop.run_in_executor(None, _get_whisper_model)
-    logger.info("Whisper model loaded — running CUDA warmup probe…")
-    await _warmup_probe()
-    logger.info("Whisper ready (device validated).")
+    logger.info("Transcription: using Groq Whisper API (model=%s).", get_settings().groq_whisper_model)
 
     logger.info("Pre-loading Kokoro TTS model…")
     await _ensure_tts_pipeline()
     logger.info("Kokoro TTS model ready.")
 
     logger.info("Initialising LanguageTool grammar checker…")
+    loop = asyncio.get_running_loop()
     lt = await loop.run_in_executor(None, _get_lt_tool)
     if lt is not None:
         logger.info("LanguageTool ready (%s).", type(lt).__name__)

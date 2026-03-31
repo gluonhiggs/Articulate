@@ -13,9 +13,8 @@ class Settings(BaseSettings):
     )
 
     profile: str = "laptop"
-    whisper_model: str = "base"
-    whisper_device: str = "cpu"
-    whisper_compute_type: str = "int8"
+    groq_api_key: str = ""
+    groq_whisper_model: str = "whisper-large-v3-turbo"
     ollama_model: str = "gemma3:1b"
     ollama_base_url: str = "http://localhost:11434"
     ollama_gpu_layers: int = 0

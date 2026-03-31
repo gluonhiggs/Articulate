@@ -33,8 +33,8 @@ async def system_info() -> SystemInfoOut:
     )
     return SystemInfoOut(
         profile=settings.profile,
-        whisper_model=settings.whisper_model,
-        whisper_device=settings.whisper_device,
+        whisper_model=settings.groq_whisper_model,
+        whisper_device="groq-api",
         ollama_model=model,
         is_low_accuracy=is_low_accuracy,
         ollama_reachable=ollama_reachable,

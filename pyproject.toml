@@ -12,11 +12,9 @@ dependencies = [
     "pydantic>=2.0",
     "pydantic-settings>=2.0",
     "httpx>=0.27",
-    "faster-whisper>=1.0",
+    "groq>=0.8",
     "aiofiles>=24.0",
-    # torch: CPU-only by default (laptop).
-    # On PC (Windows, CUDA), after `uv sync` run:
-    #   uv pip install torch --index-url https://download.pytorch.org/whl/cu121
+    # torch: CPU-only (used by Kokoro TTS only — transcription uses Groq API).
     "torch>=2.3",
     "kokoro>=0.3",
     "en-core-web-sm>=3.8.0",
@@ -34,8 +32,7 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["backend"]
 
-# Force CPU-only PyTorch — avoids downloading 3GB+ of CUDA libraries on laptop.
-# PC users override with CUDA torch after sync (see run.ps1).
+# Force CPU-only PyTorch — Kokoro TTS only needs CPU torch; no CUDA required.
 [tool.uv.sources]
 torch = { index = "pytorch-cpu" }
 en-core-web-sm = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl" }
@@ -44,15 +41,6 @@ en-core-web-sm = { url = "https://github.com/explosion/spacy-models/releases/dow
 name = "pytorch-cpu"
 url = "https://download.pytorch.org/whl/cpu"
 explicit = true
-
-[project.optional-dependencies]
-# GPU inference (Windows/Linux, NVIDIA only).
-# Install with: uv pip install -e ".[gpu]"
-# run.ps1 handles this automatically on the pc profile.
-gpu = [
-    "nvidia-cublas-cu12",
-    "nvidia-cudnn-cu12",
-]
 
 [dependency-groups]
 dev = [
