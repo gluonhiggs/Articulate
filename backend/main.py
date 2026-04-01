@@ -14,7 +14,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from backend.api import attempts, dashboard, questions, system, tts
 from backend.config import get_settings
 from backend.database import init_db
-from backend.services import ollama_client
+from backend.services import llm_client
 from backend.services.audio import cleanup_old_audio
 from backend.services.tts import evict_tts_cache, _ensure_pipeline as _ensure_tts_pipeline
 from backend.api.attempts import _get_lt_tool
@@ -49,8 +49,8 @@ async def lifespan(app: FastAPI):
 
     logger.info("Verifying vocab signal dependencies…")
     try:
-        import simplemma, lexicalrichness  # noqa: F401
-        logger.info("Vocab signal deps OK (simplemma + lexicalrichness).")
+        import simplemma  # noqa: F401
+        logger.info("Vocab signal deps OK (simplemma).")
     except ImportError as exc:
         logger.warning("Vocab signal deps missing: %s — run `uv sync`", exc)
 
@@ -73,7 +73,7 @@ async def lifespan(app: FastAPI):
 
     yield  # Application runs here
 
-    await ollama_client.close_if_initialized()
+    await llm_client.close_if_initialized()
     logger.info("Shutting down Articulate backend.")
 
 

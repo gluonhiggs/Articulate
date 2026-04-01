@@ -81,6 +81,44 @@ def _get_spacy() -> Optional[Any]:
 
 
 # ── Response length label ─────────────────────────────────────────────────────
+def _mtld(words: list[str], threshold: float = 0.72) -> float:
+    """Measure of Textual Lexical Diversity (McCarthy & Jarvis 2010).
+
+    Bidirectional: average of forward and backward pass.
+    Matches the reference algorithm in McCarthy & Jarvis (2010, p. 385)
+    and the lexicalrichness library — without its scipy/pandas/matplotlib deps.
+    """
+    def _one_pass(seq: list[str]) -> float:
+        types: set[str] = set()
+        token_count = 0
+        factor_count = 0.0
+        ttr = 1.0
+
+        for w in seq:
+            token_count += 1
+            types.add(w)
+            ttr = len(types) / token_count
+            if ttr <= threshold:
+                factor_count += 1
+                types = set()
+                token_count = 0
+
+        # Partial factor for the trailing segment
+        if token_count > 0:
+            factor_count += (1 - ttr) / (1 - threshold)
+
+        # Edge case: TTR never fell to threshold (e.g. all-unique words)
+        if factor_count == 0:
+            overall_ttr = len(set(seq)) / len(seq)
+            factor_count = 1.0 if overall_ttr == 1.0 else (1 - overall_ttr) / (1 - threshold)
+
+        return len(seq) / factor_count
+
+    if len(words) < 2:
+        return 0.0
+    return (_one_pass(words) + _one_pass(list(reversed(words)))) / 2
+
+
 def _length_label(n: int) -> str:
     """Map raw word count to a Band-descriptor-aligned label."""
     if n < 30:
@@ -249,7 +287,6 @@ def compute_vocab_signal(words: List[Dict[str, Any]], transcript: str) -> str:
     """
     try:
         import simplemma
-        from lexicalrichness import LexicalRichness
     except ImportError as exc:
         logger.warning("Vocab signal deps not installed (%s) — run `uv sync`", exc)
         return "insufficient vocabulary data"
@@ -317,8 +354,7 @@ def compute_vocab_signal(words: List[Dict[str, Any]], transcript: str) -> str:
         # ── Signal 7: Lexical diversity (MTLD) ───────────────────────────
         word_list = transcript.lower().split()
         if len(word_list) >= 50:
-            lex = LexicalRichness(transcript)
-            mtld_score = round(lex.mtld(threshold=0.72), 1)
+            mtld_score = round(_mtld(word_list), 1)
             if mtld_score < 50:
                 lvl = "basic"
             elif mtld_score < 70:

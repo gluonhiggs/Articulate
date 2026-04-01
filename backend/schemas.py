@@ -182,9 +182,9 @@ class SystemInfoOut(BaseModel):
     profile: str
     whisper_model: str
     whisper_device: str
-    ollama_model: str
+    llm_model: str
     is_low_accuracy: bool = False
-    ollama_reachable: bool = False
+    llm_reachable: bool = False
 
 
 class SetModelRequest(BaseModel):

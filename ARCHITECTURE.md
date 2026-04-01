@@ -6,7 +6,7 @@
 
 ## 1. System Overview
 
-Articulate is a full-stack IELTS Speaking practice app. Users record mock responses, which are transcribed by Whisper (local ML), evaluated by an Ollama LLM, and returned with band scores, error highlights, and feedback. The backend is FastAPI + SQLite; the frontend is a React/TypeScript SPA. All AI runs locally — no external API calls except optional LanguageTool grammar checking.
+Articulate is a full-stack IELTS Speaking practice app. Users record mock responses, which are transcribed by Groq Whisper API, evaluated by a cloud or local LLM, and returned with band scores, error highlights, and feedback. The backend is FastAPI + SQLite; the frontend is a React/TypeScript SPA.
 
 **Swagger UI (interactive API docs):** `http://localhost:8000/docs`
 **ReDoc (readable API docs):** `http://localhost:8000/redoc`
@@ -38,7 +38,7 @@ Record audio (WebM/MP4)
   │                                │   ├─ LanguageTool → grammar_context (Java, optional)
   │                                │   ├─ Low-confidence words → flagged_words
   │                                │   ├─ Build prompt (template + all signals)
-  │                                │   └─ POST Ollama /api/generate ──────────→ LLM
+  │                                │   └─ POST LLM /chat/completions ─────────→ LLM
   │                                │       model=get_active_model()             │
   │                                │       temperature=0.3                      │
   │                                │       num_predict=1024                     │
@@ -90,9 +90,9 @@ Articulate/
 │   │   └── tts.py               # /pronounce (word TTS), /{question_id} (question TTS)
 │   │
 │   ├── services/
-│   │   ├── transcription.py     # Whisper loader, _sync_transcribe(), warmup_probe(), CUDA fallback
-│   │   ├── scoring.py           # score_attempt(): signals → prompt → Ollama → parse → clamp
-│   │   ├── ollama_client.py     # Singleton httpx client, generate(), ConnectError retry, latency logging
+│   │   ├── transcription.py     # Groq Whisper API client, transcribe()
+│   │   ├── scoring.py           # score_attempt(): signals → prompt → LLM → parse → clamp
+│   │   ├── llm_client.py        # Singleton httpx client, generate(), ConnectError retry, latency logging
 │   │   ├── audio.py             # save_audio(), cleanup_old_audio() (by age then by total size)
 │   │   ├── tts.py               # Kokoro TTS, get_or_generate_tts(), cache eviction
 │   │   ├── improve.py           # generate_improvement(): rewrite at target band
@@ -173,9 +173,10 @@ Articulate/
 ├── BAND-SCORES.md               # IELTS band descriptors Band 3–9, injected into every scoring prompt
 ├── BAND-SCORES.original.md      # Full official band descriptors (source of truth)
 ├── pyproject.toml               # Python deps + uv config
-├── run.ps1                      # Windows startup script (env load, CUDA torch check, uvicorn)
-├── .env.pc                      # PC profile settings (large-v3, gemma3:12b, CUDA)
-└── .env.laptop                  # Laptop profile settings (base, gemma3:1b, CPU)
+├── run.ps1                      # Windows startup script (env load, Java check, uvicorn)
+├── .env.example                 # Config template — copy to .env and fill in API keys
+├── .env                         # Your config (gitignored) — loaded by default
+└── .env.example                 # Config template — copy to .env and fill in API keys
 ```
 
 ---
@@ -211,8 +212,8 @@ Articulate/
 
 | Method | Path | Purpose | Returns |
 |--------|------|---------|---------|
-| GET | `/info` | Config, Whisper model, Ollama reachability, active model | `SystemInfoOut` |
-| PATCH | `/model` | Switch active Ollama model at runtime (server-side, no restart) | `SystemInfoOut` |
+| GET | `/info` | Config, Whisper model, LLM reachability, active model | `SystemInfoOut` |
+| PATCH | `/model` | Switch active LLM model at runtime (server-side, no restart) | `SystemInfoOut` |
 
 ### Dashboard — `/api/v1/dashboard`
 
@@ -254,7 +255,7 @@ getAttemptAudioUrl(attemptId)               → string  (URL, no fetch)
 // System & Dashboard
 fetchDashboard()                            → DashboardData
 fetchSystemInfo()                           → SystemInfo
-patchOllamaModel(model)                     → SystemInfo
+patchLlmModel(model)                        → SystemInfo
 ```
 
 Default timeout: 10s. Scoring/TTS/AI features: 60s.
@@ -268,20 +269,19 @@ Orchestrates the full scoring pipeline:
 1. Load prompt template (cached in `_prompt_cache` after first disk read)
 2. Load BAND-SCORES.md (cached in `_BAND_DESCRIPTORS` at module import — **restart required to pick up changes**)
 3. Interpolate template with question, transcript, signals
-4. Call `ollama_client.generate()` with `temperature=0.3`, `num_predict=1024`
+4. Call `llm_client.generate()` with `temperature=0.3`, `num_predict=1024`
 5. Parse JSON response with fallback repair for truncation
 6. Clamp all 4 criteria to 0–9 in 0.5 steps
 7. Return overall = mean of 4 criteria
 
 ### `services/transcription.py`
-- Lazy-loads Whisper once (thread-safe) into a dedicated single-thread executor
-- CUDA fallback: load-time failure → CPU; runtime failure → sets `_force_cpu_fallback`, retries once
+- Sends audio to Groq Whisper API (`whisper-large-v3-turbo` by default)
 - Returns `{transcript, words: [{word, start, end, probability}]}`
-- Empty audio → raises immediately without hanging
+- Empty audio → raises immediately without calling the API
 
-### `services/ollama_client.py`
+### `services/llm_client.py`
 - Singleton `httpx.AsyncClient` (connection pooling)
-- Retries once on `ConnectError` (handles Ollama cold-start)
+- Retries once on `ConnectError`
 - Logs: `model=`, `prompt_len=`, `resp_len=`, `latency_ms=` on every call — **use this to verify which model is active**
 
 ### `services/tts.py`
@@ -349,17 +349,16 @@ Orchestrates the full scoring pipeline:
 
 ## 8. Configuration (Environment Variables)
 
-Set via `.env.pc` or `.env.laptop`, loaded by `run.ps1`. All have defaults in `config.py`.
+Set in `.env` (copy from `.env.example`), loaded by `run.ps1`/`run.sh`. All have defaults in `config.py`.
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `PROFILE` | `laptop` | Label shown in sidebar |
-| `WHISPER_MODEL` | `base` | `base`, `small`, `medium`, `large-v3` |
-| `WHISPER_DEVICE` | `cpu` | `cpu` or `cuda` |
-| `WHISPER_COMPUTE_TYPE` | `int8` | `int8`, `float16`, `float32` |
-| `OLLAMA_MODEL` | `gemma3:1b` | Default model; overridable at runtime via PATCH /model |
-| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama HTTP endpoint |
-| `OLLAMA_GPU_LAYERS` | `0` | GPU layers to offload (0=CPU, 99=all) |
+| `GROQ_API_KEY` | *(required)* | Groq API key for Whisper transcription |
+| `GROQ_WHISPER_MODEL` | `whisper-large-v3-turbo` | Groq Whisper model |
+| `LLM_API_KEY` | *(required)* | API key for cloud LLM |
+| `LLM_MODEL` | `gemma-3-27b-it` | Default LLM model; overridable at runtime via PATCH /model |
+| `LLM_BASE_URL` | Gemini endpoint | LLM base URL — swap to use a different provider |
 | `MAX_AUDIO_SIZE_MB` | `300` | Total audio directory size cap |
 | `AUDIO_RETENTION_DAYS` | `60` | Delete audio older than N days |
 | `DB_PATH` | `data/articulate.db` | SQLite file |
@@ -367,7 +366,7 @@ Set via `.env.pc` or `.env.laptop`, loaded by `run.ps1`. All have defaults in `c
 | `TTS_CACHE_DIR` | `data/tts_cache` | TTS cache |
 | `TTS_VOICE` | `af_heart` | Kokoro voice |
 | `TTS_CACHE_MAX_MB` | `100` | TTS cache size cap |
-| `LOW_CONFIDENCE_THRESHOLD` | `0.6` | Whisper word probability below this → flagged for pronunciation |
+| `LOW_CONFIDENCE_THRESHOLD` | `0.6` | Whisper word confidence below this → flagged for pronunciation |
 | `GAP_THRESHOLD` | `0.5` | Pause (seconds) before a word → counted as fluency gap |
 | `CORS_ORIGINS` | `http://localhost:5173,...` | Comma-separated allowed origins |
 
@@ -396,10 +395,9 @@ All prompts are in `backend/prompts/`. Loaded from disk once at startup, cached 
 | Area | Issue |
 |------|-------|
 | **Auth** | None. All endpoints public. Single-user only (`user_stats.id = 1`). |
-| **Model validation** | PATCH /model accepts any string. Bad model name fails silently on next score. Verify via backend logs: `Ollama generate: model=…` |
+| **Model validation** | PATCH /model accepts any string. Bad model name fails silently on next score. Verify via backend logs: `LLM generate: model=…` |
 | **Prompt caching** | `BAND-SCORES.md` + prompt `.txt` files loaded at import. Must restart server after editing. |
-| **CUDA (Windows)** | Partial DLL presence can pass import check but fail inference. `_force_cpu_fallback` flag handles this with one retry. |
-| **Whisper hang** | Dedicated single-thread executor queues requests rather than spawning threads. Long transcriptions block the queue. |
+| **Groq rate limits** | Free tier: 7,200 audio seconds/hour for Whisper. Long recordings consume quota faster. |
 | **Polling timeout** | 3 minutes, client-side only. Stuck attempt not auto-cancelled on backend. |
 | **Score display** | Criteria shown as `X.X` (e.g. `5.5`). Overall score is the arithmetic mean of the 4 criteria, rounded to nearest 0.5. |
 | **Audio format** | Prefers WebM/Opus; falls back to WebM then MP4. Android may send MP4. |

@@ -1,36 +1,13 @@
 #!/usr/bin/env bash
-# Usage: ./run.sh [auto|laptop|pc|gemini]
-#
-# auto (default): uses API mode if LLM_API_KEY is set in .env.gemini,
-#                 falls back to GPU (pc) mode otherwise.
+# Usage: ./run.sh
 set -e
-PROFILE=${1:-auto}
 
-# ── Auto-detect mode ──────────────────────────────────────────────────────────
-if [ "$PROFILE" = "auto" ]; then
-  HAS_KEY=0
-  if [ -f ".env.gemini" ]; then
-    KEY_VALUE=$(grep '^LLM_API_KEY=' .env.gemini 2>/dev/null | cut -d'=' -f2 | tr -d ' ')
-    # A real key: non-empty and not the placeholder
-    if [ -n "$KEY_VALUE" ] && ! echo "$KEY_VALUE" | grep -q '^your-'; then
-      HAS_KEY=1
-    fi
-  fi
-  if [ "$HAS_KEY" = "1" ]; then
-    PROFILE="gemini"
-    echo "[auto] API key found  -> using API mode (no GPU)"
-  else
-    PROFILE="pc"
-    echo "[auto] No API key     -> using GPU mode (Ollama)"
-  fi
-fi
-
-ENV_FILE=".env.$PROFILE"
-if [ ! -f "$ENV_FILE" ]; then
-  echo "Error: $ENV_FILE not found"
+# ── Load config ───────────────────────────────────────────────────────────────
+if [ ! -f ".env" ]; then
+  echo "Error: .env not found. Copy .env.example to .env and fill in your API keys."
   exit 1
 fi
-export $(grep -v '^#' "$ENV_FILE" | xargs)
+export $(grep -v '^#' ".env" | xargs)
 
 # ── Java check (required for LanguageTool grammar checker) ───────────────────
 # Suspend set -e for the install block — brew link commonly exits non-zero on

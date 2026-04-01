@@ -15,10 +15,10 @@ async def _check_llm_reachable(base_url: str, api_key: str) -> bool:
             # Cloud API — assume reachable if key is configured; actual errors
             # surface on first scoring call with a clear HTTP status message.
             return True
-        # Ollama local — ping the model list endpoint
+        # Fallback: try a simple GET on the base URL
         async with httpx.AsyncClient(timeout=2.0) as c:
-            r = await c.get(f"{base_url}/api/tags")
-            return r.status_code == 200
+            r = await c.get(base_url)
+            return r.status_code < 500
     except Exception:
         return False
 
@@ -28,16 +28,16 @@ async def system_info() -> SystemInfoOut:
     settings = get_settings()
     model = get_active_model()
     is_low_accuracy = any(tag in model for tag in ("1b", "3b", "1b-it", "3b-it"))
-    ollama_reachable = await _check_llm_reachable(
-        settings.ollama_base_url, settings.llm_api_key
+    llm_reachable = await _check_llm_reachable(
+        settings.llm_base_url, settings.llm_api_key
     )
     return SystemInfoOut(
         profile=settings.profile,
         whisper_model=settings.groq_whisper_model,
         whisper_device="groq-api",
-        ollama_model=model,
+        llm_model=model,
         is_low_accuracy=is_low_accuracy,
-        ollama_reachable=ollama_reachable,
+        llm_reachable=llm_reachable,
     )
 
 

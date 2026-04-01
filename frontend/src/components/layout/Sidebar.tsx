@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { fetchSystemInfo, patchOllamaModel } from '../../api/client'
+import { fetchSystemInfo, patchLlmModel } from '../../api/client'
 import type { SystemInfo } from '../../types'
 
 interface NavItem {
@@ -163,7 +163,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   })
 
   const modelMutation = useMutation({
-    mutationFn: patchOllamaModel,
+    mutationFn: patchLlmModel,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['systemInfo'] })
       setEditing(false)
@@ -171,14 +171,14 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   })
 
   function startEditing() {
-    setDraft(systemInfo?.ollama_model ?? '')
+    setDraft(systemInfo?.llm_model ?? '')
     setEditing(true)
     setTimeout(() => inputRef.current?.select(), 0)
   }
 
   function commitEdit() {
     const trimmed = draft.trim()
-    if (trimmed && trimmed !== systemInfo?.ollama_model) {
+    if (trimmed && trimmed !== systemInfo?.llm_model) {
       modelMutation.mutate(trimmed)
     } else {
       setEditing(false)
@@ -298,7 +298,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
                     className="group flex items-center gap-1 text-xs text-textSecondary hover:text-textPrimary w-full text-left"
                     title="Click to change model"
                   >
-                    <span className="truncate">LLM: {systemInfo.ollama_model}</span>
+                    <span className="truncate">LLM: {systemInfo.llm_model}</span>
                     <span className="shrink-0 opacity-0 group-hover:opacity-60 transition-opacity">
                       {modelMutation.isPending ? <SpinnerIcon /> : <PencilIcon />}
                     </span>
@@ -309,9 +309,9 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
                     Low-accuracy mode
                   </span>
                 )}
-                {!systemInfo.ollama_reachable && (
+                {!systemInfo.llm_reachable && (
                   <span className="mt-1.5 inline-block text-xs text-red-400 border border-red-400/30 rounded px-1.5 py-0.5">
-                    ⚠ Ollama offline
+                    ⚠ LLM unreachable
                   </span>
                 )}
               </>

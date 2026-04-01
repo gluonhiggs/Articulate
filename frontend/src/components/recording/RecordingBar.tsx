@@ -17,7 +17,7 @@ const BACKEND_STEP_LABELS: Record<string, string> = {
   scoring:                  'Scoring...',
   'failed:transcription':   'Could not transcribe audio',
   'failed:empty_audio':     'Audio was too quiet or silent',
-  'failed:scoring':         'AI scoring unavailable (is Ollama running?)',
+  'failed:scoring':         'AI scoring unavailable — check your LLM API key',
 }
 
 function formatTime(seconds: number): string {

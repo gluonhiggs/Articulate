@@ -6,7 +6,7 @@ from typing import Any, Dict
 
 from backend.config import get_settings
 from backend.constants import PROMPTS_DIR
-from backend.services import ollama_client
+from backend.services import llm_client
 
 logger = logging.getLogger(__name__)
 
@@ -68,14 +68,14 @@ async def generate_improvement(
     current_band: float,
     target_band: float,
 ) -> Dict[str, Any]:
-    """Call Ollama to rewrite the response at a higher band level."""
+    """Call the LLM to rewrite the response at a higher band level."""
     settings = get_settings()
     prompt = _build_prompt(question_text, transcript, current_band, target_band)
 
     try:
-        raw_text = await ollama_client.generate(
-            base_url=settings.ollama_base_url,
-            model=settings.ollama_model,
+        raw_text = await llm_client.generate(
+            base_url=settings.llm_base_url,
+            model=settings.llm_model,
             prompt=prompt,
             api_key=settings.llm_api_key,
             temperature=0.4,

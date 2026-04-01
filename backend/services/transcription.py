@@ -57,11 +57,16 @@ def _sync_transcribe(audio_path: str) -> Dict[str, Any]:
     word_list: List[Dict[str, Any]] = []
     raw_words = getattr(response, "words", None) or []
     for w in raw_words:
+        # Groq SDK may return plain dicts or Word objects depending on version.
+        if isinstance(w, dict):
+            _word, _start, _end = w.get("word", ""), w.get("start", 0), w.get("end", 0)
+        else:
+            _word, _start, _end = getattr(w, "word", ""), getattr(w, "start", 0), getattr(w, "end", 0)
         word_list.append(
             {
-                "word": w.word.strip(),
-                "start": round(w.start, 3),
-                "end": round(w.end, 3),
+                "word": str(_word or "").strip(),
+                "start": round(float(_start), 3),
+                "end": round(float(_end), 3),
                 # Groq does not expose per-word confidence scores.
                 # Set to 1.0 so downstream pronunciation scoring skips
                 # confidence-based flagging (disfluency detection still works).

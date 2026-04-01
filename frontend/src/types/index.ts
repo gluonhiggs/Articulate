@@ -87,9 +87,9 @@ export interface SystemInfo {
   profile: string
   whisper_model: string
   whisper_device: string
-  ollama_model: string
+  llm_model: string
   is_low_accuracy: boolean
-  ollama_reachable: boolean
+  llm_reachable: boolean
 }
 
 export interface ForecastEntry {

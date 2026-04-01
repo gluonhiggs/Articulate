@@ -1,41 +1,13 @@
-# run.ps1 — Start Articulate backend on Windows
-# Usage: .\run.ps1 [auto|laptop|pc|gemini]
-#
-# auto (default): uses API mode if LLM_API_KEY is set in .env.gemini,
-#                 falls back to GPU (pc) mode otherwise.
-param(
-    [string]$Profile = "auto"
-)
+# run.ps1 — Start Articulate on Windows
+# Usage: .\run.ps1
 
-# ── Auto-detect mode ──────────────────────────────────────────────────────────
-if ($Profile -eq "auto") {
-    $geminiEnv = ".env.gemini"
-    $hasApiKey = $false
-    if (Test-Path $geminiEnv) {
-        $keyLine = Get-Content $geminiEnv | Where-Object { $_ -match '^LLM_API_KEY=' }
-        if ($keyLine) {
-            $keyValue = ($keyLine -split '=', 2)[1].Trim()
-            # A real key: non-empty and not the placeholder string
-            $hasApiKey = $keyValue -and $keyValue -ne "" -and $keyValue -notlike "your-*"
-        }
-    }
-    if ($hasApiKey) {
-        $Profile = "gemini"
-        Write-Host "[auto] API key found  -> using API mode (no GPU)" -ForegroundColor Cyan
-    } else {
-        $Profile = "pc"
-        Write-Host "[auto] No API key     -> using GPU mode (Ollama)" -ForegroundColor Cyan
-    }
-}
-
-$EnvFile = ".env.$Profile"
-if (-not (Test-Path $EnvFile)) {
-    Write-Error "Error: $EnvFile not found"
+# ── Load config ───────────────────────────────────────────────────────────────
+if (-not (Test-Path ".env")) {
+    Write-Error ".env not found. Copy .env.example to .env and fill in your API keys."
     exit 1
 }
 
-# Load env file into environment
-Get-Content $EnvFile | Where-Object { $_ -notmatch '^\s*#' -and $_ -match '=' } | ForEach-Object {
+Get-Content ".env" | Where-Object { $_ -notmatch '^\s*#' -and $_ -match '=' } | ForEach-Object {
     $key, $value = $_ -split '=', 2
     [System.Environment]::SetEnvironmentVariable($key.Trim(), $value.Trim(), 'Process')
 }
@@ -147,5 +119,5 @@ $frontendDir = Join-Path $PSScriptRoot "frontend"
 Write-Host "Starting frontend dev server (port 5173) in new window..." -ForegroundColor Cyan
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$frontendDir'; bun run dev"
 
-Write-Host "Starting Articulate ($Profile profile)..." -ForegroundColor Green
+Write-Host "Starting Articulate..." -ForegroundColor Green
 uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 1 --reload @sslArgs

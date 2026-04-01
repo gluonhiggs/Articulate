@@ -26,7 +26,7 @@ const COMPANION_MAX_AGE_MS = 5 * 60 * 1000 // ignore attempts older than 5 min
 const ERROR_MESSAGES: Record<string, string> = {
   'failed:transcription': 'Could not transcribe audio',
   'failed:empty_audio':   'Audio was too quiet or silent',
-  'failed:scoring':       'AI scoring unavailable (is Ollama running?)',
+  'failed:scoring':       'AI scoring unavailable — check your LLM API key',
 }
 
 // ── Main page ───────────────────────────────────────────────────────────────

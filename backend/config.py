@@ -12,13 +12,12 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    profile: str = "laptop"
+    profile: str = ""
     groq_api_key: str = ""
     groq_whisper_model: str = "whisper-large-v3-turbo"
-    ollama_model: str = "gemma3:1b"
-    ollama_base_url: str = "http://localhost:11434"
-    ollama_gpu_layers: int = 0
-    llm_api_key: str = ""  # set to use any OpenAI-compatible cloud API (Gemini, Groq, etc.)
+    llm_model: str = "gemma-3-27b-it"
+    llm_base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai"
+    llm_api_key: str = ""
     pronunciation_tier: int = 1
     max_audio_size_mb: int = 300
     audio_retention_days: int = 60
@@ -42,7 +41,7 @@ _runtime_model: str | None = None
 
 def get_active_model() -> str:
     """Return runtime override if set, else the configured default."""
-    return _runtime_model if _runtime_model is not None else get_settings().ollama_model
+    return _runtime_model if _runtime_model is not None else get_settings().llm_model
 
 
 def set_runtime_model(model: str) -> None:

@@ -6,7 +6,7 @@
 - Per-criterion sparklines on the dashboard — score tags per attempt are sufficient for now
 - wav2vec2 phoneme alignment (Tier 2 pronunciation) — PC-only, separate project
 - ML-based test forecast — needs question embeddings + topic clustering
-- Test coverage for Whisper/Ollama integration paths — requires live models, not suitable for CI
+- Test coverage for Groq/LLM API integration paths — requires live API keys, not suitable for CI
 
 ---
 

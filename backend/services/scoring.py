@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 
 from backend.config import get_active_model, get_settings
 from backend.constants import PROMPTS_DIR, PROJECT_ROOT
-from backend.services import ollama_client
+from backend.services import llm_client
 
 # Load at module level so a missing file raises FileNotFoundError at startup, not per-request
 _BAND_DESCRIPTORS = (PROJECT_ROOT / "BAND-SCORES.md").read_text(encoding="utf-8")
@@ -164,7 +164,7 @@ async def score_attempt(
     grammar_context: str = "",
 ) -> Dict[str, Any]:
     """
-    Score a transcribed IELTS attempt using Ollama LLM.
+    Score a transcribed IELTS attempt using the configured LLM.
 
     Returns:
         {
@@ -205,15 +205,14 @@ async def score_attempt(
     )
 
     try:
-        raw_text = await ollama_client.generate(
-            base_url=settings.ollama_base_url,
+        raw_text = await llm_client.generate(
+            base_url=settings.llm_base_url,
             model=active_model,
             prompt=prompt,
             api_key=settings.llm_api_key,
             temperature=0.3,    # allow natural band uncertainty; 0.0 locks in anchoring bias
             num_predict=1024,   # restored; 600 was too tight for responses with many error highlights
             num_ctx=8192,       # headroom for long Part 2 transcripts; was 4096
-            num_gpu=settings.ollama_gpu_layers,
             timeout=120.0,
         )
     except (RuntimeError, FileNotFoundError) as exc:

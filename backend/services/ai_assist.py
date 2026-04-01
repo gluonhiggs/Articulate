@@ -6,7 +6,7 @@ from typing import Any, Dict
 
 from backend.config import get_settings
 from backend.constants import PROMPTS_DIR
-from backend.services import ollama_client
+from backend.services import llm_client
 
 logger = logging.getLogger(__name__)
 
@@ -76,9 +76,9 @@ async def generate_sample_answer(
         .replace("{word_count}", word_count)
     )
 
-    raw = await ollama_client.generate(
-        base_url=settings.ollama_base_url,
-        model=settings.ollama_model,
+    raw = await llm_client.generate(
+        base_url=settings.llm_base_url,
+        model=settings.llm_model,
         prompt=prompt,
         api_key=settings.llm_api_key,
         temperature=0.6,
@@ -100,9 +100,9 @@ async def generate_topic_vocab(question_text: str) -> Dict[str, Any]:
     template = _load_prompt("topic_vocab.txt")
     prompt = template.replace("{question_text}", question_text)
 
-    raw = await ollama_client.generate(
-        base_url=settings.ollama_base_url,
-        model=settings.ollama_model,
+    raw = await llm_client.generate(
+        base_url=settings.llm_base_url,
+        model=settings.llm_model,
         prompt=prompt,
         api_key=settings.llm_api_key,
         temperature=0.4,

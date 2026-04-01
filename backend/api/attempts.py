@@ -58,13 +58,11 @@ def _get_lt_tool():
 
 
 # ── LanguageTool artifact filter ─────────────────────────────────────────────
-# faster-whisper auto-capitalises the first word of every VAD segment (any
-# pause ≥ 500 ms starts a new segment). LanguageTool flags these boundaries as
-# UPPERCASE_SENTENCE_START and related casing/punctuation rules. These are
-# transcription artefacts, not speaker errors. Filtering them out before
-# building grammar_context prevents the LLM from penalising phantom mistakes
-# (e.g. identical responses scoring 7.0 vs 6.0 due to a single lowercase "but"
-# at a segment start).
+# Whisper (Groq API) may capitalise the first word of segments separated by
+# pauses. LanguageTool flags these as UPPERCASE_SENTENCE_START and related
+# casing/punctuation rules — transcription artefacts, not speaker errors.
+# Filtering them out before building grammar_context prevents the LLM from
+# penalising phantom mistakes.
 #
 # Kept: GRAMMAR, CONFUSED_WORDS, MISC, TYPOS — all genuine error categories.
 
@@ -288,7 +286,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             # ----------------------------------------------------------------
             # 4. Score
             # ----------------------------------------------------------------
-            # Emit 'scoring' status before calling Ollama
+            # Emit 'scoring' status before calling LLM
             s_result = await session.execute(select(Attempt).where(Attempt.id == attempt_id))
             attempt_scoring = s_result.scalar_one_or_none()
             if attempt_scoring is not None:
@@ -609,7 +607,7 @@ async def improve_attempt(
     attempt_id: int,
     db: AsyncSession = Depends(get_db),
 ) -> ImproveOut:
-    """Rewrite the attempt's response at one band higher using Ollama."""
+    """Rewrite the attempt's response at one band higher using the LLM."""
     result = await db.execute(select(Attempt).where(Attempt.id == attempt_id))
     attempt = result.scalar_one_or_none()
     if attempt is None:

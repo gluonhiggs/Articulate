@@ -124,7 +124,7 @@ export function fetchSystemInfo(): Promise<SystemInfo> {
   return apiFetch<SystemInfo>('/system/info')
 }
 
-export function patchOllamaModel(model: string): Promise<SystemInfo> {
+export function patchLlmModel(model: string): Promise<SystemInfo> {
   return apiFetch<SystemInfo>('/system/model', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },

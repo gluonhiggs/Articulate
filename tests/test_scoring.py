@@ -1,4 +1,4 @@
-"""Unit tests for scoring._parse_llm_response() — no Ollama required."""
+"""Unit tests for scoring._parse_llm_response() — no API keys required."""
 import pytest
 from backend.services.scoring import _parse_llm_response, _clamp_band
 

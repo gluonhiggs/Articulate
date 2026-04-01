@@ -1,21 +1,19 @@
 """
-LLM HTTP client — supports Ollama (local) and any OpenAI-compatible API.
+LLM HTTP client — any OpenAI-compatible cloud API (Gemini, Groq, OpenAI, etc.).
 
   ┌─────────────────────────────────────────────────────────────┐
   │  LLM client (module-level singleton)                        │
   │  ──────────────────────────────────────────────────────     │
   │  Unified interface: POST /v1/chat/completions               │
   │  Works with:                                                │
-  │    • Ollama   → base_url=http://localhost:11434             │
   │    • Gemini   → base_url=https://generativelanguage...      │
   │    • Groq     → base_url=https://api.groq.com/openai/v1    │
   │    • OpenAI   → base_url=https://api.openai.com/v1         │
-  │    • LM Studio→ base_url=http://localhost:1234/v1          │
   │                                                             │
   │  generate(base_url, model, prompt, *, api_key, ...)→ str   │
-  │    ├─ POST {base_url}/v1/chat/completions  (Ollama)        │
-  │    ├─ POST {base_url}/chat/completions     (cloud/v1 base) │
-  │    ├─ on ConnectError → retry once (cold-start)            │
+  │    ├─ POST {base_url}/chat/completions     (versioned base) │
+  │    ├─ POST {base_url}/v1/chat/completions  (bare base)      │
+  │    ├─ on ConnectError → retry once                         │
   │    └─ logs model, prompt_len, resp_len, latency_ms         │
   │                                                             │
   │  close_if_initialized()  ← lifespan shutdown               │
@@ -23,10 +21,9 @@ LLM HTTP client — supports Ollama (local) and any OpenAI-compatible API.
 
 URL construction rules
 ─────────────────────
-Cloud APIs expose an OpenAI-compatible base that already includes the
-version segment, e.g. .../v1beta/openai or .../openai/v1. Appending
-another /v1 would break the path. Ollama's root (http://localhost:11434)
-has no version segment, so we append /v1/chat/completions.
+Cloud APIs expose a base that already includes a version segment, e.g.
+.../v1beta/openai or .../openai/v1. Appending another /v1 would break
+the path. Bare base URLs get /v1/chat/completions appended.
 
 Rule: if base_url already ends with /v1, /openai, or a similar versioned
 segment, append only /chat/completions. Otherwise append /v1/chat/completions.
@@ -55,11 +52,9 @@ def _chat_completions_url(base_url: str) -> str:
     """
     Build the correct chat completions endpoint from a base URL.
 
-    - Ollama root   http://localhost:11434          → .../v1/chat/completions
-    - OpenAI        https://api.openai.com/v1       → .../chat/completions
-    - Groq          https://api.groq.com/openai/v1  → .../chat/completions
-    - Gemini        https://.../v1beta/openai        → .../chat/completions
-    - LM Studio     http://localhost:1234/v1         → .../chat/completions
+    - OpenAI   https://api.openai.com/v1       → .../chat/completions
+    - Groq     https://api.groq.com/openai/v1  → .../chat/completions
+    - Gemini   https://.../v1beta/openai        → .../chat/completions
     """
     base = base_url.rstrip("/")
     versioned_suffixes = ("/v1", "/openai", "/v1beta/openai")
@@ -76,16 +71,16 @@ async def generate(
     api_key: str = "",
     temperature: float = 0.4,
     num_predict: int = 1024,
-    num_ctx: int = 2048,   # accepted for backward compat; not sent to cloud APIs
-    num_gpu: int = 0,       # accepted for backward compat; not sent to cloud APIs
+    num_ctx: int = 2048,   # ignored (cloud APIs set context server-side)
+    num_gpu: int = 0,       # ignored
     timeout: float = 120.0,
 ) -> str:
     """
     Call an OpenAI-compatible /chat/completions endpoint and return the
     assistant response text.
 
-    Works with Ollama (local, no api_key) and any cloud API (api_key set).
-    Retries once on ConnectError to handle Ollama cold-start.
+    Calls any OpenAI-compatible /chat/completions endpoint.
+    Retries once on ConnectError.
     Raises RuntimeError on persistent failure.
     """
     client = _get_client()
