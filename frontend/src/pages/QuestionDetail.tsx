@@ -170,6 +170,8 @@ export function QuestionDetail() {
       resetAudioBlob()
       hasUploadedRef.current = false
       prevQuestionIdRef.current = questionId
+      setPronunAttempt(null)
+      setShownPronunIds(new Set())
     }
   }, [questionId, reset, resetAudioBlob])
 
@@ -179,6 +181,7 @@ export function QuestionDetail() {
 
   // Right panel state
   const [pronunAttempt, setPronunAttempt] = useState<Attempt | null>(null)
+  const [shownPronunIds, setShownPronunIds] = useState<Set<number>>(new Set())
 
   // Mobile: toggle AI panel
   const [showPanel, setShowPanel] = useState(false)
@@ -406,7 +409,12 @@ export function QuestionDetail() {
                     attempt={attempt}
                     index={i}
                     isNew={attempt.id === newestAttemptId}
-                    onShowPronunciation={(a) => setPronunAttempt((prev) => (prev?.id === a.id ? null : a))}
+                    shownPronunIds={shownPronunIds}
+                    onShowPronunciation={(a) => {
+                      if (shownPronunIds.has(a.id)) return
+                      setShownPronunIds((prev) => new Set(prev).add(a.id))
+                      setPronunAttempt(a)
+                    }}
                   />
                 ) : (
                   <PrevAttemptCard
@@ -438,7 +446,6 @@ export function QuestionDetail() {
               <RightPanel
                 question={question ?? null}
                 pronunAttempt={pronunAttempt}
-                onClose={() => setPronunAttempt(null)}
                 allQuestions={allQuestions}
               />
             </div>

@@ -4,9 +4,11 @@ import { tagClass } from './utils'
 export function ScoreTags({
   attempt,
   onPronunDetails,
+  pronunDetailsShown,
 }: {
   attempt: Attempt
   onPronunDetails?: () => void
+  pronunDetailsShown?: boolean
 }) {
   const tags: { label: string; value: number | null; key: string }[] = [
     { label: 'Fluency', value: attempt.fluency, key: 'f' },
@@ -25,7 +27,7 @@ export function ScoreTags({
             <span className={`px-3 py-1 rounded-full text-xs font-medium ${tagClass(t.value)}`}>
               {t.label}: {t.value.toFixed(1)}
             </span>
-            {isPronun && onPronunDetails && (
+            {isPronun && onPronunDetails && !pronunDetailsShown && (
               <button
                 onClick={onPronunDetails}
                 className="text-[11px] text-gray-400 hover:text-teal-400 transition-colors underline underline-offset-2"

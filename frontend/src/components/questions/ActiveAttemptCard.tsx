@@ -10,11 +10,13 @@ export function ActiveAttemptCard({
   attempt,
   index,
   isNew,
+  shownPronunIds,
   onShowPronunciation,
 }: {
   attempt: Attempt
   index: number
   isNew: boolean
+  shownPronunIds: Set<number>
   onShowPronunciation: (attempt: Attempt) => void
 }) {
   const [expanded, setExpanded] = useState(true)
@@ -155,6 +157,7 @@ export function ActiveAttemptCard({
       <div className="mt-4 ml-12">
         <ScoreTags
           attempt={attempt}
+          pronunDetailsShown={shownPronunIds.has(attempt.id)}
           onPronunDetails={() => onShowPronunciation(attempt)}
         />
       </div>
