@@ -470,7 +470,6 @@ export function QuestionDetail() {
         <RightPanel
           question={question ?? null}
           pronunAttempt={pronunAttempt}
-          onClose={() => setPronunAttempt(null)}
           allQuestions={allQuestions}
         />
       </div>

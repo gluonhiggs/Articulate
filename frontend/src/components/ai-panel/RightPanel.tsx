@@ -15,7 +15,6 @@ export function RightPanel({
 }: {
   question: Question | null
   pronunAttempt: Attempt | null
-  onClose: () => void
   allQuestions: Question[]
 }) {
   const navigate = useNavigate()
