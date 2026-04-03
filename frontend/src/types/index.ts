@@ -90,6 +90,9 @@ export interface SystemInfo {
   llm_model: string
   is_low_accuracy: boolean
   llm_reachable: boolean
+  transcription_mode: string          // "groq" | "local"
+  faster_whisper_installed: boolean
+  op_status: string                   // "" | "installing" | "loading" | "failed"
 }
 
 export interface ForecastEntry {

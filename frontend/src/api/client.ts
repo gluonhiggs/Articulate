@@ -132,6 +132,14 @@ export function patchLlmModel(model: string): Promise<SystemInfo> {
   })
 }
 
+export function patchTranscriptionMode(mode: string): Promise<SystemInfo> {
+  return apiFetch<SystemInfo>('/system/transcription-mode', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mode }),
+  })
+}
+
 // ─── Forecast ────────────────────────────────────────────────────────────────
 
 export function fetchForecast(): Promise<ForecastEntry[]> {

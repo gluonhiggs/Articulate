@@ -258,3 +258,86 @@ class TestFluencySignal:
         ]
         gap_count, disfluent, _ = _compute_fluency(words)
         assert gap_count == 0
+
+
+# ---------------------------------------------------------------------------
+# Flagged words (pronunciation signal)
+# ---------------------------------------------------------------------------
+
+LOW_CONFIDENCE_THRESHOLD = 0.6  # mirrors Settings.low_confidence_threshold default
+
+
+def _build_flagged_words(words: list[dict], disfluent: set[str]) -> list[str]:
+    """Replicate the flagged_words list comprehension from _run_pipeline() in attempts.py."""
+    return [
+        w["word"]
+        for w in words
+        if (
+            isinstance(w.get("probability"), (int, float))
+            and w["probability"] < LOW_CONFIDENCE_THRESHOLD
+        )
+        or w["word"].lower() in disfluent
+    ]
+
+
+class TestFlaggedWords:
+    """Verify probability-threshold and disfluency-based flagging (both modes)."""
+
+    def test_groq_mode_no_probability_flags(self):
+        # Groq stubs probability=1.0 → nothing flagged from probability
+        words = [
+            {"word": "friends", "probability": 1.0},
+            {"word": "charming", "probability": 1.0},
+        ]
+        assert _build_flagged_words(words, disfluent=set()) == []
+
+    def test_local_mode_low_probability_flagged(self):
+        # faster-whisper returns real probabilities; <0.6 gets flagged
+        words = [
+            {"word": "friends", "probability": 0.35},   # mispronounced
+            {"word": "charming", "probability": 0.82},  # fine
+        ]
+        assert _build_flagged_words(words, disfluent=set()) == ["friends"]
+
+    def test_boundary_at_threshold_not_flagged(self):
+        # probability == 0.6 is NOT < 0.6 → not flagged
+        words = [{"word": "friends", "probability": 0.6}]
+        assert _build_flagged_words(words, disfluent=set()) == []
+
+    def test_just_below_threshold_flagged(self):
+        words = [{"word": "friends", "probability": 0.5999}]
+        assert _build_flagged_words(words, disfluent=set()) == ["friends"]
+
+    def test_disfluent_word_flagged_regardless_of_probability(self):
+        # Word after timing gap → in disfluent set → flagged even with probability=1.0
+        words = [{"word": "um", "probability": 1.0}]
+        assert _build_flagged_words(words, disfluent={"um"}) == ["um"]
+
+    def test_missing_probability_not_flagged(self):
+        # Word without 'probability' key → isinstance guard skips it
+        words = [{"word": "friends"}]
+        assert _build_flagged_words(words, disfluent=set()) == []
+
+    def test_only_low_probability_words_flagged(self):
+        words = [
+            {"word": "I", "probability": 0.95},
+            {"word": "like", "probability": 0.88},
+            {"word": "dogs", "probability": 0.45},     # flagged
+            {"word": "and", "probability": 0.91},
+            {"word": "friends", "probability": 0.22},  # flagged
+        ]
+        assert _build_flagged_words(words, disfluent=set()) == ["dogs", "friends"]
+
+    def test_combined_probability_and_disfluency(self):
+        words = [
+            {"word": "um", "probability": 1.0},        # flagged by timing gap
+            {"word": "friends", "probability": 0.35},  # flagged by probability
+            {"word": "charming", "probability": 0.9},  # fine
+        ]
+        assert set(_build_flagged_words(words, disfluent={"um"})) == {"um", "friends"}
+
+    def test_word_satisfying_both_conditions_not_duplicated(self):
+        # A word that is BOTH low-probability AND in disfluent set appears only once
+        words = [{"word": "um", "probability": 0.3}]
+        result = _build_flagged_words(words, disfluent={"um"})
+        assert result == ["um"]  # not ["um", "um"]

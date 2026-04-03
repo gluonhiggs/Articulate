@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -24,6 +25,78 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+
+def _prompt_mode_selection() -> None:
+    """Interactive terminal prompt for transcription mode.
+
+    Only runs when TRANSCRIPTION_MODE is unset in .env.
+    For Mode 1 with no GPU, asks the user to confirm CPU slowness.
+    Writes the chosen mode to data/mode and updates os.environ so
+    get_settings() returns the new value after cache_clear().
+
+    NOTE: Persistence (saved to data/mode) persists across server restarts.
+    The chosen mode is restored during lifespan startup before the prompt runs.
+    """
+    settings = get_settings()
+    if settings.transcription_mode in ("groq", "local"):
+        return  # already configured — skip prompt
+
+    from backend.services.transcription import detect_gpu
+    has_gpu = detect_gpu()
+
+    print("\n" + "=" * 60)
+    print("Transcription mode — choose once (saved to data/mode):\n")
+    print("  [1] Local  — faster-whisper, full pronunciation scoring")
+    if has_gpu:
+        print("       GPU detected: large-v3-turbo (fast + accurate)")
+    else:
+        print("       No GPU: small model on CPU (~40-60s per answer)")
+    print()
+    print("  [2] Cloud  — Groq API, ~2-3s per answer")
+    print("       Note: pronunciation reflects fluency only")
+    print("             (word-level analysis unavailable in cloud mode)")
+    print("=" * 60)
+
+    while True:
+        try:
+            choice = input("Choose [1/2]: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print("\nDefaulting to cloud mode.")
+            choice = "2"
+            break
+        if choice in ("1", "2"):
+            break
+        print("Enter 1 or 2.")
+
+    mode = "local" if choice == "1" else "groq"
+
+    # Warn and confirm if local mode selected but no GPU available
+    if mode == "local" and not has_gpu:
+        print()
+        print("! No GPU detected. Expect ~40-60s transcription per answer on CPU.")
+        while True:
+            try:
+                confirm = input("Continue with local CPU mode? [y/N]: ").strip().lower()
+            except (EOFError, KeyboardInterrupt):
+                confirm = "n"
+                break
+            if confirm in ("y", "yes", "n", "no", ""):
+                break
+            print("Enter y or n.")
+        if confirm not in ("y", "yes"):
+            print("Switching to cloud mode (Groq).")
+            mode = "groq"
+
+    # Persist to data/mode (never modifies .env)
+    from backend.config import write_mode_file
+    write_mode_file(mode)
+
+    # Update the running process so lifespan reads the chosen mode
+    os.environ["TRANSCRIPTION_MODE"] = mode
+    get_settings.cache_clear()
+
+    print(f"\nSaved. Starting in {'local' if mode == 'local' else 'cloud (Groq)'} mode.\n")
 
 
 @asynccontextmanager
@@ -57,7 +130,42 @@ async def lifespan(app: FastAPI):
     from backend.data.oxford import WORD_TO_CEFR
     logger.info("Oxford 5000 loaded: %d words", len(WORD_TO_CEFR))
 
-    logger.info("Transcription: using Groq Whisper API (model=%s).", get_settings().groq_whisper_model)
+    # ── Restore last-used transcription mode from data/mode ──────────────────
+    from backend.config import get_mode_file, write_mode_file
+    _mode_file = get_mode_file()
+    if _mode_file.exists():
+        _saved_mode = _mode_file.read_text(encoding="utf-8").strip()
+        if _saved_mode in ("groq", "local"):
+            os.environ["TRANSCRIPTION_MODE"] = _saved_mode
+            get_settings.cache_clear()
+            logger.info("Transcription mode restored from data/mode: %s", _saved_mode)
+
+    # Mode selection: prompt user if TRANSCRIPTION_MODE not set in .env
+    _prompt_mode_selection()
+    settings = get_settings()  # re-read after potential mode change
+
+    if settings.transcription_mode == "local":
+        logger.info("Transcription: Mode 1 — local faster-whisper.")
+        try:
+            from backend.services.transcription import _get_model as _get_whisper_model, warmup_probe as _warmup_probe, _local_executor as _whisper_local_executor
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(_whisper_local_executor, _get_whisper_model)
+            logger.info("faster-whisper model loaded — running CUDA warmup probe…")
+            await _warmup_probe()
+            logger.info("faster-whisper ready (device validated).")
+        except ImportError:
+            logger.critical(
+                "faster-whisper is not installed but TRANSCRIPTION_MODE=local.\n"
+                "  Install: uv sync --group local-transcription\n"
+                "  Or set TRANSCRIPTION_MODE=groq in .env and restart."
+            )
+            raise SystemExit(1)
+    else:
+        logger.info(
+            "Transcription: Mode 2 — Groq API (model=%s). "
+            "Pronunciation scoring reflects fluency only (no word-level analysis).",
+            settings.groq_whisper_model,
+        )
 
     logger.info("Pre-loading Kokoro TTS model…")
     await _ensure_tts_pipeline()
@@ -65,11 +173,20 @@ async def lifespan(app: FastAPI):
 
     logger.info("Initialising LanguageTool grammar checker…")
     loop = asyncio.get_running_loop()
-    lt = await loop.run_in_executor(None, _get_lt_tool)
-    if lt is not None:
-        logger.info("LanguageTool ready (%s).", type(lt).__name__)
-    else:
-        logger.warning("LanguageTool unavailable — grammar context will be skipped.")
+    try:
+        lt = await asyncio.wait_for(
+            loop.run_in_executor(None, _get_lt_tool),
+            timeout=30.0,
+        )
+        if lt is not None:
+            logger.info("LanguageTool ready (%s).", type(lt).__name__)
+        else:
+            logger.warning("LanguageTool unavailable — grammar context will be skipped.")
+    except asyncio.TimeoutError:
+        logger.warning(
+            "LanguageTool timed out after 30s (Java may be blocked by firewall). "
+            "Grammar context will be skipped."
+        )
 
     yield  # Application runs here
 

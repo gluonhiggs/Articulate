@@ -185,7 +185,15 @@ class SystemInfoOut(BaseModel):
     llm_model: str
     is_low_accuracy: bool = False
     llm_reachable: bool = False
+    # ── Transcription mode ──────────────────────────────────────────────────
+    transcription_mode: str = "groq"        # "groq" | "local"
+    faster_whisper_installed: bool = False
+    op_status: str = ""                     # "" | "installing" | "loading" | "failed"
 
 
 class SetModelRequest(BaseModel):
     model: str
+
+
+class SetTranscriptionModeRequest(BaseModel):
+    mode: str  # "groq" | "local"
