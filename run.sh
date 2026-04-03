@@ -47,14 +47,6 @@ else
 fi
 set -e
 
-SSL_ARGS=""
-if [ -f certs/cert.pem ]; then
-  SSL_ARGS="--ssl-certfile certs/cert.pem --ssl-keyfile certs/key.pem"
-  echo "HTTPS enabled (certs/cert.pem found)"
-else
-  echo "WARNING: certs/ not found, running HTTP only (phone mic will not work)"
-fi
-
 # ── Frontend: staleness check + build if needed ───────────────────────────────
 DIST_INDEX="frontend/dist/index.html"
 MUST_BUILD=0
@@ -97,4 +89,4 @@ _open_terminal() {
 
 _open_terminal "Articulate frontend" "cd '$ROOT/frontend' && bun run dev"
 
-exec uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 1 --reload $SSL_ARGS
+exec uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 1 --reload

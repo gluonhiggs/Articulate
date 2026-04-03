@@ -240,7 +240,7 @@ else:
 
 @app.exception_handler(StarletteHTTPException)
 async def spa_fallback(request, exc: StarletteHTTPException):
-    """Serve index.html for SPA deep-link navigation (e.g. phone refresh on /practice/part1/questions/5)."""
+    """Serve index.html for SPA deep-link navigation."""
     if exc.status_code != 404 or request.url.path.startswith("/api/"):
         raise exc
     idx = _FRONTEND_DIST / "index.html"

@@ -62,15 +62,6 @@ if (-not (Get-Command java -ErrorAction SilentlyContinue)) {
     }
 }
 
-# Conditional SSL
-$sslArgs = @()
-if (Test-Path "certs/cert.pem") {
-    $sslArgs = @("--ssl-certfile", "certs/cert.pem", "--ssl-keyfile", "certs/key.pem")
-    Write-Host "HTTPS enabled (certs/cert.pem found)" -ForegroundColor Green
-} else {
-    Write-Warning "certs/ not found, running HTTP only (for phone mic: enable chrome://flags/#unsafely-treat-insecure-origin-as-secure)"
-}
-
 # ── Frontend: staleness check + build if needed ───────────────────────────────
 $distIndex = "frontend\dist\index.html"
 $mustBuild = $false
@@ -120,4 +111,4 @@ Write-Host "Starting frontend dev server (port 5173) in new window..." -Foregrou
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$frontendDir'; bun run dev"
 
 Write-Host "Starting Articulate..." -ForegroundColor Green
-uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 1 --reload @sslArgs
+uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 1 --reload
