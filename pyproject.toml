@@ -52,6 +52,11 @@ dev = [
 ]
 local-transcription = [
     "faster-whisper>=1.0",
+    # Windows: ctranslate2 expects cublas/cudart DLLs on PATH.
+    # These packages install the DLLs into site-packages/nvidia/*/bin/,
+    # and transcription.py patches PATH at import time to expose them.
+    "nvidia-cublas-cu12>=12",
+    "nvidia-cuda-runtime-cu12>=12",
 ]
 
 [tool.pytest.ini_options]

@@ -12,6 +12,30 @@ from backend.config import get_settings
 
 logger = logging.getLogger(__name__)
 
+
+# ── Windows CUDA DLL path fix ─────────────────────────────────────────────────
+# ctranslate2 on Windows loads cublas64_12.dll / cudart64_12.dll via the OS
+# DLL search path (PATH), not via Python's import machinery.  The nvidia-*
+# packages install those DLLs into site-packages/nvidia/*/bin/ which is NOT
+# on PATH by default.  Prepend those dirs here, before ctranslate2 is loaded.
+
+def _patch_cuda_dll_path() -> None:
+    import sys
+    if sys.platform != "win32":
+        return
+    import site
+    for site_dir in site.getsitepackages():
+        nvidia_dir = os.path.join(site_dir, "nvidia")
+        if not os.path.isdir(nvidia_dir):
+            continue
+        for pkg in os.listdir(nvidia_dir):
+            bin_dir = os.path.join(nvidia_dir, pkg, "bin")
+            if os.path.isdir(bin_dir) and bin_dir not in os.environ.get("PATH", ""):
+                os.environ["PATH"] = bin_dir + os.pathsep + os.environ["PATH"]
+
+
+_patch_cuda_dll_path()
+
 # ── Thread pools ─────────────────────────────────────────────────────────────
 # Local whisper is CPU-bound → single thread to avoid contention.
 # Groq is network I/O → multiple threads fine.
