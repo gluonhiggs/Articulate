@@ -54,3 +54,4 @@ frontend/node_modules/
 .env.*
 !.env.example
 .gstack/
+.superpowers/
