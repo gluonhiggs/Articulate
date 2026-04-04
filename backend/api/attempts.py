@@ -4,6 +4,8 @@ import asyncio
 import json
 import logging
 import os
+import re
+from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 from typing import List, Optional
 
@@ -42,8 +44,8 @@ def _get_lt_tool():
     _lt_tool_init_attempted = True
     try:
         import language_tool_python  # type: ignore[import]
-        _lt_tool = language_tool_python.LanguageTool('en-US')
-        logger.info("LanguageTool initialized (local)")
+        _lt_tool = language_tool_python.LanguageTool('en-US', config={'picky': True})
+        logger.info("LanguageTool initialized (local, picky=True)")
     except Exception as exc:
         logger.warning("LanguageTool local unavailable (Java required): %s", exc)
         try:
@@ -88,6 +90,33 @@ _LT_FILTERED_CATEGORIES: frozenset[str] = frozenset({
     "STYLE",        # subjective style — not an IELTS speaking criterion
     "REDUNDANCY",   # wordy phrasing — not penalised in IELTS speaking
 })
+
+# Rules that belong to filtered categories but catch genuine errors worth surfacing.
+_LT_WHITELISTED_RULE_IDS: frozenset[str] = frozenset({
+    "BORED_OF",  # STYLE: 'bored of' → 'bored with/by' — real preposition error
+})
+
+
+def _sentence_spans(text: str) -> list[tuple[int, int]]:
+    """Return (start, end) character offsets for each sentence in *text*.
+
+    Splits on terminal punctuation (. ! ?) followed by whitespace or end of
+    string. Whisper transcripts include punctuation, making this reliable.
+    Falls back to the whole text as a single span when no boundary is found
+    (e.g. very short responses without punctuation).
+    """
+    spans: list[tuple[int, int]] = []
+    start = 0
+    for m in re.finditer(r"[.!?]+", text):
+        end = m.end()
+        spans.append((start, end))
+        nxt = end
+        while nxt < len(text) and text[nxt].isspace():
+            nxt += 1
+        start = nxt
+    if start < len(text):          # trailing text with no terminal punctuation
+        spans.append((start, len(text)))
+    return spans or [(0, len(text))]
 
 
 async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> None:
@@ -221,7 +250,10 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                         filtered_matches = [
                             m for m in matches
                             if m.rule_id not in _LT_FILTERED_RULE_IDS
-                            and m.category not in _LT_FILTERED_CATEGORIES
+                            and (
+                                m.rule_id in _LT_WHITELISTED_RULE_IDS
+                                or m.category not in _LT_FILTERED_CATEGORIES
+                            )
                         ]
                         logger.info(
                             "\n\n========== LT_RAW_MATCHES attempt_id=%d ==========\n"
@@ -244,19 +276,80 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                                 for m in filtered_matches[:10]
                             ],
                         )
-                        grammar_errors = [
-                            f"{m.rule_id}: '{transcript[m.offset:m.offset + m.error_length]}'"
-                            f" → {list(m.replacements[:2])}"
-                            for m in filtered_matches[:8]
-                        ]
-                        grammar_context = (
-                            "; ".join(grammar_errors)
-                            if grammar_errors
-                            else "no grammar errors detected"
-                        )
+                        # ── Sentence segmentation & error attribution ─────────
+                        sent_spans = _sentence_spans(transcript)
+                        n_sentences = len(sent_spans)
+
+                        def _sent_idx(offset: int) -> int:
+                            for i, (s, e) in enumerate(sent_spans):
+                                if s <= offset < e:
+                                    return i
+                            return n_sentences - 1
+
+                        # Stats computed over ALL filtered matches (not just cap)
+                        error_sentence_set = {
+                            _sent_idx(m.offset) for m in filtered_matches
+                        }
+                        n_error_sents = len(error_sentence_set)
+                        clean_pct = round(
+                            100 * (n_sentences - n_error_sents) / n_sentences
+                        ) if n_sentences else 100
+
+                        if not filtered_matches:
+                            grammar_context = (
+                                f"no grammar errors detected "
+                                f"({n_sentences} sentences, 100% error-free)"
+                            )
+                        else:
+                            displayed = filtered_matches
+                            total = len(filtered_matches)
+                            header = (
+                                f"{total} error(s) in {n_sentences} sentences "
+                                f"({clean_pct}% error-free)"
+                            )
+
+                            # Group by rule_id — systematicity signal
+                            rule_groups: dict[str, list] = defaultdict(list)
+                            for m in displayed:
+                                rule_groups[m.rule_id].append(m)
+
+                            by_rule_lines = []
+                            for rule_id, grp in rule_groups.items():
+                                cat = grp[0].category
+                                examples = " | ".join(
+                                    f"'{transcript[m.offset:m.offset + m.error_length]}'"
+                                    f" → {list(m.replacements[:2])}"
+                                    for m in grp
+                                )
+                                by_rule_lines.append(
+                                    f"  [{cat}] {rule_id} ×{len(grp)}: {examples}"
+                                )
+
+                            # Per-sentence attribution
+                            by_sent_lines = []
+                            for m in displayed:
+                                s_num = _sent_idx(m.offset) + 1
+                                span = transcript[m.offset:m.offset + m.error_length]
+                                by_sent_lines.append(
+                                    f"  S{s_num}: '{span}'"
+                                    f" → {list(m.replacements[:2])}"
+                                    f" ({m.message})"
+                                )
+
+                            grammar_context = "\n".join([
+                                header,
+                                "",
+                                "By rule:",
+                                *by_rule_lines,
+                                "",
+                                "By sentence:",
+                                *by_sent_lines,
+                            ])
                 except Exception as exc:
                     logger.warning("Grammar check failed: %s", exc)
 
+            # ----------------------------------------------------------------
+            # 3. Flagged words for pronunciation
             # ----------------------------------------------------------------
             # 3. Flagged words for pronunciation
             # ----------------------------------------------------------------

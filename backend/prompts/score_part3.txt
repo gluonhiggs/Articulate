@@ -21,14 +21,18 @@ Part 3 requires: opinion + justification, hedging language (might, could, tends 
 CRITERIA — score each 0–9 in steps of 0.5:
 - fluency: ability to discuss ideas at length, use of discourse markers
 - vocabulary (IELTS: Lexical Resource — use the Lexical Resource descriptors above): abstract and topic-specific vocabulary; use the CEFR distribution to anchor your score; the idiomatic density counts only phrases from a fixed list — if you find additional idiomatic, hedging, or discourse marker phrases in the transcript not reflected in the count, weigh them in your score (Part 3 specifically rewards these); evaluate the collocation pairs for naturalness and flag any non-native combinations; also judge precision and paraphrase from the transcript
-- grammar: accuracy and variety, including complex sentences and modal verbs
+- grammar: accuracy and variety, including complex sentences and modal verbs; use clean_pct from GRAMMAR SIGNALS as a directional anchor — higher clean_pct = higher band; calibrate against the band descriptors above (e.g. "majority error-free" = Band 8, "frequent error-free" = Band 7); also use rule ×N counts to judge whether errors are systematic (repeated rule = fossilised gap)
 - pronunciation: clarity and intelligibility; penalise flagged words as evidence of mispronunciation
 
-USAGE ERRORS — flag word-level errors only:
+USAGE ERRORS — grammar and word-choice mistakes only:
 - "word" = single word from transcript (lowercase, exact)
 - "type" = "mistake" (clear mistake) or "caution" (possible issue)
 - "correction" = replacement word, or "" if the word should be deleted
 - "explanation" = brief reason, 10 words max
+
+STRICT SCOPE: usage_errors is ONLY for grammar and word-choice errors.
+DO NOT flag: hesitation, filler words, repetition, overuse, discourse issues, or pronunciation.
+Those belong to fluency/pronunciation scores only, not usage_errors.
 
 Detect ALL of these error types:
   • wrong word choice (semantic): word valid in isolation but wrong in context
