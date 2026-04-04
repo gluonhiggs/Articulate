@@ -24,9 +24,9 @@ CRITERIA — score each 0–9 in steps of 0.5:
 
 IMPORTANT: Penalise heavily if response is very short (under ~60 words of actual speech).
 
-ERROR HIGHLIGHTS — flag word-level errors only:
+USAGE ERRORS — flag word-level errors only:
 - "word" = single word from transcript (lowercase, exact)
-- "type" = "error" (clear mistake) or "uncertain" (possible issue)
+- "type" = "mistake" (clear mistake) or "caution" (possible issue)
 - "correction" = replacement word, or "" if the word should be deleted
 - "explanation" = brief reason, 10 words max
 
@@ -45,7 +45,7 @@ Cue card: Describe a person who has had a big influence on your life.
 Transcript: I want to talk about my English teacher she is very kindly person and always encourage us to speak confident in class she broke me how to not never give up and I really appreciate this lesson from her.
 Flagged words: confident
 
-{"fluency":6.0,"vocabulary":5.5,"grammar":5.5,"pronunciation":6.0,"error_highlights":[{"word":"kindly","type":"error","correction":"kind","explanation":"adjective needed, not adverb"},{"word":"encourage","type":"error","correction":"encouraged","explanation":"past tense needed for narrative"},{"word":"confident","type":"error","correction":"confidently","explanation":"adverb modifies 'speak'"},{"word":"broke","type":"error","correction":"taught","explanation":"wrong word — break ≠ teach"},{"word":"never","type":"error","correction":"","explanation":"redundant — 'not never' is double negative, delete 'never'"}],"feedback_text":"Use past tense consistently in narratives and choose 'taught' not 'broke' for teaching."}
+{"fluency":6.0,"vocabulary":5.5,"grammar":5.5,"pronunciation":6.0,"usage_errors":[{"word":"kindly","type":"mistake","correction":"kind","explanation":"adjective needed, not adverb"},{"word":"encourage","type":"mistake","correction":"encouraged","explanation":"past tense needed for narrative"},{"word":"confident","type":"mistake","correction":"confidently","explanation":"adverb modifies 'speak'"},{"word":"broke","type":"mistake","correction":"taught","explanation":"wrong word — break ≠ teach"},{"word":"never","type":"mistake","correction":"","explanation":"redundant — 'not never' is double negative, delete 'never'"}],"feedback_text":"Use past tense consistently in narratives and choose 'taught' not 'broke' for teaching."}
 
 You MUST output all four keys (fluency, vocabulary, grammar, pronunciation) even if you are uncertain — use your best estimate.
 

@@ -140,7 +140,7 @@ export function ActiveAttemptCard({
           {attempt.transcript ? (
             <InlineCorrectedText
               transcript={attempt.transcript}
-              highlights={attempt.error_highlights}
+              highlights={attempt.usage_errors}
             />
           ) : (
             <span className="text-gray-500 italic">No transcript</span>

@@ -104,13 +104,13 @@ class AttemptOut(BaseModel):
     grammar: Optional[float] = None
     pronunciation: Optional[float] = None
     feedback_text: Optional[str] = None
-    error_highlights: Optional[List[Any]] = None
+    usage_errors: Optional[List[Any]] = None
     word_timestamps: Optional[List[Any]] = None
     duration_seconds: Optional[int] = None
     status: str
     created_at: datetime
 
-    @field_validator("error_highlights", "word_timestamps", mode="before")
+    @field_validator("usage_errors", "word_timestamps", mode="before")
     @classmethod
     def parse_json_fields(cls, v: Any) -> Optional[List[Any]]:
         return _parse_json_list(v)
@@ -127,10 +127,10 @@ class AttemptStatusOut(BaseModel):
     grammar: Optional[float] = None
     pronunciation: Optional[float] = None
     feedback_text: Optional[str] = None
-    error_highlights: Optional[List[Any]] = None
+    usage_errors: Optional[List[Any]] = None
     transcript: Optional[str] = None
 
-    @field_validator("error_highlights", mode="before")
+    @field_validator("usage_errors", mode="before")
     @classmethod
     def parse_json_fields(cls, v: Any) -> Optional[List[Any]]:
         return _parse_json_list(v)
@@ -171,7 +171,7 @@ class ImproveOut(BaseModel):
 class PronunciationWord(BaseModel):
     word: str
     confidence: float
-    is_flagged: bool
+    is_mispronounced: bool
 
 
 class PronunciationOut(BaseModel):

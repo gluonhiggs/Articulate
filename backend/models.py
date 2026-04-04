@@ -73,7 +73,7 @@ class Attempt(Base):
     grammar: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     pronunciation: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     feedback_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    error_highlights: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON
+    usage_errors: Mapped[Optional[str]] = mapped_column("error_highlights", Text, nullable=True)  # JSON
     word_timestamps: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON
     duration_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     status: Mapped[str] = mapped_column(

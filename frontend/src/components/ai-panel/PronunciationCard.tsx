@@ -50,7 +50,7 @@ export function PronunciationCard({
   }
 
   const flaggedSet = new Set(
-    item.words?.filter((w) => w.is_flagged).map((w) => w.word.toLowerCase()) ?? []
+    item.words?.filter((w) => w.is_mispronounced).map((w) => w.word.toLowerCase()) ?? []
   )
   const transcriptTokens = item.transcript?.split(/(\s+)/) ?? []
 
@@ -140,14 +140,14 @@ export function PronunciationCard({
             )}
 
             {/* Flagged words list */}
-            {item.words && item.words.filter((w) => w.is_flagged).length > 0 && (
+            {item.words && item.words.filter((w) => w.is_mispronounced).length > 0 && (
               <div>
                 <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">
-                  Flagged Words ({item.words.filter((w) => w.is_flagged).length})
+                  Mispronounced Words ({item.words.filter((w) => w.is_mispronounced).length})
                 </p>
                 <div className="space-y-1.5">
                   {item.words
-                    .filter((w) => w.is_flagged)
+                    .filter((w) => w.is_mispronounced)
                     .map((w, i) => (
                       <button
                         key={i}
@@ -179,7 +179,7 @@ export function PronunciationCard({
               </div>
             )}
 
-            {item.words && item.words.filter((w) => w.is_flagged).length === 0 && (
+            {item.words && item.words.filter((w) => w.is_mispronounced).length === 0 && (
               <p className="text-green-400 text-sm text-center py-2">All words pronounced clearly</p>
             )}
 

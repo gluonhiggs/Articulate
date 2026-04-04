@@ -66,7 +66,7 @@ export function PronunciationRightPanel({
 
   // Build pronunciation highlight map
   const flaggedSet = new Set(
-    words?.filter((w) => w.is_flagged).map((w) => w.word.toLowerCase()) ?? []
+    words?.filter((w) => w.is_mispronounced).map((w) => w.word.toLowerCase()) ?? []
   )
 
   // Split the transcript to render with pronunciation highlights
@@ -161,14 +161,14 @@ export function PronunciationRightPanel({
             )}
 
             {/* Flagged words list */}
-            {words && words.filter((w) => w.is_flagged).length > 0 && (
+            {words && words.filter((w) => w.is_mispronounced).length > 0 && (
               <div>
                 <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">
-                  Flagged Words ({words.filter((w) => w.is_flagged).length})
+                  Mispronounced Words ({words.filter((w) => w.is_mispronounced).length})
                 </p>
                 <div className="space-y-2">
                   {words
-                    .filter((w) => w.is_flagged)
+                    .filter((w) => w.is_mispronounced)
                     .map((w, i) => (
                       <button
                         key={i}
@@ -203,7 +203,7 @@ export function PronunciationRightPanel({
               </div>
             )}
 
-            {words && words.filter((w) => w.is_flagged).length === 0 && (
+            {words && words.filter((w) => w.is_mispronounced).length === 0 && (
               <div className="text-center py-8">
                 <p className="text-green-400 text-sm">All words pronounced clearly</p>
               </div>

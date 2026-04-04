@@ -1,5 +1,5 @@
 import React from 'react'
-import type { ErrorHighlight } from '../../types'
+import type { UsageError } from '../../types'
 import { cleanWord } from './utils'
 
 export function InlineCorrectedText({
@@ -7,7 +7,7 @@ export function InlineCorrectedText({
   highlights,
 }: {
   transcript: string
-  highlights: ErrorHighlight[] | null
+  highlights: UsageError[] | null
 }) {
   if (!highlights || highlights.length === 0) {
     return <span>{transcript}</span>
@@ -29,7 +29,7 @@ export function InlineCorrectedText({
   )
 
   // Mark which token indices are consumed by a highlight
-  const tokenHighlight = new Map<number, { h: ErrorHighlight; isFirst: boolean; span: number }>()
+  const tokenHighlight = new Map<number, { h: UsageError; isFirst: boolean; span: number }>()
 
   for (const h of sorted) {
     const phraseWords = h.word!.toLowerCase().split(/\s+/).map((w) => cleanWord(w))
@@ -70,7 +70,7 @@ export function InlineCorrectedText({
     const correction = h.correction ?? h.suggestion ?? ''
     const tooltip = h.explanation ?? h.suggestion ?? ''
 
-    if (h.type === 'error') {
+    if (h.type === 'mistake') {
       result.push(
         <span key={i} title={tooltip}>
           <span className="correction-wrong">{token}</span>

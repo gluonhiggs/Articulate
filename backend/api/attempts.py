@@ -319,7 +319,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             grammar = scoring_result.get("grammar")
             pronunciation = scoring_result.get("pronunciation")
             feedback_text = scoring_result.get("feedback_text")
-            _highlights_list = scoring_result.get("error_highlights", [])
+            _highlights_list = scoring_result.get("usage_errors", [])
             logger.info(
                 "\n\n========== LLM_ERROR_HIGHLIGHTS attempt_id=%d ==========\n"
                 "  count : %d\n"
@@ -328,7 +328,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                 len(_highlights_list),
                 _highlights_list,
             )
-            error_highlights = json.dumps(_highlights_list)
+            usage_errors = json.dumps(_highlights_list)
             score = scoring_result.get("score")
             logger.info(
                 "\n\n========== SCORING RESULT attempt_id=%d ==========\n"
@@ -374,7 +374,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             attempt.pronunciation = pronunciation
             attempt.score = score
             attempt.feedback_text = feedback_text
-            attempt.error_highlights = error_highlights
+            attempt.usage_errors = usage_errors
             attempt.status = "ready"
 
             # ----------------------------------------------------------------
@@ -535,7 +535,7 @@ async def submit_attempt(
         grammar=attempt.grammar,
         pronunciation=attempt.pronunciation,
         feedback_text=attempt.feedback_text,
-        error_highlights=attempt.error_highlights,
+        usage_errors=attempt.usage_errors,
         transcript=attempt.transcript,
     )
 
@@ -558,7 +558,7 @@ async def get_attempt_status(
         grammar=attempt.grammar,
         pronunciation=attempt.pronunciation,
         feedback_text=attempt.feedback_text,
-        error_highlights=attempt.error_highlights,
+        usage_errors=attempt.usage_errors,
         transcript=attempt.transcript,
     )
 
@@ -679,7 +679,7 @@ async def get_pronunciation(
             PronunciationWord(
                 word=w.get("word", ""),
                 confidence=round(confidence, 3),
-                is_flagged=confidence < get_settings().low_confidence_threshold,
+                is_mispronounced=confidence < get_settings().low_confidence_threshold,
             )
         )
 

@@ -108,17 +108,17 @@ def _parse_llm_response(raw: str) -> Dict[str, Any]:
     grammar = _clamp_band(data.get("grammar"))
     pronunciation = _clamp_band(data.get("pronunciation"))
     feedback_text = data.get("feedback_text", "")
-    error_highlights = data.get("error_highlights", [])
+    usage_errors = data.get("usage_errors", [])
 
     if not isinstance(feedback_text, str):
         feedback_text = str(feedback_text)
 
-    if not isinstance(error_highlights, list):
-        error_highlights = []
+    if not isinstance(usage_errors, list):
+        usage_errors = []
 
     # Validate each error highlight has required fields
     cleaned_highlights = []
-    for highlight in error_highlights:
+    for highlight in usage_errors:
         if isinstance(highlight, dict) and "word" in highlight:
             # Prefer "correction" field; fall back to "suggestion" for backward compat
             correction = highlight.get("correction")
@@ -149,7 +149,7 @@ def _parse_llm_response(raw: str) -> Dict[str, Any]:
         "grammar": grammar,
         "pronunciation": pronunciation,
         "score": overall,
-        "error_highlights": cleaned_highlights,
+        "usage_errors": cleaned_highlights,
         "feedback_text": feedback_text,
     }
 
@@ -173,7 +173,7 @@ async def score_attempt(
             "grammar": float,
             "pronunciation": float,
             "score": float,
-            "error_highlights": [{"word": str, "type": str, "correction": str, "explanation": str, "suggestion": str}],
+            "usage_errors": [{"word": str, "type": str, "correction": str, "explanation": str, "suggestion": str}],
             "feedback_text": str,
         }
     """

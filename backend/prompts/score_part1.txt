@@ -22,9 +22,9 @@ CRITERIA — score each 0–9 in steps of 0.5:
 - grammar: accuracy and variety of structures
 - pronunciation: clarity and intelligibility; penalise flagged words as evidence of mispronunciation
 
-ERROR HIGHLIGHTS — flag word-level errors only:
+USAGE ERRORS — flag word-level errors only:
 - "word" = single word from transcript (lowercase, exact)
-- "type" = "error" (clear mistake) or "uncertain" (possible issue)
+- "type" = "mistake" (clear mistake) or "caution" (possible issue)
 - "correction" = replacement word, or "" if the word should be deleted
 - "explanation" = brief reason, 10 words max
 
@@ -43,7 +43,7 @@ Question: What time do you usually wake up?
 Transcript: I usually wake up at around six in the morning. I think it is a good habit because I have enough time to prepare before going to work. Sometimes I feel a little bit tired but I try to keep this routine every day.
 Flagged words: none
 
-{"fluency":5.5,"vocabulary":5.5,"grammar":5.5,"pronunciation":5.5,"error_highlights":[],"feedback_text":"Good basic structure; expand answers with specific details and varied connectives to reach Band 6."}
+{"fluency":5.5,"vocabulary":5.5,"grammar":5.5,"pronunciation":5.5,"usage_errors":[],"feedback_text":"Good basic structure; expand answers with specific details and varied connectives to reach Band 6."}
 
 You MUST output all four keys (fluency, vocabulary, grammar, pronunciation) even if you are uncertain — use your best estimate.
 

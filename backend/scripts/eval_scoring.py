@@ -39,8 +39,8 @@ async def run_eval():
 
         error_ok = True
         if case.get("expect_error_word"):
-            words = [h["word"] for h in result.get("error_highlights", [])]
-            corrections = {h["word"]: h["correction"] for h in result.get("error_highlights", [])}
+            words = [h["word"] for h in result.get("usage_errors", [])]
+            corrections = {h["word"]: h["correction"] for h in result.get("usage_errors", [])}
             expected_word = case["expect_error_word"]
             expected_correction = case.get("expect_correction", "")
             error_ok = (
@@ -54,7 +54,7 @@ async def run_eval():
         status = "PASS" if ok else "FAIL"
         print(
             f"  {status}  score={score} (expected {lo}–{hi})  "
-            f"errors={[h['word'] for h in result.get('error_highlights', [])]}"
+            f"errors={[h['word'] for h in result.get('usage_errors', [])]}"
         )
 
     total = len(cases)

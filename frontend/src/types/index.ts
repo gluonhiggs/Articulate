@@ -27,15 +27,15 @@ export interface Attempt {
   grammar: number | null
   pronunciation: number | null
   feedback_text: string | null
-  error_highlights: ErrorHighlight[] | null
+  usage_errors: UsageError[] | null
   duration_seconds: number | null
   status: 'processing' | 'transcribing' | 'scoring' | 'ready' | 'failed' | 'failed:transcription' | 'failed:empty_audio' | 'failed:scoring'
   created_at: string
 }
 
-export interface ErrorHighlight {
+export interface UsageError {
   word: string
-  type: 'error' | 'uncertain'
+  type: 'mistake' | 'caution'
   correction?: string    // exact replacement word (empty string = redundant word)
   explanation?: string   // brief reason for the correction
   suggestion?: string    // legacy fallback
@@ -50,7 +50,7 @@ export interface ImproveResponse {
 export interface PronunciationWord {
   word: string
   confidence: number
-  is_flagged: boolean
+  is_mispronounced: boolean
 }
 
 export interface SampleAnswerResponse {
