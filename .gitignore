@@ -55,3 +55,5 @@ frontend/node_modules/
 !.env.example
 .gstack/
 .superpowers/
+.vscode/
+.pytest_cache/
