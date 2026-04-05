@@ -25,7 +25,7 @@ from backend.services.audio import EXT_TO_MIME
 from backend.services import improve as improve_service
 from backend.services import scoring as scoring_service
 from backend.services import transcription as transcription_service
-from backend.services.vocab import compute_vocab_signal
+from backend.services.vocab import compute_sentence_complexity, compute_vocab_signal
 
 logger = logging.getLogger(__name__)
 
@@ -280,15 +280,17 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                         sent_spans = _sentence_spans(transcript)
                         n_sentences = len(sent_spans)
 
-                        def _sent_idx(offset: int) -> int:
+                        def _sent_idx(offset: int) -> int | None:
                             for i, (s, e) in enumerate(sent_spans):
                                 if s <= offset < e:
                                     return i
-                            return n_sentences - 1
+                            return None  # unmatched offset — caller must skip
 
                         # Stats computed over ALL filtered matches (not just cap)
                         error_sentence_set = {
-                            _sent_idx(m.offset) for m in filtered_matches
+                            idx
+                            for m in filtered_matches
+                            if (idx := _sent_idx(m.offset)) is not None
                         }
                         n_error_sents = len(error_sentence_set)
                         clean_pct = round(
@@ -328,7 +330,8 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                             # Per-sentence attribution
                             by_sent_lines = []
                             for m in displayed:
-                                s_num = _sent_idx(m.offset) + 1
+                                _sidx = _sent_idx(m.offset)
+                                s_num = (_sidx + 1) if _sidx is not None else "?"
                                 span = transcript[m.offset:m.offset + m.error_length]
                                 by_sent_lines.append(
                                     f"  S{s_num}: '{span}'"
@@ -345,6 +348,12 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                                 "By sentence:",
                                 *by_sent_lines,
                             ])
+
+                        # Signal 3: Subordinate-clause rate + error density
+                        complexity_result = compute_sentence_complexity(
+                            transcript, sent_spans, filtered_matches
+                        )
+                        grammar_context += "\n\n" + complexity_result["detail"]
                 except Exception as exc:
                     logger.warning("Grammar check failed: %s", exc)
 

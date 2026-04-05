@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import logging
 import re
+from collections import defaultdict
 from typing import Any, Dict, List, Optional
 
 from backend.data.oxford import WORD_TO_CEFR, WORD_TO_DATA
@@ -78,6 +79,166 @@ def _get_spacy() -> Optional[Any]:
             logger.warning("spaCy unavailable — collocation signal disabled: %s", exc)
             _spacy_nlp = False  # sentinel: don't retry
     return _spacy_nlp if _spacy_nlp is not False else None
+
+
+# ── Signal 3: Sentence complexity ────────────────────────────────────────────
+# Universal Dependencies arc labels whose presence on any token makes the
+# containing sentence "complex" for IELTS GRA purposes.
+# Handled directly (dep in set):
+#   advcl  — adverbial clause modifier  (because/when/if/although…)
+#   ccomp  — clausal complement          (I think that…, she said…)
+#   relcl  — relative clause modifier    (the book that I read)
+#   acl    — adjectival / participial clause (the person sitting next to me)
+# Handled via separate SCONJ POS guard (see compute_sentence_complexity):
+#   mark   — subordinating conjunction: fires when pos_==SCONJ
+# Intentionally excluded:
+#   xcomp  — infinitive complement ("I want to go") — not an IELTS complex sentence
+#   csubj  — clausal subject (rare in spoken English, omission is harmless)
+_SUBORDINATE_ARCS_DIRECT: frozenset[str] = frozenset({
+    "advcl",
+    "ccomp",
+    "relcl",
+    "acl",
+})
+
+
+def _map_complexity_band(
+    complex_sentence_rate: float,
+    error_density_ratio: float,
+) -> str:
+    """Map (complex_sentence_rate, error_density_ratio) to an IELTS GRA band hint.
+
+    Two-dimensional heuristic grounded in rubric qualitative language:
+      B4 — "structures are repetitive" → almost no complex sentences
+      B5 — complex attempted but error-prone (density ratio ≥ 2.0)
+      B6 — complex used with limited flexibility
+      B7 — "a range of structures flexibly used"
+
+    These thresholds are heuristics, not rubric-specified numbers.
+    The LLM should override if the transcript contradicts the signal.
+    """
+    if complex_sentence_rate < 0.20:
+        return "B4"
+    if complex_sentence_rate < 0.45:
+        if error_density_ratio >= 2.0:
+            return "B5"
+        if error_density_ratio >= 1.5:
+            return "B6"
+        return "B7"
+    # complex_sentence_rate >= 0.45
+    if error_density_ratio >= 2.0:
+        return "B6"
+    if error_density_ratio >= 1.5:
+        return "B6-B7"
+    return "B7"
+
+
+def compute_sentence_complexity(
+    transcript: str,
+    sent_spans: list[tuple[int, int]],
+    filtered_matches: list,
+) -> dict:
+    """Signal 3: Subordinate-clause rate and error-concentration ratio.
+
+    Args:
+        transcript:       Full response text.
+        sent_spans:       (start, end) character offsets per sentence
+                          (from _sentence_spans in attempts.py).
+        filtered_matches: LanguageTool match objects with .offset attribute.
+
+    Returns a dict containing at minimum:
+        band_hint (str)  — e.g. "B5", "B6-B7", "insufficient_data"
+        detail    (str)  — one-line signal string for grammar_context
+
+    All other keys (n_sentences, n_complex, etc.) are informational.
+    Degrades gracefully when spaCy is unavailable or transcript is too short.
+    """
+    nlp = _get_spacy()
+    if nlp is None:
+        return {
+            "band_hint": "unavailable",
+            "detail": "complexity: spaCy unavailable",
+        }
+
+    n_sentences = len(sent_spans)
+    if n_sentences < 3:
+        return {
+            "band_hint": "insufficient_data",
+            "detail": "complexity: insufficient data (< 3 sentences)",
+        }
+
+    # ── Classify each sentence as complex (has subordinate clause) or simple ──
+    complex_sents: set[int] = set()
+    try:
+        for idx, (s_start, s_end) in enumerate(sent_spans):
+            sent_text = transcript[s_start:s_end]
+            sent_doc = nlp(sent_text)
+            for token in sent_doc:
+                dep = token.dep_
+                if dep in _SUBORDINATE_ARCS_DIRECT:
+                    complex_sents.add(idx)
+                    break
+                if dep == "mark" and token.pos_ == "SCONJ":
+                    complex_sents.add(idx)
+                    break
+    except Exception as exc:
+        logger.warning("spaCy complexity parse failed: %s", exc)
+        return {
+            "band_hint": "unavailable",
+            "detail": "complexity: parse failed",
+        }
+
+    n_complex = len(complex_sents)
+    n_simple = n_sentences - n_complex
+    complex_sentence_rate = n_complex / n_sentences
+
+    # ── Map each LT error to its sentence index ───────────────────────────────
+    errors_by_sent: defaultdict[int, set[int]] = defaultdict(set)
+    for m in filtered_matches:
+        for i, (s, e) in enumerate(sent_spans):
+            if s <= m.offset < e:
+                errors_by_sent[i].add(m.offset)
+                break
+
+    n_errors_complex = sum(len(errors_by_sent[i]) for i in complex_sents)
+    n_errors_simple = sum(
+        len(errors_by_sent[i]) for i in range(n_sentences) if i not in complex_sents
+    )
+
+    # ── Error density ratio ───────────────────────────────────────────────────
+    # (errors per complex sentence) / (errors per simple sentence)
+    # Ratio > 1 → errors concentrate in complex sentences (accuracy gap at
+    # higher structural ambition). Avoids the base-rate problem of proportion.
+    density_complex = n_errors_complex / n_complex if n_complex > 0 else 0.0
+    density_simple = n_errors_simple / n_simple if n_simple > 0 else 0.0
+
+    if density_simple == 0:
+        # No errors in simple sentences
+        error_density_ratio = 3.0 if density_complex > 0 else 1.0
+    else:
+        error_density_ratio = round(density_complex / density_simple, 2)
+
+    band_hint = _map_complexity_band(complex_sentence_rate, error_density_ratio)
+
+    detail = (
+        f"complexity: {n_complex}/{n_sentences} complex sentences "
+        f"({round(complex_sentence_rate * 100)}%), "
+        f"error density ratio {error_density_ratio:.2f} "
+        f"(complex {density_complex:.2f} err/sent vs simple {density_simple:.2f} err/sent); "
+        f"band_hint={band_hint}"
+    )
+
+    return {
+        "n_sentences": n_sentences,
+        "n_complex": n_complex,
+        "n_simple": n_simple,
+        "complex_sentence_rate": round(complex_sentence_rate, 3),
+        "n_errors_complex": n_errors_complex,
+        "n_errors_simple": n_errors_simple,
+        "error_density_ratio": error_density_ratio,
+        "band_hint": band_hint,
+        "detail": detail,
+    }
 
 
 # ── Response length label ─────────────────────────────────────────────────────
