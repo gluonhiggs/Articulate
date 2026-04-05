@@ -26,7 +26,7 @@ from backend.services.audio import EXT_TO_MIME
 from backend.services import improve as improve_service
 from backend.services import scoring as scoring_service
 from backend.services import transcription as transcription_service
-from backend.services.vocab import compute_sentence_complexity, compute_vocab_signal
+from backend.services.vocab import compute_grammar_signals, compute_vocab_signal
 
 logger = logging.getLogger(__name__)
 
@@ -249,6 +249,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
 
             # Signal 3: Grammar checker (LanguageTool — requires Java)
             grammar_context = "grammar checker unavailable"
+            filtered_matches: list = []  # initialised here so spaCy signals run even if LT fails
             if transcript and transcript.strip():
                 try:
                     lt = _get_lt_tool()
@@ -356,14 +357,21 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                                 "By sentence:",
                                 *by_sent_lines,
                             ])
-
-                        # Signal 3: Subordinate-clause rate + error density
-                        complexity_result = compute_sentence_complexity(
-                            transcript, sent_spans, filtered_matches
-                        )
-                        grammar_context += "\n\n" + complexity_result["detail"]
                 except Exception as exc:
                     logger.warning("Grammar check failed: %s", exc)
+
+            # Signals 3 + 5: spaCy sentence complexity and structural range
+            # Runs outside the LT block so it executes even when LT is unavailable.
+            # filtered_matches is [] in that case — Signal 3 error-density reports 0
+            # but Signal 5 (tense inventory, passive, conditionals, tree depth) still runs.
+            try:
+                grammar_result = compute_grammar_signals(
+                    transcript, _sentence_spans(transcript), filtered_matches,
+                )
+                grammar_context += "\n\n" + grammar_result["detail"]
+                grammar_context += "\n" + grammar_result["structural_detail"]
+            except Exception as exc:
+                logger.warning("Grammar signals (spaCy) failed: %s", exc)
 
             # ----------------------------------------------------------------
             # 3. Flagged words for pronunciation

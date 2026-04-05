@@ -1,22 +1,28 @@
-"""Lexical resource signal computation for the IELTS scoring pipeline.
+"""Lexical resource and grammar signal computation for the IELTS scoring pipeline.
 
-Exposes one public function:
+Exposes two public functions:
     compute_vocab_signal(words, transcript) -> str
+    compute_grammar_signals(transcript, sent_spans, filtered_matches) -> dict
 
-which returns a multi-section signal string consumed by the LLM prompt.
-The string covers the three computable signals from LEXICAL-RESOURCE-SIGNALS.md:
+compute_vocab_signal returns a multi-section signal string consumed by the LLM prompt.
+The string covers the computable signals from LEXICAL-RESOURCE-SIGNALS.md:
   Signal 1 — Vocabulary Range     (CEFR distribution + response word count)
   Signal 2 — Vocabulary Sophistication (B2+ count, unmatched/C2+ words)
   Signal 4 — Idiomatic Language   (formulaic phrase density)
   Signal 5 — Collocation Awareness (spaCy dependency-parsed pair inventory for LLM)
   Signal 7 — Lexical Diversity    (MTLD for long texts, unique lemma ratio)
+
+compute_grammar_signals returns a dict covering GRA signals 3 and 5:
+  GRA Signal 3 — Complex Sentence Usage and Error Locus
+  GRA Signal 5 — Structural Range Markers (tense inventory, passive, conditionals, tree depth)
 """
 from __future__ import annotations
 
 import logging
 import re
+import statistics
 from collections import defaultdict
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from backend.data.oxford import WORD_TO_CEFR, WORD_TO_DATA
 from backend.data.idioms import IELTS_PHRASES
@@ -81,15 +87,14 @@ def _get_spacy() -> Optional[Any]:
     return _spacy_nlp if _spacy_nlp is not False else None
 
 
-# ── Signal 3: Sentence complexity ────────────────────────────────────────────
-# Universal Dependencies arc labels whose presence on any token makes the
-# containing sentence "complex" for IELTS GRA purposes.
+# ── Signal 3 + 5: Grammar signal constants ───────────────────────────────────
+# Dependency arcs whose presence makes a sentence "complex" for IELTS GRA.
 # Handled directly (dep in set):
 #   advcl  — adverbial clause modifier  (because/when/if/although…)
 #   ccomp  — clausal complement          (I think that…, she said…)
 #   relcl  — relative clause modifier    (the book that I read)
 #   acl    — adjectival / participial clause (the person sitting next to me)
-# Handled via separate SCONJ POS guard (see compute_sentence_complexity):
+# Handled via separate SCONJ POS guard (see compute_grammar_signals):
 #   mark   — subordinating conjunction: fires when pos_==SCONJ
 # Intentionally excluded:
 #   xcomp  — infinitive complement ("I want to go") — not an IELTS complex sentence
@@ -100,6 +105,15 @@ _SUBORDINATE_ARCS_DIRECT: frozenset[str] = frozenset({
     "relcl",
     "acl",
 })
+
+# Signal 5: conditional marker words (guarded by dep_=="mark" and pos_=="SCONJ")
+_CONDITIONAL_MARKERS: frozenset[str] = frozenset({
+    "if", "unless", "provided", "assuming", "suppose",
+})
+
+# Signal 5: modal sets for conditional classification
+_MODAL_WILL_SHALL: frozenset[str] = frozenset({"will", "shall", "'ll"})
+_MODAL_SECOND_COND: frozenset[str] = frozenset({"would", "could", "might"})
 
 
 def _map_complexity_band(
@@ -133,112 +147,352 @@ def _map_complexity_band(
     return "B7"
 
 
-def compute_sentence_complexity(
+def _degraded_grammar_result(n_sentences: int, reason: str) -> dict:
+    """Return a fully-keyed degraded result for compute_grammar_signals."""
+    return {
+        # Signal 3
+        "n_sentences": n_sentences,
+        "n_complex": 0,
+        "n_simple": n_sentences,
+        "complex_sentence_rate": 0.0,
+        "n_errors_complex": 0,
+        "n_errors_simple": 0,
+        "error_density_ratio": 0.0,
+        "band_hint": "unavailable",
+        "detail": f"complexity: {reason}",
+        # Signal 5
+        "structural_detail": f"structural_range: {reason}",
+        "tense_forms": set(),
+        "passive_count": 0,
+        "conditional_types": [],
+        "mean_depth": 0.0,
+        "p90_depth": 0,
+    }
+
+
+def compute_grammar_signals(
     transcript: str,
-    sent_spans: list[tuple[int, int]],
+    sent_spans: List[Tuple[int, int]],
     filtered_matches: list,
 ) -> dict:
-    """Signal 3: Subordinate-clause rate and error-concentration ratio.
+    """GRA Signals 3 and 5 in a single per-sentence spaCy parse pass.
+
+    Signal 3 — Complex Sentence Usage and Error Locus:
+        Classifies each sentence as complex (contains a subordinate clause)
+        or simple, then computes an error density ratio to detect whether
+        errors concentrate in complex structures.
+
+    Signal 5 — Structural Range Markers:
+        Tense inventory, passive voice, conditional constructions, parse
+        tree depth — all computed in the same sentence loop for efficiency.
 
     Args:
         transcript:       Full response text.
         sent_spans:       (start, end) character offsets per sentence
                           (from _sentence_spans in attempts.py).
         filtered_matches: LanguageTool match objects with .offset attribute.
+                          Pass an empty list when LT is unavailable — Signal 3
+                          error-density will report 0/0 but Signal 5 still runs.
 
-    Returns a dict containing at minimum:
-        band_hint (str)  — e.g. "B5", "B6-B7", "insufficient_data"
-        detail    (str)  — one-line signal string for grammar_context
+    Returns a dict with keys:
+        Signal 3: n_sentences, n_complex, n_simple, complex_sentence_rate,
+                  n_errors_complex, n_errors_simple, error_density_ratio,
+                  band_hint, detail
+        Signal 5: structural_detail, tense_forms, passive_count,
+                  conditional_types, mean_depth, p90_depth
 
-    All other keys (n_sentences, n_complex, etc.) are informational.
-    Degrades gracefully when spaCy is unavailable or transcript is too short.
+    Degrades gracefully when spaCy is unavailable or < 3 sentences.
     """
+    n_sentences = len(sent_spans)
+
+    if n_sentences < 3:
+        return _degraded_grammar_result(n_sentences, "insufficient data (< 3 sentences)")
+
     nlp = _get_spacy()
     if nlp is None:
-        return {
-            "band_hint": "unavailable",
-            "detail": "complexity: spaCy unavailable",
-        }
+        return _degraded_grammar_result(n_sentences, "spaCy unavailable")
 
-    n_sentences = len(sent_spans)
-    if n_sentences < 3:
-        return {
-            "band_hint": "insufficient_data",
-            "detail": "complexity: insufficient data (< 3 sentences)",
-        }
-
-    # ── Classify each sentence as complex (has subordinate clause) or simple ──
-    complex_sents: set[int] = set()
     try:
+        # ── Map LT errors to sentence indices ────────────────────────────────
+        errors_by_sent: defaultdict[int, set[int]] = defaultdict(set)
+        for m in filtered_matches:
+            for i, (s, e) in enumerate(sent_spans):
+                if s <= m.offset < e:
+                    errors_by_sent[i].add(m.offset)
+                    break
+
+        # ── Per-sentence parse loop ───────────────────────────────────────────
+        complex_sents: set[int] = set()
+
+        # Signal 5 accumulators
+        tense_forms: set[str] = set()
+        passive_count: int = 0
+        passive_examples: List[str] = []
+        conditional_types: List[str] = []
+        conditional_examples: List[str] = []
+        all_depths: List[int] = []
+
         for idx, (s_start, s_end) in enumerate(sent_spans):
-            sent_text = transcript[s_start:s_end]
-            sent_doc = nlp(sent_text)
-            for token in sent_doc:
-                dep = token.dep_
-                if dep in _SUBORDINATE_ARCS_DIRECT:
+            sent_text = transcript[s_start:s_end].strip()
+            if not sent_text:
+                continue
+            try:
+                doc = nlp(sent_text)
+            except Exception as exc:
+                logger.warning("spaCy parse failed for sentence %d: %s", idx, exc)
+                continue
+
+            # ── Signal 3: complexity classification ──────────────────────
+            for token in doc:
+                if token.dep_ in _SUBORDINATE_ARCS_DIRECT:
                     complex_sents.add(idx)
                     break
-                if dep == "mark" and token.pos_ == "SCONJ":
+                if token.dep_ == "mark" and token.pos_ == "SCONJ":
                     complex_sents.add(idx)
                     break
-    except Exception as exc:
-        logger.warning("spaCy complexity parse failed: %s", exc)
+
+            # ── Signal 5a: tense inventory ────────────────────────────────
+            for token in doc:
+                if not (token.pos_ == "VERB" or token.tag_.startswith("VB")):
+                    continue
+                if token.dep_ == "parataxis":
+                    continue  # skip discourse fillers (I think, I mean, you know)
+
+                auxes = [c for c in token.children if c.dep_ in ("aux", "auxpass")]
+                aux_tags = [(a.tag_, a.text.lower()) for a in auxes]
+                main_tag = token.tag_
+                md_texts = [txt for t, txt in aux_tags if t == "MD"]
+                has_md = bool(md_texts)
+                has_auxpass = any(a.dep_ == "auxpass" for a in auxes)
+
+                # Modal perfect: MD + have(VB/VBP/VBZ) + VBN
+                if has_md and main_tag == "VBN":
+                    if any(txt in ("have", "has", "had") for _, txt in aux_tags):
+                        tense_forms.add("modal_perfect")
+                        continue
+
+                # Future simple: will/shall/'ll + VB
+                if has_md and main_tag == "VB":
+                    if any(txt in _MODAL_WILL_SHALL for txt in md_texts):
+                        tense_forms.add("future_simple")
+                    else:
+                        tense_forms.add("modal")
+                    continue
+
+                # Present perfect: have/has (VBP/VBZ) + VBN (not passive)
+                if main_tag == "VBN" and not has_auxpass:
+                    if any(t in ("VBP", "VBZ") and txt in ("have", "has", "'ve")
+                           for t, txt in aux_tags):
+                        tense_forms.add("present_perfect")
+                        continue
+                    # Past perfect: had (VBD) + VBN
+                    if any(t == "VBD" and txt == "had" for t, txt in aux_tags):
+                        tense_forms.add("past_perfect")
+                        continue
+                    # 'd + VBN — contraction ambiguity: could be would or had
+                    if any(txt == "'d" for _, txt in aux_tags):
+                        tense_forms.add("past_perfect_possible")
+                        continue
+
+                # Present progressive: am/is/are (VBP/VBZ) + VBG
+                if main_tag == "VBG" and not has_auxpass:
+                    if any(t in ("VBP", "VBZ") and txt in ("am", "is", "are", "'m", "'re", "'s")
+                           for t, txt in aux_tags):
+                        tense_forms.add("present_progressive")
+                        continue
+                    # Past progressive: was/were (VBD) + VBG
+                    if any(t == "VBD" and txt in ("was", "were")
+                           for t, txt in aux_tags):
+                        tense_forms.add("past_progressive")
+                        continue
+
+                # Simple present: VBP/VBZ, no auxiliaries
+                if main_tag in ("VBP", "VBZ") and not auxes:
+                    tense_forms.add("simple_present")
+                    continue
+
+                # Simple past: VBD, no auxiliaries
+                if main_tag == "VBD" and not auxes:
+                    tense_forms.add("simple_past")
+                    continue
+
+            # ── Signal 5b: passive voice ──────────────────────────────────
+            for token in doc:
+                if token.dep_ == "auxpass" and token.head.tag_ != "VBG":
+                    # VBG guard: "she's been working" is progressive, not passive
+                    passive_count += 1
+                    if len(passive_examples) < 2:
+                        passive_examples.append(f"{token.text} {token.head.text}")
+                    break  # one passive per sentence is sufficient
+
+            # ── Signal 5c: conditional constructions ─────────────────────
+            for token in doc:
+                if not (
+                    token.dep_ == "mark"
+                    and token.pos_ == "SCONJ"
+                    and token.text.lower() in _CONDITIONAL_MARKERS
+                ):
+                    continue
+                # Guard: exclude complementizer "if" ("I wonder if he came")
+                if token.head.dep_ != "advcl":
+                    continue
+
+                if_head = token.head
+                main_head = if_head.head
+                main_modals = [
+                    c.text.lower() for c in main_head.children
+                    if c.dep_ == "aux" and c.tag_ == "MD"
+                ]
+                if_children = {c.text.lower() for c in if_head.children}
+                if_tag = if_head.tag_
+
+                # Third conditional: if-clause had+VBN + main would/could+have+VBN
+                if ("had" in if_children or "'d" in if_children) and if_tag == "VBN":
+                    cond_type = "third"
+                # Second conditional: if-clause VBD + main would/could/might
+                elif if_tag == "VBD" and any(m in _MODAL_SECOND_COND for m in main_modals):
+                    cond_type = "second"
+                elif if_tag == "VBD":
+                    cond_type = "second"
+                # First conditional: if-clause VBP/VBZ + main will/shall
+                elif if_tag in ("VBP", "VBZ") and any(m in _MODAL_WILL_SHALL for m in main_modals):
+                    cond_type = "first"
+                # Zero conditional: if-clause VBP/VBZ + main no modal
+                elif if_tag in ("VBP", "VBZ"):
+                    cond_type = "zero"
+                else:
+                    cond_type = "conditional"
+
+                conditional_types.append(cond_type)
+                if len(conditional_examples) < 2:
+                    excerpt = sent_text[:60].rstrip()
+                    if len(sent_text) > 60:
+                        excerpt += "..."
+                    conditional_examples.append(f'{cond_type}: "{excerpt}"')
+
+            # ── Signal 5d: parse tree depth ───────────────────────────────
+            parataxis_indices: set[int] = {t.i for t in doc if t.dep_ == "parataxis"}
+
+            for token in doc:
+                if token.is_punct:
+                    continue
+                # Skip tokens in parataxis subtrees
+                ancestor = token
+                in_parataxis = False
+                while ancestor.head != ancestor:
+                    if ancestor.i in parataxis_indices:
+                        in_parataxis = True
+                        break
+                    ancestor = ancestor.head
+                if in_parataxis:
+                    continue
+                # Count hops to root
+                depth = 0
+                cur = token
+                while cur.head != cur:
+                    depth += 1
+                    cur = cur.head
+                all_depths.append(depth)
+
+        # ── Signal 3: summaries ───────────────────────────────────────────────
+        n_complex = len(complex_sents)
+        n_simple = n_sentences - n_complex
+        complex_sentence_rate = n_complex / n_sentences
+
+        n_errors_complex = sum(len(errors_by_sent[i]) for i in complex_sents)
+        n_errors_simple = sum(
+            len(errors_by_sent[i]) for i in range(n_sentences) if i not in complex_sents
+        )
+
+        density_complex = n_errors_complex / n_complex if n_complex > 0 else 0.0
+        density_simple = n_errors_simple / n_simple if n_simple > 0 else 0.0
+
+        if density_simple == 0:
+            error_density_ratio = 3.0 if density_complex > 0 else 1.0
+        else:
+            error_density_ratio = round(density_complex / density_simple, 2)
+
+        band_hint = _map_complexity_band(complex_sentence_rate, error_density_ratio)
+
+        detail = (
+            f"complexity: {n_complex}/{n_sentences} complex sentences "
+            f"({round(complex_sentence_rate * 100)}%), "
+            f"error density ratio {error_density_ratio:.2f} "
+            f"(complex {density_complex:.2f} err/sent vs simple {density_simple:.2f} err/sent)\n"
+            f"band_hint={band_hint}"
+        )
+
+        # ── Signal 5: summaries ───────────────────────────────────────────────
+        n_tenses = len(tense_forms)
+        if n_tenses <= 2:
+            tense_band = "B4-5"
+        elif n_tenses <= 4:
+            tense_band = "B6"
+        elif n_tenses <= 6:
+            tense_band = "B7"
+        else:
+            tense_band = "B8+"
+
+        if all_depths:
+            mean_depth = round(statistics.mean(all_depths), 1)
+            p90_depth = sorted(all_depths)[int(len(all_depths) * 0.9)]
+            if mean_depth < 2.0:
+                depth_band = "B4-5"
+            elif mean_depth < 3.0:
+                depth_band = "B6-7"
+            elif mean_depth < 4.0:
+                depth_band = "B7-8"
+            else:
+                depth_band = "B8+"
+        else:
+            mean_depth = 0.0
+            p90_depth = 0
+            depth_band = "B4-5"
+
+        tense_list = ", ".join(sorted(tense_forms)) if tense_forms else "none"
+        structural_lines = [
+            "structural_range:",
+            f"  tenses: {n_tenses} distinct [{tense_list}] ({tense_band})",
+        ]
+        if passive_count > 0:
+            ex_str = " — e.g. " + ", ".join(passive_examples) if passive_examples else ""
+            structural_lines.append(f"  passive: {passive_count} sentence(s){ex_str}")
+        else:
+            structural_lines.append("  passive: none detected")
+
+        if conditional_types:
+            structural_lines.append(
+                f"  conditionals: {len(conditional_types)} found [{', '.join(conditional_examples)}]"
+            )
+        else:
+            structural_lines.append("  conditionals: none detected")
+
+        structural_lines.append(f"  tree_depth: mean={mean_depth}, p90={p90_depth} ({depth_band})")
+        structural_detail = "\n".join(structural_lines)
+
         return {
-            "band_hint": "unavailable",
-            "detail": "complexity: parse failed",
+            # Signal 3
+            "n_sentences": n_sentences,
+            "n_complex": n_complex,
+            "n_simple": n_simple,
+            "complex_sentence_rate": round(complex_sentence_rate, 3),
+            "n_errors_complex": n_errors_complex,
+            "n_errors_simple": n_errors_simple,
+            "error_density_ratio": error_density_ratio,
+            "band_hint": band_hint,
+            "detail": detail,
+            # Signal 5
+            "structural_detail": structural_detail,
+            "tense_forms": tense_forms,
+            "passive_count": passive_count,
+            "conditional_types": conditional_types,
+            "mean_depth": mean_depth,
+            "p90_depth": p90_depth,
         }
 
-    n_complex = len(complex_sents)
-    n_simple = n_sentences - n_complex
-    complex_sentence_rate = n_complex / n_sentences
-
-    # ── Map each LT error to its sentence index ───────────────────────────────
-    errors_by_sent: defaultdict[int, set[int]] = defaultdict(set)
-    for m in filtered_matches:
-        for i, (s, e) in enumerate(sent_spans):
-            if s <= m.offset < e:
-                errors_by_sent[i].add(m.offset)
-                break
-
-    n_errors_complex = sum(len(errors_by_sent[i]) for i in complex_sents)
-    n_errors_simple = sum(
-        len(errors_by_sent[i]) for i in range(n_sentences) if i not in complex_sents
-    )
-
-    # ── Error density ratio ───────────────────────────────────────────────────
-    # (errors per complex sentence) / (errors per simple sentence)
-    # Ratio > 1 → errors concentrate in complex sentences (accuracy gap at
-    # higher structural ambition). Avoids the base-rate problem of proportion.
-    density_complex = n_errors_complex / n_complex if n_complex > 0 else 0.0
-    density_simple = n_errors_simple / n_simple if n_simple > 0 else 0.0
-
-    if density_simple == 0:
-        # No errors in simple sentences
-        error_density_ratio = 3.0 if density_complex > 0 else 1.0
-    else:
-        error_density_ratio = round(density_complex / density_simple, 2)
-
-    band_hint = _map_complexity_band(complex_sentence_rate, error_density_ratio)
-
-    detail = (
-        f"complexity: {n_complex}/{n_sentences} complex sentences "
-        f"({round(complex_sentence_rate * 100)}%), "
-        f"error density ratio {error_density_ratio:.2f} "
-        f"(complex {density_complex:.2f} err/sent vs simple {density_simple:.2f} err/sent); "
-        f"band_hint={band_hint}"
-    )
-
-    return {
-        "n_sentences": n_sentences,
-        "n_complex": n_complex,
-        "n_simple": n_simple,
-        "complex_sentence_rate": round(complex_sentence_rate, 3),
-        "n_errors_complex": n_errors_complex,
-        "n_errors_simple": n_errors_simple,
-        "error_density_ratio": error_density_ratio,
-        "band_hint": band_hint,
-        "detail": detail,
-    }
+    except Exception as exc:
+        logger.warning("Grammar signals computation failed: %s", exc)
+        return _degraded_grammar_result(n_sentences, "parse failed")
 
 
 # ── Response length label ─────────────────────────────────────────────────────
