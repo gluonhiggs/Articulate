@@ -370,6 +370,10 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                 )
                 grammar_context += "\n\n" + grammar_result["detail"]
                 grammar_context += "\n" + grammar_result["structural_detail"]
+                # Signal 7 (partial): turn length — anchors band 4 "overall turns are short"
+                n_sents = grammar_result["n_sentences"]
+                avg_words = round(total_words / n_sents, 1) if n_sents > 0 else 0.0
+                grammar_context += f"\nturn_length: {total_words} words, {n_sents} sentences, avg {avg_words} words/sentence"
             except Exception as exc:
                 logger.warning("Grammar signals (spaCy) failed: %s", exc)
 
