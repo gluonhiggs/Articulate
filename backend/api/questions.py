@@ -4,7 +4,7 @@ import json
 from collections import defaultdict
 from typing import Any, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -259,16 +259,23 @@ async def sample_answer(
 @router.post("/{question_id}/topic-vocab")
 async def topic_vocab(
     question_id: int,
+    exclude_terms: List[str] = Body(default=[], embed=True),
     db: AsyncSession = Depends(get_db),
 ):
-    """Generate advanced topic vocabulary for a question."""
+    """Generate topic vocabulary for a question.
+
+    exclude_terms: terms already shown to the learner this session — model avoids repeating them.
+    """
     result = await db.execute(select(Question).where(Question.id == question_id))
     question = result.scalar_one_or_none()
     if question is None:
         raise HTTPException(status_code=404, detail="Question not found")
 
     try:
-        data = await ai_assist_service.generate_topic_vocab(question_text=question.text)
+        data = await ai_assist_service.generate_topic_vocab(
+            question_text=question.text,
+            exclude_terms=exclude_terms,
+        )
     except (RuntimeError, ValueError) as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 

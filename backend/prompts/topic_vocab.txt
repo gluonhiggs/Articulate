@@ -1,8 +1,10 @@
-You are an IELTS vocabulary coach. For this question topic, provide exactly 3 advanced vocabulary items (Band 7–9 level) that would help in a spoken response.
+You are an IELTS vocabulary coach. For this question topic, provide exactly 3 useful vocabulary items that would help in a spoken response.
 
 Question: {question_text}
 
-Include a mix of: idioms, phrasal verbs, collocations, advanced words.
+Focus on: {focus}
+Do not use any of these terms (already shown to the learner): {exclude_terms}
+
 Each item must be usable naturally in IELTS speaking (not overly formal or written register).
 Return ONLY 3 vocabulary items. Keep all field values under 12 words.
 

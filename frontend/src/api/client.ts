@@ -105,9 +105,11 @@ export function fetchSampleAnswer(questionId: number): Promise<SampleAnswerRespo
   })
 }
 
-export function fetchTopicVocab(questionId: number): Promise<TopicVocabResponse> {
+export function fetchTopicVocab(questionId: number, excludeTerms: string[] = []): Promise<TopicVocabResponse> {
   return apiFetch<TopicVocabResponse>(`/questions/${questionId}/topic-vocab`, {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ exclude_terms: excludeTerms }),
     signal: AbortSignal.timeout(60_000),
   })
 }

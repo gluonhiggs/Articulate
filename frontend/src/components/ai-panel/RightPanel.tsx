@@ -25,6 +25,8 @@ export function RightPanel({
   const feedBottomRef = useRef<HTMLDivElement>(null)
   // Tracks which attempt IDs have already been appended to the feed
   const addedPronunIdsRef = useRef<Set<number>>(new Set())
+  // Tracks vocab terms already shown this session — passed to backend to avoid repetition
+  const shownVocabTermsRef = useRef<string[]>([])
 
   // Navigation
   const currentIndex = question ? allQuestions.findIndex((q) => q.id === question.id) : -1
@@ -38,6 +40,7 @@ export function RightPanel({
   useEffect(() => {
     setFeedItems([])
     addedPronunIdsRef.current = new Set()
+    shownVocabTermsRef.current = []
     setPronunInput('')
   }, [question?.id])
 
@@ -140,8 +143,11 @@ export function RightPanel({
       error: null,
     }
     setFeedItems((prev) => [...prev, newItem])
-    fetchTopicVocab(question.id)
+    fetchTopicVocab(question.id, shownVocabTermsRef.current)
       .then((res) => {
+        // Accumulate shown terms so next click excludes them
+        const newTerms = res.vocabulary.map((v) => v.term)
+        shownVocabTermsRef.current = [...shownVocabTermsRef.current, ...newTerms]
         setFeedItems((prev) =>
           prev.map((item) =>
             item.id === newItem.id

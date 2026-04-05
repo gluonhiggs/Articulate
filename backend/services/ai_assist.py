@@ -2,13 +2,29 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict
+import random
+from typing import Any, Dict, List, Optional
 
 from backend.config import get_settings
 from backend.constants import PROMPTS_DIR
 from backend.services import llm_client
 
 logger = logging.getLogger(__name__)
+
+_VOCAB_FOCUS_ROTATION = [
+    "idioms and set phrases",
+    "phrasal verbs",
+    "collocations (adjective+noun or verb+noun pairs)",
+    "advanced single words",
+    "discourse markers and linking expressions",
+    "hedging and opinion expressions (tend to, it could be argued, somewhat)",
+    "verb phrases and action expressions",
+    "expressions native speakers use naturally but learners rarely know",
+    "expressions useful for Part 3 abstract discussions",
+    "words and phrases for describing feelings and reactions",
+    "expressions for comparing and contrasting",
+    "expressions for describing habits and routines",
+]
 
 
 def _load_prompt(name: str) -> str:
@@ -94,11 +110,24 @@ async def generate_sample_answer(
     return data
 
 
-async def generate_topic_vocab(question_text: str) -> Dict[str, Any]:
-    """Generate advanced topic vocabulary for an IELTS question."""
+async def generate_topic_vocab(
+    question_text: str,
+    exclude_terms: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    """Generate topic vocabulary for an IELTS question.
+
+    exclude_terms: terms already shown to the learner — model is instructed to avoid them.
+    """
     settings = get_settings()
     template = _load_prompt("topic_vocab.txt")
-    prompt = template.replace("{question_text}", question_text)
+    focus = random.choice(_VOCAB_FOCUS_ROTATION)
+    exclude_str = ", ".join(exclude_terms) if exclude_terms else "none"
+    prompt = (
+        template
+        .replace("{question_text}", question_text)
+        .replace("{focus}", focus)
+        .replace("{exclude_terms}", exclude_str)
+    )
 
     raw = await llm_client.generate(
         base_url=settings.llm_base_url,
