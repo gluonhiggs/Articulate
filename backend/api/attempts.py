@@ -45,7 +45,8 @@ def _get_lt_tool():
     _lt_tool_init_attempted = True
     try:
         import language_tool_python  # type: ignore[import]
-        _lt_tool = language_tool_python.LanguageTool('en-US', config={'picky': True})
+        _lt_tool = language_tool_python.LanguageTool('en-US')
+        _lt_tool.picky = True  # enable stricter rule set (sent as request param to /check)
         logger.info("LanguageTool initialized (local, picky=True)")
     except Exception as exc:
         logger.warning("LanguageTool local unavailable (Java required): %s", exc)
