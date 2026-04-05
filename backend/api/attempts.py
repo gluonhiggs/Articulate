@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import re
+import time
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 from typing import List, Optional
@@ -127,6 +128,10 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
         "  audio=%s",
         attempt_id, question_id, audio_path,
     )
+    _t_start = time.perf_counter()
+    _t_transcription: float = 0.0
+    _t_signals: float = 0.0
+    _t_scoring: float = 0.0
     settings = get_settings()
 
     async with AsyncSessionLocal() as session:
@@ -150,6 +155,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             # ----------------------------------------------------------------
             # 1. Transcription
             # ----------------------------------------------------------------
+            _t0 = time.perf_counter()
             try:
                 transcription_result = await asyncio.wait_for(
                     transcription_service.transcribe(audio_path),
@@ -173,6 +179,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                     logger.info("Pipeline %d: failed:transcription", attempt_id)
                 return
 
+            _t_transcription = time.perf_counter() - _t0
             transcript = transcription_result.get("transcript", "")
             words = transcription_result.get("words", [])
             logger.info(
@@ -235,6 +242,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             fluency_context = (
                 f"{gap_count} long pause(s) in {total_words} words ({gaps_per_100}/100 words)"
             )
+            _t0 = time.perf_counter()
 
             # Signal 2: CEFR vocabulary distribution + lexical diversity (MTLD)
             vocab_signal = compute_vocab_signal(words, transcript)
@@ -396,6 +404,8 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                 await session.commit()
                 logger.info("Pipeline %d: scoring", attempt_id)
 
+            _t_signals = time.perf_counter() - _t0
+            _t0 = time.perf_counter()
             try:
                 scoring_result = await scoring_service.score_attempt(
                     question_text=question.text,
@@ -416,6 +426,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                     logger.info("Pipeline %d: failed:scoring", attempt_id)
                 return
 
+            _t_scoring = time.perf_counter() - _t0
             fluency = scoring_result.get("fluency")
             vocabulary = scoring_result.get("vocabulary")
             grammar = scoring_result.get("grammar")
@@ -558,7 +569,15 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                     ) / 2
 
             await session.commit()
-            logger.info("\n\n========== PIPELINE DONE attempt_id=%d ==========", attempt_id)
+            _t_total = time.perf_counter() - _t_start
+            logger.info(
+                "\n\n========== PIPELINE DONE attempt_id=%d ==========\n"
+                "  transcription : %.2fs\n"
+                "  signals       : %.2fs\n"
+                "  llm_scoring   : %.2fs\n"
+                "  total         : %.2fs",
+                attempt_id, _t_transcription, _t_signals, _t_scoring, _t_total,
+            )
 
         except Exception as exc:
             logger.exception("Pipeline failed for attempt %d: %s", attempt_id, exc)
