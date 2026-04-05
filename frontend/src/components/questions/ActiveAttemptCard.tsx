@@ -106,7 +106,7 @@ export function ActiveAttemptCard({
     return (
       <div className={`rounded-xl p-5 bg-card border border-red-500/30 ${isNew ? 'slide-in-top' : ''}`}>
         <span className="text-gray-500 text-xs font-mono">#{index + 1}</span>
-        <p className="text-red-400 text-sm mt-1">Processing failed — please try recording again.</p>
+        <p className="text-red-400 text-sm mt-1">Processing failed - please try recording again.</p>
       </div>
     )
   }
@@ -114,7 +114,7 @@ export function ActiveAttemptCard({
   return (
     <div className={`rounded-xl p-5 glow-border-active bg-card relative ${isNew ? 'slide-in-top' : ''}`}>
       <div className="flex gap-4">
-        {/* Play button — only shown when audio is available */}
+        {/* Play button - only shown when audio is available */}
         {attempt.audio_path && audioAvailable !== false && (
           <button
             onClick={handlePlayPause}

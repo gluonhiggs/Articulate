@@ -186,7 +186,7 @@ export function PronunciationCard({
             {/* Pronunciation score */}
             <div className="mt-3 pt-3 border-t border-white/5">
               <p className="text-center text-xs text-gray-500">
-                Pronunciation score: {item.pronunciationScore?.toFixed(1) ?? '—'}
+                Pronunciation score: {item.pronunciationScore?.toFixed(1) ?? '-'}
               </p>
             </div>
           </>

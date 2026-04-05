@@ -26,7 +26,7 @@ const COMPANION_MAX_AGE_MS = 5 * 60 * 1000 // ignore attempts older than 5 min
 const ERROR_MESSAGES: Record<string, string> = {
   'failed:transcription': 'Could not transcribe audio',
   'failed:empty_audio':   'Audio was too quiet or silent',
-  'failed:scoring':       'AI scoring unavailable — check your LLM API key',
+  'failed:scoring':       'AI scoring unavailable - check your LLM API key',
 }
 
 // ── Main page ───────────────────────────────────────────────────────────────
@@ -53,7 +53,7 @@ export function QuestionDetail() {
     tickElapsed,
   } = useRecordingStore()
 
-  // Upload guard ref — declared early so question-change effect can reset it
+  // Upload guard ref - declared early so question-change effect can reset it
   const hasUploadedRef = useRef(false)
 
   // Fetch question
@@ -186,7 +186,7 @@ export function QuestionDetail() {
   // Mobile: toggle AI panel
   const [showPanel, setShowPanel] = useState(false)
 
-  // Selected (expanded) attempt — defaults to latest ready
+  // Selected (expanded) attempt - defaults to latest ready
   const [selectedAttemptId, setSelectedAttemptId] = useState<number | null>(null)
 
   // Timer tick
@@ -210,7 +210,7 @@ export function QuestionDetail() {
   // Polling result
   useEffect(() => {
     if (pollingTimedOut && status === 'polling') {
-      setError('Scoring timed out — the server is taking too long. Please try again.')
+      setError('Scoring timed out - the server is taking too long. Please try again.')
       return
     }
     if (!polledAttempt) return
@@ -230,7 +230,7 @@ export function QuestionDetail() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [polledAttempt, pollingTimedOut, status, setDone, setError, queryClient, questionId, refetchAttempts])
 
-  // Companion sync — pick up an in-progress attempt recorded on another device
+  // Companion sync - pick up an in-progress attempt recorded on another device
   const { data: companionAttempt } = useQuery({
     queryKey: ['companion-watch', questionId],
     queryFn: () => fetchAttemptHistory(questionId),

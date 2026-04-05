@@ -80,7 +80,7 @@ def _synthesize(pipeline, text: str, voice: str, output_path: Path) -> None:
         raise RuntimeError(f"Kokoro TTS produced no audio for: {text!r}")
     full_audio = torch.cat(samples)
 
-    # Write WAV using stdlib — no extra dependency
+    # Write WAV using stdlib - no extra dependency
     audio_np = (full_audio.numpy() * 32767).astype(np.int16)
     with wave.open(str(output_path), "w") as wf:
         wf.setnchannels(1)

@@ -166,7 +166,7 @@ export function Home() {
           <PartLaunchButton
             part="P2"
             label="Part 2"
-            description="Cue card — speak 2 min"
+            description="Cue card - speak 2 min"
             to="/practice/part2"
             color="bg-purple-600"
           />

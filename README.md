@@ -13,7 +13,7 @@ An IELTS Speaking practice app. Record your responses, get Whisper transcription
 | **[Bun](https://bun.sh/)** | Frontend build & dev server | [bun.sh](https://bun.sh/) |
 | **Groq API key** | Whisper transcription | [console.groq.com](https://console.groq.com) (free tier) |
 | **LLM API key** | Scoring LLM (Gemini, Groq, or any OpenAI-compatible API) | [aistudio.google.com](https://aistudio.google.com/apikey) (free) |
-| **Java 11+** | LanguageTool grammar checker *(optional — auto-installed on Windows)* | [adoptium.net](https://adoptium.net/) |
+| **Java 11+** | LanguageTool grammar checker *(optional - auto-installed on Windows)* | [adoptium.net](https://adoptium.net/) |
 
 ---
 
@@ -26,7 +26,7 @@ cd Articulate
 
 # 2. Create your config file
 cp .env.example .env
-# Edit .env — fill in GROQ_API_KEY and LLM_API_KEY
+# Edit .env - fill in GROQ_API_KEY and LLM_API_KEY
 
 # 3. Install Python dependencies
 uv sync
@@ -67,7 +67,7 @@ Edit `.env` to customise. All have defaults.
 | `GROQ_WHISPER_MODEL` | `whisper-large-v3-turbo` | Groq Whisper model |
 | `LLM_API_KEY` | *(required)* | API key for cloud LLM (Gemini, Groq, etc.) |
 | `LLM_MODEL` | `gemma-3-27b-it` | LLM model name (overridable at runtime via sidebar) |
-| `LLM_BASE_URL` | Gemini API endpoint | LLM endpoint — swap to use a different provider |
+| `LLM_BASE_URL` | Gemini API endpoint | LLM endpoint - swap to use a different provider |
 | `MAX_AUDIO_SIZE_MB` | `500` | Total audio storage cap |
 | `AUDIO_RETENTION_DAYS` | `90` | Delete audio older than N days |
 | `TTS_VOICE` | `af_heart` | Kokoro TTS voice |

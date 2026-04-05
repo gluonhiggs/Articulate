@@ -286,7 +286,7 @@ def _warmup_probe() -> None:
     """Feed 0.5s of silence through the model at startup to validate CUDA.
 
     If CUDA fires an error during the dummy inference, _force_cpu_fallback is
-    set here — before any real request arrives — so the first user recording
+    set here - before any real request arrives - so the first user recording
     goes straight to CPU instead of failing then retrying.
     Skipped when device resolves to CPU (nothing to probe).
     """
@@ -319,7 +319,7 @@ def _warmup_probe() -> None:
 
     try:
         segs, info = model.transcribe(tmp_path, vad_filter=False, word_timestamps=False)
-        list(segs)  # force generator evaluation — this is where CUDA fires
+        list(segs)  # force generator evaluation - this is where CUDA fires
         logger.info("Whisper warmup probe: CUDA OK (duration=%.2fs)", info.duration)
     except Exception as exc:
         logger.warning(
@@ -336,7 +336,7 @@ def _warmup_probe() -> None:
 
 
 async def warmup_probe() -> None:
-    """Async wrapper — runs _warmup_probe() in the local executor at startup."""
+    """Async wrapper - runs _warmup_probe() in the local executor at startup."""
     loop = asyncio.get_running_loop()
     await loop.run_in_executor(_local_executor, _warmup_probe)
 
@@ -344,7 +344,7 @@ async def warmup_probe() -> None:
 # ── Groq transcription ────────────────────────────────────────────────────────
 
 def _sync_transcribe_groq(audio_path: str) -> Dict[str, Any]:
-    """Call the Groq Whisper API synchronously — runs in a thread pool executor."""
+    """Call the Groq Whisper API synchronously - runs in a thread pool executor."""
     from groq import Groq
 
     settings = get_settings()
@@ -427,7 +427,7 @@ async def transcribe(audio_path: str) -> Dict[str, Any]:
         return await loop.run_in_executor(_local_executor, _sync_transcribe_local, audio_path)
     if not settings.transcription_mode:
         logger.warning(
-            "TRANSCRIPTION_MODE is not set — defaulting to Groq. "
+            "TRANSCRIPTION_MODE is not set - defaulting to Groq. "
             "Start the server via run.sh/run.ps1 to select a mode."
         )
     return await loop.run_in_executor(_groq_executor, _sync_transcribe_groq, audio_path)

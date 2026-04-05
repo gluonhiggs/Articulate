@@ -47,7 +47,7 @@ export function useRecorder(maxSeconds: number): UseRecorderReturn {
         },
       })
     } catch (err) {
-      throw new Error(`Microphone access denied — check browser permissions and try again. (${String(err)})`)
+      throw new Error(`Microphone access denied - check browser permissions and try again. (${String(err)})`)
     }
 
     streamRef.current = stream

@@ -4,7 +4,7 @@ INPUTS:
 QUESTION: {question_text}
 PART: {part}
 VOCAB TYPE: {vocab_type}
-ALREADY SHOWN — do not repeat: {exclude_terms}
+ALREADY SHOWN - do not repeat: {exclude_terms}
 
 IMPORTANT:
 - For Part 1 and Part 2: choose natural conversational items; avoid overly formal or academic words.

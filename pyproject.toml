@@ -14,13 +14,13 @@ dependencies = [
     "httpx>=0.27",
     "groq>=0.8",
     "aiofiles>=24.0",
-    # torch: CPU-only (used by Kokoro TTS only — transcription uses Groq API in Mode 2
+    # torch: CPU-only (used by Kokoro TTS only - transcription uses Groq API in Mode 2
     # or faster-whisper in Mode 1; faster-whisper's CUDA support is independent of torch).
     "torch>=2.3",
     "kokoro>=0.3",
     "spacy>=3.8",
     "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl",
-    # Grammar checker — optional enhancement, requires Java on host system.
+    # Grammar checker - optional enhancement, requires Java on host system.
     # Falls back gracefully if Java is not installed.
     "language-tool-python>=2.7",
     "simplemma>=1.0",
@@ -36,7 +36,7 @@ packages = ["backend"]
 [tool.hatch.metadata]
 allow-direct-references = true
 
-# Force CPU-only PyTorch — Kokoro TTS only needs CPU torch; no CUDA required.
+# Force CPU-only PyTorch - Kokoro TTS only needs CPU torch; no CUDA required.
 [tool.uv.sources]
 torch = { index = "pytorch-cpu" }
 

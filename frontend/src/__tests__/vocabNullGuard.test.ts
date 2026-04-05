@@ -31,7 +31,7 @@ describe('VocabItem type null guard', () => {
   })
 
   it('only replaces first underscore (native .replace behavior)', () => {
-    // String.replace replaces only the first match — consistent with what the UI shows
+    // String.replace replaces only the first match - consistent with what the UI shows
     expect(('multi_word_phrase' ?? '').replace('_', ' ')).toBe('multi word_phrase')
   })
 })

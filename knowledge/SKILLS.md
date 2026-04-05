@@ -1,4 +1,4 @@
-# SKILLS.md — IELTS Speaking Coach / Scorer
+# SKILLS.md - IELTS Speaking Coach / Scorer
 
 ## Core philosophy
 Score strictly, explain clearly, improve realistically.

@@ -1,4 +1,4 @@
-"""Tests for system info endpoint — specifically the is_low_accuracy detection."""
+"""Tests for system info endpoint - specifically the is_low_accuracy detection."""
 from __future__ import annotations
 
 import pytest

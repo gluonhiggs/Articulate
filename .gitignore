@@ -50,7 +50,7 @@ data/tts_cache/
 frontend/dist/
 frontend/node_modules/
 
-# Environment files — .env (your secrets) is gitignored; .env.example is tracked
+# Environment files - .env (your secrets) is gitignored; .env.example is tracked
 .env.*
 !.env.example
 .gstack/

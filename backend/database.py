@@ -43,7 +43,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def _seed_questions(session: AsyncSession) -> None:
-    """Seed questions from seed_questions.json (additive — skips existing by text match)."""
+    """Seed questions from seed_questions.json (additive - skips existing by text match)."""
     seed_path = Path(__file__).parent.parent / "data" / "seed_questions.json"
     if not seed_path.exists():
         return
@@ -154,7 +154,7 @@ async def _ensure_indexes() -> None:
         await conn.execute(text(
             "CREATE INDEX IF NOT EXISTS ix_attempts_created_at ON attempts(created_at)"
         ))
-        # New column migrations — idempotent via try/except (SQLite has no IF NOT EXISTS for ALTER)
+        # New column migrations - idempotent via try/except (SQLite has no IF NOT EXISTS for ALTER)
         for col_sql in [
             "ALTER TABLE questions ADD COLUMN topic_tag TEXT",
             "ALTER TABLE questions ADD COLUMN source TEXT",
@@ -174,7 +174,7 @@ async def init_db() -> None:
     await _ensure_indexes()
 
     async with AsyncSessionLocal() as session:
-        # Always run seeding (additive — skips existing by text match)
+        # Always run seeding (additive - skips existing by text match)
         await _seed_questions(session)
 
         # Ensure UserStats row with id=1 exists

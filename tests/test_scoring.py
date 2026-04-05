@@ -1,4 +1,4 @@
-"""Unit tests for scoring._parse_llm_response() — no API keys required."""
+"""Unit tests for scoring._parse_llm_response() - no API keys required."""
 import pytest
 from backend.services.scoring import _parse_llm_response, _clamp_band
 
@@ -47,7 +47,7 @@ class TestParseLlmResponse:
         assert result["score"] is None
 
     def test_json_with_trailing_noise_extracts_via_rfind(self):
-        # Valid JSON object followed by trailing text — rfind('}') finds the real closing brace
+        # Valid JSON object followed by trailing text - rfind('}') finds the real closing brace
         raw = '{"fluency":6.0,"vocabulary":5.5,"grammar":5.0,"pronunciation":6.0,"error_highlights":[],"feedback_text":"ok"} some trailing noise'
         result = _parse_llm_response(raw)
         assert result["fluency"] == 6.0
@@ -73,7 +73,7 @@ class TestParseLlmResponse:
         assert result["fluency"] == 5.0
 
     def test_truncated_json_salvaged_via_repair(self):
-        # LLM truncated at token limit — no closing brace; repair appends '"}'
+        # LLM truncated at token limit - no closing brace; repair appends '"}'
         raw = '{"fluency":6.0,"vocabulary":5.5,"grammar":5.0,"pronunciation":6.0,"error_highlights":[],"feedback_text":"Good'
         result = _parse_llm_response(raw)
         assert result["fluency"] == 6.0  # scores recovered via truncation repair

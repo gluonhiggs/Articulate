@@ -37,7 +37,7 @@ export function Part3Practice() {
       </div>
 
       <div className="flex flex-1">
-        {/* Left panel — category + topic list */}
+        {/* Left panel - category + topic list */}
         <div className="w-72 border-r border-cardBorder bg-sidebar flex-shrink-0 sticky top-[65px] h-[calc(100vh-65px)] overflow-y-auto">
           <div className="p-4">
             {/* Category filter */}
@@ -123,7 +123,7 @@ export function Part3Practice() {
           </div>
         </div>
 
-        {/* Right panel — Part 3 group cards */}
+        {/* Right panel - Part 3 group cards */}
         <div className="flex-1 p-6 overflow-y-auto">
           {isLoading ? (
             <div className="space-y-4">
@@ -149,7 +149,7 @@ export function Part3Practice() {
               <div className="bg-card border border-cardBorder rounded-xl p-5 mb-5">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-xs bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded-full">
-                    Part 2 — Cue Card
+                    Part 2 - Cue Card
                   </span>
                 </div>
                 <p className="text-textPrimary font-medium">{selectedGroup.parent.text}</p>
@@ -182,7 +182,7 @@ export function Part3Practice() {
                       </p>
                       <ScoreBadge score={q.latest_score} size="sm" />
                     </div>
-                    <p className="text-xs text-textSecondary mt-2">Part 3 — Discussion</p>
+                    <p className="text-xs text-textSecondary mt-2">Part 3 - Discussion</p>
                   </button>
                 ))}
               </div>

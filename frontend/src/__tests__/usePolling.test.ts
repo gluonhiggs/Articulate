@@ -6,7 +6,7 @@
  * isTimedOut=true to the caller so the UI can show an error.
  *
  * Rather than rendering the full hook with TanStack Query infrastructure,
- * we test the refetchInterval decision function directly — same pattern
+ * we test the refetchInterval decision function directly - same pattern
  * as the rest of the __tests__ suite.
  */
 
@@ -90,7 +90,7 @@ describe('usePolling interval logic', () => {
     expect(setIsTimedOut).toHaveBeenCalledWith(false)
   })
 
-  it('does not time out at exactly 3 minutes (boundary — must be strictly greater)', () => {
+  it('does not time out at exactly 3 minutes (boundary - must be strictly greater)', () => {
     const startedAtRef = { current: Date.now() - POLLING_TIMEOUT_MS }
     const setIsTimedOut = vi.fn()
     const decide = makeIntervalDecision(startedAtRef, setIsTimedOut)

@@ -1,4 +1,4 @@
-"""Integration tests for questions API — forecast, bulk import, and list endpoints."""
+"""Integration tests for questions API - forecast, bulk import, and list endpoints."""
 from __future__ import annotations
 
 from datetime import UTC, date, datetime, timedelta
@@ -146,7 +146,7 @@ class TestForecast:
 
 
 # ---------------------------------------------------------------------------
-# List endpoint tests (part1 / part2 / part3) — bulk-query refactor coverage
+# List endpoint tests (part1 / part2 / part3) - bulk-query refactor coverage
 # ---------------------------------------------------------------------------
 
 

@@ -264,7 +264,7 @@ async def topic_vocab(
 ):
     """Generate topic vocabulary for a question.
 
-    exclude_terms: terms already shown to the learner this session — model avoids repeating them.
+    exclude_terms: terms already shown to the learner this session - model avoids repeating them.
     """
     result = await db.execute(select(Question).where(Question.id == question_id))
     question = result.scalar_one_or_none()

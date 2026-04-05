@@ -6,15 +6,15 @@ Exposes two public functions:
 
 compute_vocab_signal returns a multi-section signal string consumed by the LLM prompt.
 The string covers the computable signals from LEXICAL-RESOURCE-SIGNALS.md:
-  Signal 1 — Vocabulary Range     (CEFR distribution + response word count)
-  Signal 2 — Vocabulary Sophistication (B2+ count, unmatched/C2+ words)
-  Signal 4 — Idiomatic Language   (formulaic phrase density)
-  Signal 5 — Collocation Awareness (spaCy dependency-parsed pair inventory for LLM)
-  Signal 7 — Lexical Diversity    (MTLD for long texts, unique lemma ratio)
+  Signal 1 - Vocabulary Range     (CEFR distribution + response word count)
+  Signal 2 - Vocabulary Sophistication (B2+ count, unmatched/C2+ words)
+  Signal 4 - Idiomatic Language   (formulaic phrase density)
+  Signal 5 - Collocation Awareness (spaCy dependency-parsed pair inventory for LLM)
+  Signal 7 - Lexical Diversity    (MTLD for long texts, unique lemma ratio)
 
 compute_grammar_signals returns a dict covering GRA signals 3 and 5:
-  GRA Signal 3 — Complex Sentence Usage and Error Locus
-  GRA Signal 5 — Structural Range Markers (tense inventory, passive, conditionals, tree depth)
+  GRA Signal 3 - Complex Sentence Usage and Error Locus
+  GRA Signal 5 - Structural Range Markers (tense inventory, passive, conditionals, tree depth)
 """
 from __future__ import annotations
 
@@ -32,9 +32,9 @@ logger = logging.getLogger(__name__)
 # ── Stop words ────────────────────────────────────────────────────────────────
 # English function words excluded from CEFR distribution.
 # Counting determiners, prepositions, auxiliaries, pronouns etc. as "A1 vocabulary"
-# distorts the distribution — speakers at band 7 still use "the" and "and".
+# distorts the distribution - speakers at band 7 still use "the" and "and".
 # Basis: the function word / content word distinction from linguistics.
-# We do NOT use NLTK/spaCy/scikit-learn stop lists — those are designed for
+# We do NOT use NLTK/spaCy/scikit-learn stop lists - those are designed for
 # information retrieval and are too aggressive for vocabulary level assessment.
 _STOP_WORDS: frozenset[str] = frozenset({
     # articles / determiners
@@ -82,7 +82,7 @@ def _get_spacy() -> Optional[Any]:
             import spacy
             _spacy_nlp = spacy.load("en_core_web_sm")
         except Exception as exc:
-            logger.warning("spaCy unavailable — collocation signal disabled: %s", exc)
+            logger.warning("spaCy unavailable - collocation signal disabled: %s", exc)
             _spacy_nlp = False  # sentinel: don't retry
     return _spacy_nlp if _spacy_nlp is not False else None
 
@@ -90,15 +90,15 @@ def _get_spacy() -> Optional[Any]:
 # ── Signal 3 + 5: Grammar signal constants ───────────────────────────────────
 # Dependency arcs whose presence makes a sentence "complex" for IELTS GRA.
 # Handled directly (dep in set):
-#   advcl  — adverbial clause modifier  (because/when/if/although…)
-#   ccomp  — clausal complement          (I think that…, she said…)
-#   relcl  — relative clause modifier    (the book that I read)
-#   acl    — adjectival / participial clause (the person sitting next to me)
+#   advcl  - adverbial clause modifier  (because/when/if/although…)
+#   ccomp  - clausal complement          (I think that…, she said…)
+#   relcl  - relative clause modifier    (the book that I read)
+#   acl    - adjectival / participial clause (the person sitting next to me)
 # Handled via separate SCONJ POS guard (see compute_grammar_signals):
-#   mark   — subordinating conjunction: fires when pos_==SCONJ
+#   mark   - subordinating conjunction: fires when pos_==SCONJ
 # Intentionally excluded:
-#   xcomp  — infinitive complement ("I want to go") — not an IELTS complex sentence
-#   csubj  — clausal subject (rare in spoken English, omission is harmless)
+#   xcomp  - infinitive complement ("I want to go") - not an IELTS complex sentence
+#   csubj  - clausal subject (rare in spoken English, omission is harmless)
 _SUBORDINATE_ARCS_DIRECT: frozenset[str] = frozenset({
     "advcl",
     "ccomp",
@@ -123,10 +123,10 @@ def _map_complexity_band(
     """Map (complex_sentence_rate, error_density_ratio) to an IELTS GRA band hint.
 
     Two-dimensional heuristic grounded in rubric qualitative language:
-      B4 — "structures are repetitive" → almost no complex sentences
-      B5 — complex attempted but error-prone (density ratio ≥ 2.0)
-      B6 — complex used with limited flexibility
-      B7 — "a range of structures flexibly used"
+      B4 - "structures are repetitive" → almost no complex sentences
+      B5 - complex attempted but error-prone (density ratio ≥ 2.0)
+      B6 - complex used with limited flexibility
+      B7 - "a range of structures flexibly used"
 
     These thresholds are heuristics, not rubric-specified numbers.
     The LLM should override if the transcript contradicts the signal.
@@ -177,21 +177,21 @@ def compute_grammar_signals(
 ) -> dict:
     """GRA Signals 3 and 5 in a single per-sentence spaCy parse pass.
 
-    Signal 3 — Complex Sentence Usage and Error Locus:
+    Signal 3 - Complex Sentence Usage and Error Locus:
         Classifies each sentence as complex (contains a subordinate clause)
         or simple, then computes an error density ratio to detect whether
         errors concentrate in complex structures.
 
-    Signal 5 — Structural Range Markers:
+    Signal 5 - Structural Range Markers:
         Tense inventory, passive voice, conditional constructions, parse
-        tree depth — all computed in the same sentence loop for efficiency.
+        tree depth - all computed in the same sentence loop for efficiency.
 
     Args:
         transcript:       Full response text.
         sent_spans:       (start, end) character offsets per sentence
                           (from _sentence_spans in attempts.py).
         filtered_matches: LanguageTool match objects with .offset attribute.
-                          Pass an empty list when LT is unavailable — Signal 3
+                          Pass an empty list when LT is unavailable - Signal 3
                           error-density will report 0/0 but Signal 5 still runs.
 
     Returns a dict with keys:
@@ -289,7 +289,7 @@ def compute_grammar_signals(
                     if any(t == "VBD" and txt == "had" for t, txt in aux_tags):
                         tense_forms.add("past_perfect")
                         continue
-                    # 'd + VBN — contraction ambiguity: could be would or had
+                    # 'd + VBN - contraction ambiguity: could be would or had
                     if any(txt == "'d" for _, txt in aux_tags):
                         tense_forms.add("past_perfect_possible")
                         continue
@@ -455,7 +455,7 @@ def compute_grammar_signals(
             f"  tenses: {n_tenses} distinct [{tense_list}] ({tense_band})",
         ]
         if passive_count > 0:
-            ex_str = " — e.g. " + ", ".join(passive_examples) if passive_examples else ""
+            ex_str = " - e.g. " + ", ".join(passive_examples) if passive_examples else ""
             structural_lines.append(f"  passive: {passive_count} sentence(s){ex_str}")
         else:
             structural_lines.append("  passive: none detected")
@@ -501,7 +501,7 @@ def _mtld(words: list[str], threshold: float = 0.72) -> float:
 
     Bidirectional: average of forward and backward pass.
     Matches the reference algorithm in McCarthy & Jarvis (2010, p. 385)
-    and the lexicalrichness library — without its scipy/pandas/matplotlib deps.
+    and the lexicalrichness library - without its scipy/pandas/matplotlib deps.
     """
     def _one_pass(seq: list[str]) -> float:
         types: set[str] = set()
@@ -578,7 +578,7 @@ def _compute_idiom_signal(transcript: str, total_words: int) -> str:
             if pos == -1:
                 break
             end = pos + len(phrase)
-            # Check word boundary — phrase must start/end at word boundary
+            # Check word boundary - phrase must start/end at word boundary
             before_ok = pos == 0 or text[pos - 1] == " "
             after_ok = end >= len(text) or text[end] == " "
             if before_ok and after_ok:
@@ -611,7 +611,7 @@ def _compute_idiom_signal(transcript: str, total_words: int) -> str:
 
 # ── Signal 5: Collocation awareness ──────────────────────────────────────────
 # Very high-frequency verb→object pairs that are universally natural and
-# too common to be informative — skip them so the LLM inventory stays concise.
+# too common to be informative - skip them so the LLM inventory stays concise.
 _COMMON_NATURAL_PAIRS: frozenset[tuple[str, str]] = frozenset({
     ("have", "time"), ("have", "idea"), ("have", "problem"), ("have", "effect"),
     ("get", "chance"), ("get", "idea"), ("get", "job"), ("get", "result"),
@@ -637,7 +637,7 @@ def _compute_collocation_signal(transcript: str) -> str:
     using spaCy and return them as an inventory string for the LLM to evaluate.
 
     The LLM (not a hardcoded whitelist) judges whether each pair is natural or
-    non-native — this avoids false positives from a fixed lookup table.
+    non-native - this avoids false positives from a fixed lookup table.
 
     Very common pairs (e.g. have→time, make→decision) are skipped to keep the
     inventory concise and focus the LLM's attention on less obvious choices.
@@ -703,7 +703,7 @@ def compute_vocab_signal(words: List[Dict[str, Any]], transcript: str) -> str:
     try:
         import simplemma
     except ImportError as exc:
-        logger.warning("Vocab signal deps not installed (%s) — run `uv sync`", exc)
+        logger.warning("Vocab signal deps not installed (%s) - run `uv sync`", exc)
         return "insufficient vocabulary data"
 
     try:
@@ -717,7 +717,7 @@ def compute_vocab_signal(words: List[Dict[str, Any]], transcript: str) -> str:
         content_words = [
             token
             for w in words
-            for token in [w.get("word", "").lower().strip(".,!?;:'\"()[]—-")]
+            for token in [w.get("word", "").lower().strip(".,!?;:'\"()[]--")]
             if len(token) > 2 and token not in _STOP_WORDS
         ]
 
@@ -757,7 +757,7 @@ def compute_vocab_signal(words: List[Dict[str, Any]], transcript: str) -> str:
                 f"CEFR ({matched}/{total_content} content words matched, "
                 f"{unique_lemmas} unique lemmas, {unique_ratio}% variety): "
                 f"A1:{pct['A1']}% A2:{pct['A2']}% B1:{pct['B1']}% "
-                f"B2:{pct['B2']}% C1:{pct['C1']}% — {high} B2+ words"
+                f"B2:{pct['B2']}% C1:{pct['C1']}% - {high} B2+ words"
             )
             if unmatched_lemmas:
                 sample = ", ".join(unmatched_lemmas[:8])

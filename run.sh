@@ -10,7 +10,7 @@ fi
 export $(grep -v '^#' ".env" | xargs)
 
 # ── Java check (required for LanguageTool grammar checker) ───────────────────
-# Suspend set -e for the install block — brew link commonly exits non-zero on
+# Suspend set -e for the install block - brew link commonly exits non-zero on
 # Apple Silicon (keg-only formula) and would abort the script prematurely.
 set +e
 if ! command -v java &>/dev/null; then
@@ -19,7 +19,7 @@ if ! command -v java &>/dev/null; then
     sudo apt-get install -y default-jre-headless
   elif command -v brew &>/dev/null; then
     brew install openjdk
-    # keg-only on Apple Silicon: link may fail — ignore non-zero, check below
+    # keg-only on Apple Silicon: link may fail - ignore non-zero, check below
     brew link --force --overwrite openjdk 2>/dev/null || true
     # Homebrew puts the binary here when the symlink succeeds; add as fallback
     BREW_JAVA="$(brew --prefix openjdk 2>/dev/null)/bin"
@@ -39,7 +39,7 @@ if ! command -v java &>/dev/null; then
 else
   JAVA_VER_LINE="$(java -version 2>&1 | head -1)"
   echo "Java: $JAVA_VER_LINE"
-  # Validate minimum version — LanguageTool 6.x requires Java 11+
+  # Validate minimum version - LanguageTool 6.x requires Java 11+
   JAVA_MAJOR=$(echo "$JAVA_VER_LINE" | grep -oP '(?<=")\d+' | head -1)
   if [ -n "$JAVA_MAJOR" ] && [ "$JAVA_MAJOR" -lt 11 ]; then
     echo "WARNING: Java $JAVA_MAJOR detected - LanguageTool requires Java 11+. Grammar checking may fail."

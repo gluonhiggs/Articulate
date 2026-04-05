@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/attempts", tags=["attempts"])
 
-# ── LanguageTool singleton (optional — requires Java) ────────────────────────
+# ── LanguageTool singleton (optional - requires Java) ────────────────────────
 
 _lt_tool = None
 _lt_tool_init_attempted = False
@@ -52,7 +52,7 @@ def _get_lt_tool():
         logger.warning("LanguageTool local unavailable (Java required): %s", exc)
         try:
             import language_tool_python  # type: ignore[import]
-            # Fallback: sends transcript to languagetool.org — no Java needed.
+            # Fallback: sends transcript to languagetool.org - no Java needed.
             _lt_tool = language_tool_python.LanguageToolPublicAPI('en-US')
             logger.info("LanguageTool initialized (public API fallback)")
         except Exception as exc2:
@@ -64,19 +64,19 @@ def _get_lt_tool():
 # ── LanguageTool artifact filter ─────────────────────────────────────────────
 # Whisper (Groq API) may capitalise the first word of segments separated by
 # pauses. LanguageTool flags these as UPPERCASE_SENTENCE_START and related
-# casing/punctuation rules — transcription artefacts, not speaker errors.
+# casing/punctuation rules - transcription artefacts, not speaker errors.
 # Filtering them out before building grammar_context prevents the LLM from
 # penalising phantom mistakes.
 #
-# Kept: GRAMMAR, CONFUSED_WORDS, MISC, TYPOS — all genuine error categories.
+# Kept: GRAMMAR, CONFUSED_WORDS, MISC, TYPOS - all genuine error categories.
 
 _LT_FILTERED_RULE_IDS: frozenset[str] = frozenset({
-    # VAD segment-boundary capitalisation — primary transcription artefact
+    # VAD segment-boundary capitalisation - primary transcription artefact
     "UPPERCASE_SENTENCE_START",
-    # Whitespace / formatting — concepts absent from speech
+    # Whitespace / formatting - concepts absent from speech
     "WHITESPACE_RULE",
     "EN_QUOTES",
-    # Punctuation absence — spoken language has no terminal punctuation
+    # Punctuation absence - spoken language has no terminal punctuation
     "COMMA_PARENTHESIS_WHITESPACE",
     "PUNCTUATION_PARAGRAPH_END",
     "UNLIKELY_OPENING_PUNCTUATION",
@@ -86,16 +86,16 @@ _LT_FILTERED_RULE_IDS: frozenset[str] = frozenset({
 })
 
 _LT_FILTERED_CATEGORIES: frozenset[str] = frozenset({
-    "CASING",       # all casing rules — meaningless in speech
-    "TYPOGRAPHY",   # formatting rules — meaningless in speech
-    "PUNCTUATION",  # missing / wrong punctuation — transcription artefact
-    "STYLE",        # subjective style — not an IELTS speaking criterion
-    "REDUNDANCY",   # wordy phrasing — not penalised in IELTS speaking
+    "CASING",       # all casing rules - meaningless in speech
+    "TYPOGRAPHY",   # formatting rules - meaningless in speech
+    "PUNCTUATION",  # missing / wrong punctuation - transcription artefact
+    "STYLE",        # subjective style - not an IELTS speaking criterion
+    "REDUNDANCY",   # wordy phrasing - not penalised in IELTS speaking
 })
 
 # Rules that belong to filtered categories but catch genuine errors worth surfacing.
 _LT_WHITELISTED_RULE_IDS: frozenset[str] = frozenset({
-    "BORED_OF",  # STYLE: 'bored of' → 'bored with/by' — real preposition error
+    "BORED_OF",  # STYLE: 'bored of' → 'bored with/by' - real preposition error
 })
 
 
@@ -201,7 +201,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             if not transcript or not transcript.strip():
                 file_size = os.path.getsize(audio_path) if os.path.exists(audio_path) else -1
                 logger.warning(
-                    "Pipeline %d: empty transcript — audio=%s (%.1f KB)",
+                    "Pipeline %d: empty transcript - audio=%s (%.1f KB)",
                     attempt_id, audio_path, file_size / 1024,
                 )
                 t2 = await session.execute(select(Attempt).where(Attempt.id == attempt_id))
@@ -248,7 +248,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             # Signal 2: CEFR vocabulary distribution + lexical diversity (MTLD)
             vocab_signal = compute_vocab_signal(words, transcript)
 
-            # Signal 3: Grammar checker (LanguageTool — requires Java)
+            # Signal 3: Grammar checker (LanguageTool - requires Java)
             grammar_context = "grammar checker unavailable"
             filtered_matches: list = []  # initialised here so spaCy signals run even if LT fails
             if transcript and transcript.strip():
@@ -294,7 +294,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                             for i, (s, e) in enumerate(sent_spans):
                                 if s <= offset < e:
                                     return i
-                            return None  # unmatched offset — caller must skip
+                            return None  # unmatched offset - caller must skip
 
                         # Stats computed over ALL filtered matches (not just cap)
                         error_sentence_set = {
@@ -320,7 +320,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                                 f"({clean_pct}% error-free)"
                             )
 
-                            # Group by rule_id — systematicity signal
+                            # Group by rule_id - systematicity signal
                             rule_groups: dict[str, list] = defaultdict(list)
                             for m in displayed:
                                 rule_groups[m.rule_id].append(m)
@@ -363,7 +363,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
 
             # Signals 3 + 5: spaCy sentence complexity and structural range
             # Runs outside the LT block so it executes even when LT is unavailable.
-            # filtered_matches is [] in that case — Signal 3 error-density reports 0
+            # filtered_matches is [] in that case - Signal 3 error-density reports 0
             # but Signal 5 (tense inventory, passive, conditionals, tree depth) still runs.
             try:
                 grammar_result = compute_grammar_signals(
@@ -371,7 +371,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                 )
                 grammar_context += "\n\n" + grammar_result["detail"]
                 grammar_context += "\n" + grammar_result["structural_detail"]
-                # Signal 7 (partial): turn length — anchors band 4 "overall turns are short"
+                # Signal 7 (partial): turn length - anchors band 4 "overall turns are short"
                 n_sents = grammar_result["n_sentences"]
                 avg_words = round(total_words / n_sents, 1) if n_sents > 0 else 0.0
                 grammar_context += f"\nturn_length: {total_words} words, {n_sents} sentences, avg {avg_words} words/sentence"
@@ -483,7 +483,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                 return
             if score is None:
                 logger.error(
-                    "Pipeline %d: LLM returned no score — marking failed:scoring. "
+                    "Pipeline %d: LLM returned no score - marking failed:scoring. "
                     "scoring_result keys: %s",
                     attempt_id, list(scoring_result.keys()),
                 )

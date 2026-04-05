@@ -7,7 +7,7 @@ Mock IELTS Part 1 response
   because I find it quite satisfying and creative."
 
   ---
-  Step 1 — Whisper produces word dicts
+  Step 1 - Whisper produces word dicts
 
   Each word comes out as a dict with timing and confidence:
 
@@ -35,7 +35,7 @@ Mock IELTS Part 1 response
   ]
 
   ---
-  Step 2 — _run_pipeline() in attempts.py computes 4 signals in parallel
+  Step 2 - _run_pipeline() in attempts.py computes 4 signals in parallel
 
   Signal A: fluency_context
 
@@ -65,14 +65,14 @@ Mock IELTS Part 1 response
 
   → grammar_context = "no grammar errors detected"
 
-  Signal D: vocab_signal — this is the main one
+  Signal D: vocab_signal - this is the main one
 
   compute_vocab_signal(words, transcript) is called. Let's trace it fully.
 
   ---
-  Step 3 — Inside compute_vocab_signal()
+  Step 3 - Inside compute_vocab_signal()
 
-  3a. Build content_words — strip punctuation, filter stop words and short tokens
+  3a. Build content_words - strip punctuation, filter stop words and short tokens
 
   # Raw word list (lowercased, punctuation stripped):
   raw = ["well", "i", "really", "enjoy", "spending", "time", "outdoors",
@@ -195,14 +195,14 @@ Mock IELTS Part 1 response
   3e. Final vocab_signal string assembled
 
   "CEFR (25/26 content words matched, 25 unique lemmas, 100% variety):
-   A1:32% A2:28% B1:24% B2:16% C1:0% — 4 B2+ words
+   A1:32% A2:28% B1:24% B2:16% C1:0% - 4 B2+ words
    | unmatched (possible C2+/specialist): hike
    | B2+ pronunciation refs: outdoors /ˌaʊtˈdɔːrz/; novel /ˈnɑːvl/;
      satisfy /ˈsætɪsfaɪ/; creative /kriˈeɪtɪv/;
    lexical diversity: insufficient data (<50 words)"
 
   ---
-  Step 4 — LLM receives the full prompt
+  Step 4 - LLM receives the full prompt
 
   The prompt template is filled with all 6 variables. The vocabulary-relevant parts look like this:
 
@@ -218,7 +218,7 @@ Mock IELTS Part 1 response
 
   [COMPUTED SIGNALS]
   Vocabulary signal: CEFR (25/26 content words matched, 25 unique lemmas,
-  100% variety): A1:32% A2:28% B1:24% B2:16% C1:0% — 4 B2+ words | ...
+  100% variety): A1:32% A2:28% B1:24% B2:16% C1:0% - 4 B2+ words | ...
 
   [TRANSCRIPT]
   "Well, I really enjoy spending time outdoors. I like hiking and sometimes
@@ -230,24 +230,24 @@ Mock IELTS Part 1 response
   "What do you do in your free time?"
 
   ---
-  Step 5 — LLM's reasoning process (implicit)
+  Step 5 - LLM's reasoning process (implicit)
 
   The LLM cross-references the signal numbers against the rubric descriptors:
 
   ┌───────────────────────────────────────────┬─────────────────────────────────────────────────────┬─────────────────────────────────────────────────────────────────────────────────────────────────────┐
   │               What LLM sees               │                  What rubric says                   │                                             Implication                                             │
   ├───────────────────────────────────────────┼─────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────┤
-  │ 16% B2 words, 0% C1                       │ Band 7: "less common items"                         │ Borderline — a few advanced words but not sustained                                                 │
+  │ 16% B2 words, 0% C1                       │ Band 7: "less common items"                         │ Borderline - a few advanced words but not sustained                                                 │
   ├───────────────────────────────────────────┼─────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────┤
-  │ 100% unique lemma ratio                   │ —                                                   │ Good variety, no repetition                                                                         │
+  │ 100% unique lemma ratio                   │ -                                                   │ Good variety, no repetition                                                                         │
   ├───────────────────────────────────────────┼─────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────┤
   │ novel, creative, satisfying in transcript │ Band 6→7 boundary                                   │ Three good B2 choices but all common, no real idioms                                                │
   ├───────────────────────────────────────────┼─────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────┤
-  │ No collocation signal                     │ Band 7: "collocation awareness"                     │ LLM reads transcript and notices "cook new recipes" (collocation gap — should be "try new recipes") │
+  │ No collocation signal                     │ Band 7: "collocation awareness"                     │ LLM reads transcript and notices "cook new recipes" (collocation gap - should be "try new recipes") │
   ├───────────────────────────────────────────┼─────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────┤
   │ MTLD: insufficient data                   │ Band 5-6: "limited flexibility" for short responses │ LLM may penalise slightly for brevity                                                               │
   ├───────────────────────────────────────────┼─────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────┤
-  │ No flagged_words                          │ —                                                   │ No pronunciation evidence of vocabulary uncertainty                                                 │
+  │ No flagged_words                          │ -                                                   │ No pronunciation evidence of vocabulary uncertainty                                                 │
   ├───────────────────────────────────────────┼─────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────┤
   │ hike unmatched                            │ Potential C2+ or specialist                         │ LLM sees "hiking" in transcript, validates it's appropriate                                         │
   └───────────────────────────────────────────┴─────────────────────────────────────────────────────┴─────────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -260,7 +260,7 @@ Mock IELTS Part 1 response
     "pronunciation": 6.0,
     "feedback_text": "Vocabulary is sufficient for this familiar topic with
       some good B2 choices (outdoors, novels, satisfying, creative), but lacks
-      idiomatic expressions and collocation precision — 'cook new recipes'
+      idiomatic expressions and collocation precision - 'cook new recipes'
       would be more natural as 'try new recipes'. No C1 vocabulary used.",
     "error_highlights": [
       {"word": "cook", "type": "uncertain",
@@ -273,5 +273,5 @@ Mock IELTS Part 1 response
   ---
   What the signal currently cannot tell the LLM
 
-  The collocation error (cook new recipes) was caught by the LLM reading the raw transcript — not by any computed signal. That's the gap: the vocab_signal string has no collocation score, so the LLM might miss it on a bad day or with a weaker model.
-   Adding a bigram frequency score against COCA/BNC would anchor that judgment — the computed number would say "collocation score: low (2.3/10)" and the LLM wouldn't have to infer it from scratch.
+  The collocation error (cook new recipes) was caught by the LLM reading the raw transcript - not by any computed signal. That's the gap: the vocab_signal string has no collocation score, so the LLM might miss it on a bad day or with a weaker model.
+   Adding a bigram frequency score against COCA/BNC would anchor that judgment - the computed number would say "collocation score: low (2.3/10)" and the LLM wouldn't have to infer it from scratch.

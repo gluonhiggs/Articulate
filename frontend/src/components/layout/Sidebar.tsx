@@ -256,9 +256,9 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
           </p>
         </div>
         {[
-          { label: 'Part 1 — Q&A', to: '/practice/part1' },
-          { label: 'Part 2 — Cue Card', to: '/practice/part2' },
-          { label: 'Part 3 — Discussion', to: '/practice/part3' },
+          { label: 'Part 1 - Q&A', to: '/practice/part1' },
+          { label: 'Part 2 - Cue Card', to: '/practice/part2' },
+          { label: 'Part 3 - Discussion', to: '/practice/part3' },
         ].map((item) => (
           <NavLink
             key={item.to}
@@ -413,7 +413,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
                     </span>
                   )}
 
-                  {/* Cloud active — pronunciation accuracy note */}
+                  {/* Cloud active - pronunciation accuracy note */}
                   {systemInfo.transcription_mode === 'groq' &&
                     !systemInfo.op_status && (
                       <span className="mt-2 inline-block text-[10px] rounded px-1.5 py-0.5 border font-medium bg-amber-500/10 text-amber-400 border-amber-500/30">
@@ -424,7 +424,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
                   {/* Operation failed */}
                   {systemInfo.op_status === 'failed' && (
                     <p className="mt-2 text-[10px] text-red-400">
-                      ⚠ Operation failed — check server logs.
+                      ⚠ Operation failed - check server logs.
                     </p>
                   )}
                 </div>

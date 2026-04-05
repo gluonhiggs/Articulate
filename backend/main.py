@@ -22,7 +22,7 @@ from backend.api.attempts import _get_lt_tool
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
+    format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
 
@@ -40,20 +40,20 @@ def _prompt_mode_selection() -> None:
     """
     settings = get_settings()
     if settings.transcription_mode in ("groq", "local"):
-        return  # already configured — skip prompt
+        return  # already configured - skip prompt
 
     from backend.services.transcription import detect_gpu
     has_gpu = detect_gpu()
 
     print("\n" + "=" * 60)
-    print("Transcription mode — choose once (saved to data/mode):\n")
-    print("  [1] Local  — faster-whisper, full pronunciation scoring")
+    print("Transcription mode - choose once (saved to data/mode):\n")
+    print("  [1] Local  - faster-whisper, full pronunciation scoring")
     if has_gpu:
         print("       GPU detected: large-v3-turbo (fast + accurate)")
     else:
         print("       No GPU: small model on CPU (~40-60s per answer)")
     print()
-    print("  [2] Cloud  — Groq API, ~2-3s per answer")
+    print("  [2] Cloud  - Groq API, ~2-3s per answer")
     print("       Note: pronunciation reflects fluency only")
     print("             (word-level analysis unavailable in cloud mode)")
     print("=" * 60)
@@ -125,7 +125,7 @@ async def lifespan(app: FastAPI):
         import simplemma  # noqa: F401
         logger.info("Vocab signal deps OK (simplemma).")
     except ImportError as exc:
-        logger.warning("Vocab signal deps missing: %s — run `uv sync`", exc)
+        logger.warning("Vocab signal deps missing: %s - run `uv sync`", exc)
 
     from backend.data.oxford import WORD_TO_CEFR
     logger.info("Oxford 5000 loaded: %d words", len(WORD_TO_CEFR))
@@ -145,12 +145,12 @@ async def lifespan(app: FastAPI):
     settings = get_settings()  # re-read after potential mode change
 
     if settings.transcription_mode == "local":
-        logger.info("Transcription: Mode 1 — local faster-whisper.")
+        logger.info("Transcription: Mode 1 - local faster-whisper.")
         try:
             from backend.services.transcription import _get_model as _get_whisper_model, warmup_probe as _warmup_probe, _local_executor as _whisper_local_executor
             loop = asyncio.get_running_loop()
             await loop.run_in_executor(_whisper_local_executor, _get_whisper_model)
-            logger.info("faster-whisper model loaded — running CUDA warmup probe…")
+            logger.info("faster-whisper model loaded - running CUDA warmup probe…")
             await _warmup_probe()
             logger.info("faster-whisper ready (device validated).")
         except ImportError:
@@ -162,7 +162,7 @@ async def lifespan(app: FastAPI):
             raise SystemExit(1)
     else:
         logger.info(
-            "Transcription: Mode 2 — Groq API (model=%s). "
+            "Transcription: Mode 2 - Groq API (model=%s). "
             "Pronunciation scoring reflects fluency only (no word-level analysis).",
             settings.groq_whisper_model,
         )
@@ -181,7 +181,7 @@ async def lifespan(app: FastAPI):
         if lt is not None:
             logger.info("LanguageTool ready (%s).", type(lt).__name__)
         else:
-            logger.warning("LanguageTool unavailable — grammar context will be skipped.")
+            logger.warning("LanguageTool unavailable - grammar context will be skipped.")
     except asyncio.TimeoutError:
         logger.warning(
             "LanguageTool timed out after 30s (Java may be blocked by firewall). "
@@ -195,7 +195,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Articulate — IELTS Speaking Practice",
+    title="Articulate - IELTS Speaking Practice",
     version="0.1.0",
     lifespan=lifespan,
 )
@@ -223,7 +223,7 @@ app.include_router(system.router)
 app.include_router(tts.router)
 
 # ---------------------------------------------------------------------------
-# Frontend static files (catch-all — MUST be last)
+# Frontend static files (catch-all - MUST be last)
 # ---------------------------------------------------------------------------
 
 _FRONTEND_DIST = Path(__file__).parent.parent / "frontend" / "dist"
@@ -233,7 +233,7 @@ if _FRONTEND_DIST.exists():
     logger.info("Serving frontend from %s", _FRONTEND_DIST)
 else:
     logger.warning(
-        "Frontend dist not found at %s — run 'bun run build' inside the frontend/ directory.",
+        "Frontend dist not found at %s - run 'bun run build' inside the frontend/ directory.",
         _FRONTEND_DIST,
     )
 

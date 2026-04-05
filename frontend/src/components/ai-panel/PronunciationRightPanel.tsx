@@ -41,7 +41,7 @@ export function PronunciationRightPanel({
     }
     setPlayingWord(word)
     const url = `/api/v1/tts/pronounce?text=${encodeURIComponent(word)}`
-    // Fetch the audio first, then play — avoids browser blocking issues
+    // Fetch the audio first, then play - avoids browser blocking issues
     fetch(url)
       .then((res) => {
         if (!res.ok) throw new Error(`TTS error: ${res.status}`)
@@ -215,7 +215,7 @@ export function PronunciationRightPanel({
       {/* Bottom: pronunciation score */}
       <div className="p-4 border-t border-white/5 shrink-0">
         <p className="text-center text-sm text-gray-400 line-clamp-1">
-          Pronunciation score: {attempt.pronunciation?.toFixed(1) ?? '—'}
+          Pronunciation score: {attempt.pronunciation?.toFixed(1) ?? '-'}
         </p>
       </div>
     </div>

@@ -91,7 +91,7 @@ export function fetchPronunciationDetails(attemptId: number): Promise<{ words: P
   return apiFetch<{ words: PronunciationWord[] }>(`/attempts/${attemptId}/pronunciation`)
 }
 
-/** Returns the URL to stream attempt audio. Does not fetch — use with Audio or fetch-to-blob. */
+/** Returns the URL to stream attempt audio. Does not fetch - use with Audio or fetch-to-blob. */
 export function getAttemptAudioUrl(attemptId: number): string {
   return `${BASE}/attempts/${attemptId}/audio`
 }

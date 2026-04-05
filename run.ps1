@@ -1,4 +1,4 @@
-# run.ps1 — Start Articulate on Windows
+# run.ps1 - Start Articulate on Windows
 # Usage: .\run.ps1
 
 # ── Load config ───────────────────────────────────────────────────────────────
@@ -14,13 +14,13 @@ Get-Content ".env" | Where-Object { $_ -notmatch '^\s*#' -and $_ -match '=' } | 
 
 
 # ── Java check (required for LanguageTool grammar checker) ───────────────────
-# Refresh PATH from registry first — picks up Java installed in a prior session
+# Refresh PATH from registry first - picks up Java installed in a prior session
 # before we decide whether to call winget at all.
 $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" +
             [System.Environment]::GetEnvironmentVariable("PATH", "User")
 
 if (-not (Get-Command java -ErrorAction SilentlyContinue)) {
-    # Resolve winget — it lives in WindowsApps which is often absent from PATH
+    # Resolve winget - it lives in WindowsApps which is often absent from PATH
     # in non-interactive / no-profile PowerShell sessions.
     $wingetCmd = Get-Command winget -ErrorAction SilentlyContinue
     $wingetExe = if ($wingetCmd) { $wingetCmd.Source } else { $null }
@@ -32,7 +32,7 @@ if (-not (Get-Command java -ErrorAction SilentlyContinue)) {
     if ($wingetExe) {
         Write-Host "Java not found - installing Microsoft OpenJDK 21 via winget..." -ForegroundColor Yellow
         & $wingetExe install --id Microsoft.OpenJDK.21 --silent --accept-package-agreements --accept-source-agreements
-        # winget exits -1978335189 when the package is already installed — treat as success.
+        # winget exits -1978335189 when the package is already installed - treat as success.
         if ($LASTEXITCODE -eq 0 -or $LASTEXITCODE -eq -1978335189) {
             # Re-read registry PATH so this session can use the new java binary.
             $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" +
@@ -51,7 +51,7 @@ if (-not (Get-Command java -ErrorAction SilentlyContinue)) {
         Write-Warning "Grammar checking will fall back to LanguageTool public API."
     }
 } else {
-    # Validate minimum version — LanguageTool 6.x requires Java 11+.
+    # Validate minimum version - LanguageTool 6.x requires Java 11+.
     $javaVerLine = (java -version 2>&1)[0] -as [string]
     Write-Host "Java: $javaVerLine" -ForegroundColor Green
     if ($javaVerLine -match '"(\d+)[\._]') {

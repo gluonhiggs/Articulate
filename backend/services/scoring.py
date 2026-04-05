@@ -86,10 +86,10 @@ def _parse_llm_response(raw: str) -> Dict[str, Any]:
         fragment = raw[start:].rstrip().rstrip("`").rstrip()
 
         if end > start:
-            # Happy path: found balanced braces — try as-is first, then repair
+            # Happy path: found balanced braces - try as-is first, then repair
             attempts = [raw[start:end], fragment + '}', fragment + '"}'  ]
         else:
-            # No closing brace at all — LLM was truncated; try repair
+            # No closing brace at all - LLM was truncated; try repair
             attempts = [fragment + '"}', fragment + '}']
 
         for candidate in attempts:

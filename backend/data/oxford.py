@@ -1,17 +1,17 @@
 """
-Oxford 5000 vocabulary data — loaded once at module level.
+Oxford 5000 vocabulary data - loaded once at module level.
 Source: backend/data/oxford_5000.csv (scraped from Oxford Learner's Dictionaries)
 
 Three dicts built at import time:
-  WORD_TO_CEFR    — word → CEFR level str ("A1"…"C1")
-  WORD_TO_DATA    — word → {type, phon_n_am, definition, example}
-  CEFR_TO_WORDS   — level → [words]  (for future word-suggestion features)
+  WORD_TO_CEFR    - word → CEFR level str ("A1"…"C1")
+  WORD_TO_DATA    - word → {type, phon_n_am, definition, example}
+  CEFR_TO_WORDS   - level → [words]  (for future word-suggestion features)
 
 US spelling aliases are applied at load time so American spellings
 (color, favorite, organize…) resolve to the same entry as their
 British headword.
 
-Do NOT import this per-request — it is loaded once at module import time.
+Do NOT import this per-request - it is loaded once at module import time.
 """
 from __future__ import annotations
 
@@ -76,7 +76,7 @@ try:
             if not _word or _level not in _VALID_LEVELS:
                 continue
             # When the same word appears multiple times (different POS),
-            # keep the lower CEFR level — most accessible usage wins for scoring.
+            # keep the lower CEFR level - most accessible usage wins for scoring.
             if _word in WORD_TO_CEFR:
                 if _LEVEL_RANK[_level] >= _LEVEL_RANK[WORD_TO_CEFR[_word]]:
                     continue
@@ -105,5 +105,5 @@ try:
 
 except FileNotFoundError:
     logger.error(
-        "oxford_5000.csv not found at %s — vocab scoring will be degraded", _CSV
+        "oxford_5000.csv not found at %s - vocab scoring will be degraded", _CSV
     )

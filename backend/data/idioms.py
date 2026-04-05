@@ -1,5 +1,5 @@
 """
-Formulaic / idiomatic phrase list — loaded once at module level.
+Formulaic / idiomatic phrase list - loaded once at module level.
 
 IELTS_PHRASES is a list of common English formulaic sequences relevant to
 IELTS Speaking. Matching these against a transcript detects idiomatic language
@@ -23,7 +23,7 @@ Calibration thresholds (per 100 words of transcript):
 Phrases are stored lowercased. Matching is done case-insensitively against
 the lowercased transcript. Multi-word phrases matched greedily (longest first).
 
-Do NOT import this per-request — it is loaded once at module import time.
+Do NOT import this per-request - it is loaded once at module import time.
 """
 from __future__ import annotations
 

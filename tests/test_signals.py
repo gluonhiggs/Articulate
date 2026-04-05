@@ -76,7 +76,7 @@ class TestCEFRSignal:
         assert "insufficient" in signal
 
     def test_stop_words_excluded_from_cefr_distribution(self):
-        # "the", "and", "for" are stop words — should not inflate A1 count
+        # "the", "and", "for" are stop words - should not inflate A1 count
         words = [_w("the"), _w("and"), _w("for")]
         signal = compute_vocab_signal(words, "the and for")
         # All tokens filtered → matched=0 → CEFR insufficient
@@ -175,21 +175,21 @@ class TestCollocationSignal:
         assert signal.startswith("collocation pairs")
 
     def test_common_pair_skipped(self):
-        # "make a decision" is in _COMMON_NATURAL_PAIRS — should not appear in inventory
+        # "make a decision" is in _COMMON_NATURAL_PAIRS - should not appear in inventory
         from backend.services.vocab import _compute_collocation_signal, _get_spacy
         signal = _compute_collocation_signal("She made a decision to leave.")
         if _get_spacy() is not None:
             assert "make→decision" not in signal
 
     def test_unusual_pair_reported_in_inventory(self):
-        # "do a mistake" — verb→obj pair "do→mistake" should appear in inventory
+        # "do a mistake" - verb→obj pair "do→mistake" should appear in inventory
         from backend.services.vocab import _compute_collocation_signal, _get_spacy
         signal = _compute_collocation_signal("He did a mistake in his work.")
         if _get_spacy() is not None:
             assert "do→mistake" in signal
 
     def test_adj_noun_pair_extracted(self):
-        # "delicious meal" — adj→noun pair should appear
+        # "delicious meal" - adj→noun pair should appear
         from backend.services.vocab import _compute_collocation_signal, _get_spacy
         signal = _compute_collocation_signal("She cooked a delicious meal.")
         if _get_spacy() is not None:

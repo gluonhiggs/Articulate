@@ -1,12 +1,12 @@
-# Articulate — TODOS
+# Articulate - TODOS
 
 
 ## Deferred from Plan (2026-03-18)
 
-- Per-criterion sparklines on the dashboard — score tags per attempt are sufficient for now
-- wav2vec2 phoneme alignment (Tier 2 pronunciation) — PC-only, separate project
-- ML-based test forecast — needs question embeddings + topic clustering
-- Test coverage for Groq/LLM API integration paths — requires live API keys, not suitable for CI
+- Per-criterion sparklines on the dashboard - score tags per attempt are sufficient for now
+- wav2vec2 phoneme alignment (Tier 2 pronunciation) - PC-only, separate project
+- ML-based test forecast - needs question embeddings + topic clustering
+- Test coverage for Groq/LLM API integration paths - requires live API keys, not suitable for CI
 
 ---
 

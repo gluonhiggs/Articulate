@@ -2,7 +2,7 @@
  * Tests for the TTS auto-play error handling logic in QuestionDetail.tsx.
  *
  * The auto-play useEffect catches errors from playQuestionTTS() and:
- * - Silences NotAllowedError (mobile browser autoplay policy — expected, not a bug)
+ * - Silences NotAllowedError (mobile browser autoplay policy - expected, not a bug)
  * - Logs other errors via console.error
  *
  * playQuestionTTS() re-throws all errors after cleanup so the caller can handle them.

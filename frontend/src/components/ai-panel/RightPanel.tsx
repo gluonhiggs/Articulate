@@ -25,7 +25,7 @@ export function RightPanel({
   const feedBottomRef = useRef<HTMLDivElement>(null)
   // Tracks which attempt IDs have already been appended to the feed
   const addedPronunIdsRef = useRef<Set<number>>(new Set())
-  // Tracks vocab terms already shown this session — passed to backend to avoid repetition
+  // Tracks vocab terms already shown this session - passed to backend to avoid repetition
   const shownVocabTermsRef = useRef<string[]>([])
 
   // Navigation
@@ -44,7 +44,7 @@ export function RightPanel({
     setPronunInput('')
   }, [question?.id])
 
-  // React to a new pronunAttempt — append a pronunciation card
+  // React to a new pronunAttempt - append a pronunciation card
   useEffect(() => {
     if (!pronunAttempt) return
     if (addedPronunIdsRef.current.has(pronunAttempt.id)) return

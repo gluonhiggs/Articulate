@@ -1,8 +1,8 @@
 """
-Scoring eval script — verifies prompt quality against golden test cases.
+Scoring eval script - verifies prompt quality against golden test cases.
 Usage: python -m backend.scripts.eval_scoring
 
-Requires LLM_API_KEY and GROQ_API_KEY set in .env. Not for CI — run manually after prompt changes.
+Requires LLM_API_KEY and GROQ_API_KEY set in .env. Not for CI - run manually after prompt changes.
 """
 import asyncio
 import json

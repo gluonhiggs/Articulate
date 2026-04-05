@@ -1,5 +1,5 @@
 """
-LLM HTTP client — any OpenAI-compatible cloud API (Gemini, Groq, OpenAI, etc.).
+LLM HTTP client - any OpenAI-compatible cloud API (Gemini, Groq, OpenAI, etc.).
 
   ┌─────────────────────────────────────────────────────────────┐
   │  LLM client (module-level singleton)                        │

@@ -1,4 +1,4 @@
-# Lexical Resource — Signals Reference
+# Lexical Resource - Signals Reference
 
 This file maps every distinct signal needed to score the **Lexical Resource** criterion
 to its evidence in `BAND-SCORES.original.md`.
@@ -34,7 +34,7 @@ directly for signals it must judge subjectively.
 
 ## The 7 signals
 
-### Signal 1 — Vocabulary Range (breadth across topics)
+### Signal 1 - Vocabulary Range (breadth across topics)
 
 **What it is:** How wide is the speaker's vocabulary? Can they discuss any topic, or
 only familiar/personal ones?
@@ -61,15 +61,15 @@ only familiar/personal ones?
 - **What we cannot compute:** Whether the vocabulary is appropriate *for the topic asked*
   (e.g., using cooking vocabulary on an economics question). LLM judges this from context.
 
-**Status:** ✅ Fully implemented — CEFR distribution + B2+ count + response word count (with
+**Status:** ✅ Fully implemented - CEFR distribution + B2+ count + response word count (with
 band-aligned label: very short / short / adequate / extended) all in `vocab_signal`.
 
 ---
 
-### Signal 2 — Vocabulary Sophistication (less common / advanced items)
+### Signal 2 - Vocabulary Sophistication (less common / advanced items)
 
 **What it is:** Does the speaker reach beyond common A1–B1 words? Do they use B2/C1
-words — the "less common" items the rubric references at Band 7–8?
+words - the "less common" items the rubric references at Band 7–8?
 
 **Band evidence:**
 
@@ -78,22 +78,22 @@ words — the "less common" items the rubric references at Band 7–8?
 | 9 | "Uses idiomatic language naturally and accurately" (implies mastery of full range) |
 | 8 | "Uses less common and idiomatic vocabulary **skilfully**, with occasional inaccuracies" |
 | 7 | "Uses **some** less common and idiomatic vocabulary" |
-| 6 | (no explicit mention — implied by the gap between B6 and B7) |
-| 5 | "Limited flexibility" — implicitly relies on common vocabulary |
-| 4 | "Frequent errors in word choice" — attempts advanced words incorrectly |
+| 6 | (no explicit mention - implied by the gap between B6 and B7) |
+| 5 | "Limited flexibility" - implicitly relies on common vocabulary |
+| 4 | "Frequent errors in word choice" - attempts advanced words incorrectly |
 | 3 | "Simple vocabulary only" |
 
 **Measurability:** ✅ Computable.
 - B2/C1 token proportion from CEFR distribution.
 - Unmatched content words (not in Oxford 5000) reported as possible C2+/specialist vocab.
 
-**Status:** ✅ Implemented — `vocab_signal` reports B2+ count and unmatched words.
+**Status:** ✅ Implemented - `vocab_signal` reports B2+ count and unmatched words.
 
 ---
 
-### Signal 3 — Precision & Accuracy in Word Choice
+### Signal 3 - Precision & Accuracy in Word Choice
 
-**What it is:** Does the speaker choose the *right* word — the one that fits the meaning
+**What it is:** Does the speaker choose the *right* word - the one that fits the meaning
 precisely? Or do they choose near-miss words that are wrong but understandable?
 
 **Band evidence:**
@@ -107,7 +107,7 @@ precisely? Or do they choose near-miss words that are wrong but understandable?
 | 4 | "Makes **frequent errors in word choice**" |
 
 **Measurability:** ❌ LLM-only.
-Computing precision requires knowing what the speaker *meant* to say — i.e., comparing
+Computing precision requires knowing what the speaker *meant* to say - i.e., comparing
 intended meaning to word chosen. This requires reading the sentence in context and
 knowing whether a word fits. No purely statistical method can do this reliably.
 
@@ -115,7 +115,7 @@ knowing whether a word fits. No purely statistical method can do this reliably.
 
 ---
 
-### Signal 4 — Idiomatic Language
+### Signal 4 - Idiomatic Language
 
 **What it is:** Does the speaker use fixed expressions, idioms, and collocational chunks
 that native speakers reach for naturally ("a wide range", "it goes without saying",
@@ -128,7 +128,7 @@ that native speakers reach for naturally ("a wide range", "it goes without sayin
 | 9 | "Uses idiomatic language **naturally and accurately**" |
 | 8 | "Less common and **idiomatic** vocabulary skilfully" |
 | 7 | "Some less common and **idiomatic** vocabulary" |
-| 6 | (not mentioned — absence of idioms is implied at this level) |
+| 6 | (not mentioned - absence of idioms is implied at this level) |
 | 5–2 | (not mentioned) |
 
 **Measurability:** Partially computable.
@@ -136,20 +136,20 @@ that native speakers reach for naturally ("a wide range", "it goes without sayin
   against the transcript. Density is computed as matches per 100 words and mapped to a
   band-aligned label (none → Band 5–6, limited → Band 6, adequate → Band 6–7, good → Band 7,
   high → Band 7–8+).
-- **Limitation:** The list is a fixed lower-bound — idioms not on it are invisible to the
+- **Limitation:** The list is a fixed lower-bound - idioms not on it are invisible to the
   counter. The prompts explicitly instruct the LLM to detect additional idiomatic language
   from the transcript and weigh it in the score.
 
-**Status:** ✅ Implemented — `_compute_idiom_signal()` in `vocab_signal`.
+**Status:** ✅ Implemented - `_compute_idiom_signal()` in `vocab_signal`.
 LLM also reads transcript for idioms beyond the list (prompt instruction in place).
 
 ---
 
-### Signal 5 — Collocation Awareness
+### Signal 5 - Collocation Awareness
 
 **What it is:** Does the speaker know which words go together? ("make a decision" not
 "do a decision"; "heavy rain" not "big rain"; "try new recipes" not "cook new recipes").
-Collocation errors are distinct from grammar errors — the grammar is fine but the word
+Collocation errors are distinct from grammar errors - the grammar is fine but the word
 combination sounds unnatural to a native speaker.
 
 **Band evidence:**
@@ -158,7 +158,7 @@ combination sounds unnatural to a native speaker.
 |------|---------------|
 | 8 | "Occasional inaccuracies in **word choice and collocation**" |
 | 7 | "Some awareness of style and **collocation**, with some inappropriate choices" |
-| 6 | (not mentioned — collocational errors at Band 6 are subsumed under "inappropriacies") |
+| 6 | (not mentioned - collocational errors at Band 6 are subsumed under "inappropriacies") |
 
 Note: Collocation only appears explicitly at Band 7–8. This is why it is the primary
 discriminator between Band 6 and Band 7.
@@ -168,18 +168,18 @@ discriminator between Band 6 and Band 7.
   pairs from the transcript. Very common pairs (e.g. `have→time`, `make→decision`) are
   filtered out via `_COMMON_NATURAL_PAIRS` to keep the inventory concise.
 - The extracted pairs are passed as a raw inventory to the LLM, which evaluates naturalness.
-  This avoids false positives from a fixed lookup table — the LLM's linguistic knowledge
+  This avoids false positives from a fixed lookup table - the LLM's linguistic knowledge
   judges any pair regardless of whether it's in a predefined list.
 - **Limitation:** spaCy extracts surface pairs but cannot detect omitted collocations (e.g.
-  if the speaker avoided "heavy rain" by saying "big rain" — the pair `big→rain` will appear
+  if the speaker avoided "heavy rain" by saying "big rain" - the pair `big→rain` will appear
   and the LLM should flag it). Pairs not mentioned in the transcript are invisible.
 
-**Status:** ✅ Implemented — `_compute_collocation_signal()` sends pair inventory to LLM.
+**Status:** ✅ Implemented - `_compute_collocation_signal()` sends pair inventory to LLM.
 LLM evaluates each pair for naturalness (prompt instruction in place).
 
 ---
 
-### Signal 6 — Paraphrase Ability
+### Signal 6 - Paraphrase Ability
 
 **What it is:** When the speaker doesn't know or can't retrieve a word, can they
 describe it another way? Does the paraphrase succeed in conveying the same meaning?
@@ -193,7 +193,7 @@ describe it another way? Does the paraphrase succeed in conveying the same meani
 | 6 | "**Generally** paraphrases successfully" |
 | 5 | "Attempts to use paraphrase but with **mixed success**" |
 | 4 | "**Rarely** attempts paraphrase" |
-| 3–2 | (not mentioned — implies no paraphrase strategy) |
+| 3–2 | (not mentioned - implies no paraphrase strategy) |
 
 **Measurability:** ❌ LLM-only.
 Detecting whether a speaker has paraphrased (rather than used the word directly), and
@@ -204,7 +204,7 @@ understanding that is beyond statistical signals.
 
 ---
 
-### Signal 7 — Lexical Diversity / Flexibility
+### Signal 7 - Lexical Diversity / Flexibility
 
 **What it is:** Does the speaker repeat the same words, or do they vary their vocabulary?
 At higher bands, speakers avoid word repetition and deploy a broad range of forms.
@@ -226,7 +226,7 @@ At higher bands, speakers avoid word repetition and deploy a broad range of form
   short Part 1 responses where MTLD cannot be computed.
 - Both are in `vocab_signal`.
 
-**Status:** ✅ Implemented — MTLD + unique lemma ratio in `vocab_signal`.
+**Status:** ✅ Implemented - MTLD + unique lemma ratio in `vocab_signal`.
 
 ---
 
@@ -242,7 +242,7 @@ At higher bands, speakers avoid word repetition and deploy a broad range of form
 | 6 | Paraphrase Ability | B4 ↔ B5 ↔ B6 ↔ B7 | No | LLM-only (reads transcript) |
 | 7 | Lexical Diversity / Flexibility | B5 ↔ B6 ↔ B7 ↔ B8 ↔ B9 | Yes | ✅ MTLD + unique lemma ratio |
 
-**Remaining gap:** Signals 3 and 6 are LLM-only and always will be — they require semantic
+**Remaining gap:** Signals 3 and 6 are LLM-only and always will be - they require semantic
 understanding. Signals 4 and 5 have known limitations (fixed list / surface-only extraction)
 but the prompts instruct the LLM to compensate with its own transcript reading.
 
@@ -256,7 +256,7 @@ Five sections, newline-separated:
 response length: {N} words (very short|short|adequate|extended)
 
 CEFR ({matched}/{total_content} content words matched, {unique} unique lemmas, {ratio}% variety):
-A1:{pct}% A2:{pct}% B1:{pct}% B2:{pct}% C1:{pct}% — {high} B2+ words
+A1:{pct}% A2:{pct}% B1:{pct}% B2:{pct}% C1:{pct}% - {high} B2+ words
 [| unmatched (possible C2+/specialist): {words}]
 [| B2+ refs: {word /ipa/; ...}]
 
@@ -284,7 +284,7 @@ Signal coverage:
 
 | Area | Limitation | Possible improvement |
 |---|---|---|
-| Signal 4 (idioms) | Fixed phrase list — unlisted idioms not counted | Two-pass: ask LLM to extract idioms first, then compute density |
-| Signal 5 (collocation) | spaCy extracts surface pairs only — cannot detect avoided collocations | Bigram frequency against COCA/BNC corpus for objective naturalness score |
-| Signal 3 (precision) | LLM-only, no anchor | Inherently uncomputable — acceptable as-is |
-| Signal 6 (paraphrase) | LLM-only, no anchor | Inherently uncomputable — acceptable as-is |
+| Signal 4 (idioms) | Fixed phrase list - unlisted idioms not counted | Two-pass: ask LLM to extract idioms first, then compute density |
+| Signal 5 (collocation) | spaCy extracts surface pairs only - cannot detect avoided collocations | Bigram frequency against COCA/BNC corpus for objective naturalness score |
+| Signal 3 (precision) | LLM-only, no anchor | Inherently uncomputable - acceptable as-is |
+| Signal 6 (paraphrase) | LLM-only, no anchor | Inherently uncomputable - acceptable as-is |

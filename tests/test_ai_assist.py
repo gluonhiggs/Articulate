@@ -1,4 +1,4 @@
-"""Unit tests for ai_assist.py — specifically the JSON repair logic."""
+"""Unit tests for ai_assist.py - specifically the JSON repair logic."""
 from __future__ import annotations
 
 import json
@@ -22,7 +22,7 @@ def test_repair_valid_json_round_trips():
 
 
 def test_repair_truncated_missing_close_array_and_brace():
-    """JSON truncated after last item — missing ] and }."""
+    """JSON truncated after last item - missing ] and }."""
     raw = (
         '{"vocabulary": [{"term": "proliferate", "type": "verb",'
         ' "definition": "grow rapidly", "example": "test"}'
@@ -35,7 +35,7 @@ def test_repair_truncated_missing_close_array_and_brace():
 
 
 def test_repair_truncated_two_items_third_partial():
-    """Three items where third is cut mid-value — only two complete items recovered."""
+    """Three items where third is cut mid-value - only two complete items recovered."""
     raw = (
         '{"vocabulary": ['
         '{"term": "a", "type": "noun", "definition": "def a", "example": "ex a"}, '

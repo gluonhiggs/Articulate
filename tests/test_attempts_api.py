@@ -1,4 +1,4 @@
-"""Integration tests for attempts API — history endpoint stale-cleanup logic."""
+"""Integration tests for attempts API - history endpoint stale-cleanup logic."""
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta

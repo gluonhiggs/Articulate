@@ -1,9 +1,9 @@
 """
-English collocation data — loaded once at module level.
+English collocation data - loaded once at module level.
 
 Two tables:
-  VERB_OBJ_COLLOCATIONS  — noun → set of natural verbs that take it as object
-  ADJ_NOUN_COLLOCATIONS  — noun → set of natural adjectives that modify it
+  VERB_OBJ_COLLOCATIONS  - noun → set of natural verbs that take it as object
+  ADJ_NOUN_COLLOCATIONS  - noun → set of natural adjectives that modify it
 
 Used by compute_collocation_signal() in backend/services/vocab.py to detect
 non-native word combinations. If spaCy extracts a verb+object or adj+noun pair
@@ -14,7 +14,7 @@ Coverage: ~300 high-frequency IELTS-relevant noun targets, focusing on
 the verb-object and adjective-noun patterns that are most commonly confused
 by non-native speakers.
 
-Do NOT import this per-request — it is loaded once at module import time.
+Do NOT import this per-request - it is loaded once at module import time.
 """
 from __future__ import annotations
 

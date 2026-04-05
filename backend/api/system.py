@@ -16,7 +16,7 @@ router = APIRouter(prefix="/api/v1/system", tags=["system"])
 
 # ── Background-operation state ────────────────────────────────────────────────
 # op_status: "" | "installing" | "loading" | "failed"
-# All mutations happen on the asyncio event loop thread — no lock needed.
+# All mutations happen on the asyncio event loop thread - no lock needed.
 _op_status: str = ""
 _background_tasks: set = set()
 

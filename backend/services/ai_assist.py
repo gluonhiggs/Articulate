@@ -116,7 +116,7 @@ async def generate_topic_vocab(
 ) -> Dict[str, Any]:
     """Generate topic vocabulary for an IELTS question.
 
-    exclude_terms: terms already shown to the learner — model is instructed to avoid them.
+    exclude_terms: terms already shown to the learner - model is instructed to avoid them.
     """
     settings = get_settings()
     template = _load_prompt("topic_vocab.txt")

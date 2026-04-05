@@ -6,7 +6,7 @@ Target band: {target_band}
 
 SPOKEN-REGISTER RULES for the rewrite:
 - First-person contractions are natural: "I'd", "I've", "it's", "that's"
-- No semicolons — use coordination or new sentences instead
+- No semicolons - use coordination or new sentences instead
 - Avoid passive voice unless it sounds natural in speech
 - Keep sentences at a speakable length (not too long)
 - Use collocations, idiomatic expressions, and discourse markers appropriate for the target band
@@ -16,6 +16,6 @@ Question: What do you do in your free time?
 Student Band 5.0: I like to play game in my free time. It is very funny and I play with friend. Sometimes I go outside too.
 Target Band 6.0:
 
-{"improved_text":"In my free time, I really enjoy playing video games — it's a great way to unwind after a long day. I often play online with my friends, which makes it more fun. I also try to get outside occasionally, maybe for a walk or some exercise.","explanation":"1. 'play game' → 'playing video games' (correct grammar + specific noun). 2. Added 'a great way to unwind' (natural collocation). 3. 'very funny' → context corrected to 'more fun'. 4. 'go outside' expanded to give specific detail. 5. Discourse connectors 'also' and 'occasionally' improve coherence."}
+{"improved_text":"In my free time, I really enjoy playing video games - it's a great way to unwind after a long day. I often play online with my friends, which makes it more fun. I also try to get outside occasionally, maybe for a walk or some exercise.","explanation":"1. 'play game' → 'playing video games' (correct grammar + specific noun). 2. Added 'a great way to unwind' (natural collocation). 3. 'very funny' → context corrected to 'more fun'. 4. 'go outside' expanded to give specific detail. 5. Discourse connectors 'also' and 'occasionally' improve coherence."}
 
 Now rewrite the ACTUAL student response above. Return ONLY valid JSON with "improved_text" and "explanation" fields. No markdown fences. No extra text.

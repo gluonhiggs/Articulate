@@ -1,4 +1,4 @@
-# Articulate — System Architecture Reference
+# Articulate - System Architecture Reference
 
 > Auto-generated from codebase exploration. Keep in sync when adding features.
 
@@ -13,7 +13,7 @@ Articulate is a full-stack IELTS Speaking practice app. Users record mock respon
 
 ---
 
-## 2. Request Lifecycle — Score Attempt
+## 2. Request Lifecycle - Score Attempt
 
 ```
 Browser                          FastAPI Backend                    External
@@ -85,7 +85,7 @@ Articulate/
 │   ├── api/
 │   │   ├── attempts.py          # /submit, /status, /history, /improve, /pronunciation, /audio
 │   │   ├── questions.py         # /part1, /part2, /part3, /{id}, /sample-answer, /topic-vocab, /forecast, /bulk
-│   │   ├── dashboard.py         # /dashboard — streaks, estimated_band, heatmap
+│   │   ├── dashboard.py         # /dashboard - streaks, estimated_band, heatmap
 │   │   ├── system.py            # GET /info, PATCH /model
 │   │   └── tts.py               # /pronounce (word TTS), /{question_id} (question TTS)
 │   │
@@ -129,7 +129,7 @@ Articulate/
 │       │   └── recordingStore.ts # Zustand: idle|preparing|recording|uploading|polling|done|error
 │       │
 │       ├── pages/
-│       │   ├── Home.tsx                 # /          — Dashboard
+│       │   ├── Home.tsx                 # /          - Dashboard
 │       │   ├── Part1Practice.tsx        # /practice/part1
 │       │   ├── Part2Practice.tsx        # /practice/part2
 │       │   ├── Part3Practice.tsx        # /practice/part3
@@ -174,16 +174,16 @@ Articulate/
 ├── BAND-SCORES.original.md      # Full official band descriptors (source of truth)
 ├── pyproject.toml               # Python deps + uv config
 ├── run.ps1                      # Windows startup script (env load, Java check, uvicorn)
-├── .env.example                 # Config template — copy to .env and fill in API keys
-├── .env                         # Your config (gitignored) — loaded by default
-└── .env.example                 # Config template — copy to .env and fill in API keys
+├── .env.example                 # Config template - copy to .env and fill in API keys
+├── .env                         # Your config (gitignored) - loaded by default
+└── .env.example                 # Config template - copy to .env and fill in API keys
 ```
 
 ---
 
 ## 4. API Routes
 
-### Attempts — `/api/v1/attempts`
+### Attempts - `/api/v1/attempts`
 
 | Method | Path | Purpose | Returns |
 |--------|------|---------|---------|
@@ -194,7 +194,7 @@ Articulate/
 | GET | `/{id}/pronunciation` | Per-word confidence scores | `{words: PronunciationWord[]}` |
 | GET | `/{id}/audio` | Stream recorded audio file | FileResponse |
 
-### Questions — `/api/v1/questions`
+### Questions - `/api/v1/questions`
 
 | Method | Path | Purpose | Returns |
 |--------|------|---------|---------|
@@ -208,20 +208,20 @@ Articulate/
 | POST | `/bulk` | Bulk import questions | `{inserted, skipped}` |
 | POST | `/` | Create single question | `Question` 201 |
 
-### System — `/api/v1/system`
+### System - `/api/v1/system`
 
 | Method | Path | Purpose | Returns |
 |--------|------|---------|---------|
 | GET | `/info` | Config, Whisper model, LLM reachability, active model | `SystemInfoOut` |
 | PATCH | `/model` | Switch active LLM model at runtime (server-side, no restart) | `SystemInfoOut` |
 
-### Dashboard — `/api/v1/dashboard`
+### Dashboard - `/api/v1/dashboard`
 
 | Method | Path | Purpose | Returns |
 |--------|------|---------|---------|
 | GET | `/` | Streaks, estimated band, 180-day heatmap | `DashboardOut` |
 
-### TTS — `/api/v1/tts`
+### TTS - `/api/v1/tts`
 
 | Method | Path | Purpose | Returns |
 |--------|------|---------|---------|
@@ -267,7 +267,7 @@ Default timeout: 10s. Scoring/TTS/AI features: 60s.
 ### `services/scoring.py`
 Orchestrates the full scoring pipeline:
 1. Load prompt template (cached in `_prompt_cache` after first disk read)
-2. Load BAND-SCORES.md (cached in `_BAND_DESCRIPTORS` at module import — **restart required to pick up changes**)
+2. Load BAND-SCORES.md (cached in `_BAND_DESCRIPTORS` at module import - **restart required to pick up changes**)
 3. Interpolate template with question, transcript, signals
 4. Call `llm_client.generate()` with `temperature=0.3`, `num_predict=1024`
 5. Parse JSON response with fallback repair for truncation
@@ -282,7 +282,7 @@ Orchestrates the full scoring pipeline:
 ### `services/llm_client.py`
 - Singleton `httpx.AsyncClient` (connection pooling)
 - Retries once on `ConnectError`
-- Logs: `model=`, `prompt_len=`, `resp_len=`, `latency_ms=` on every call — **use this to verify which model is active**
+- Logs: `model=`, `prompt_len=`, `resp_len=`, `latency_ms=` on every call - **use this to verify which model is active**
 
 ### `services/tts.py`
 - Kokoro TTS pipeline, lazy-loaded on first request
@@ -358,7 +358,7 @@ Set in `.env` (copy from `.env.example`), loaded by `run.ps1`/`run.sh`. All have
 | `GROQ_WHISPER_MODEL` | `whisper-large-v3-turbo` | Groq Whisper model |
 | `LLM_API_KEY` | *(required)* | API key for cloud LLM |
 | `LLM_MODEL` | `gemma-3-27b-it` | Default LLM model; overridable at runtime via PATCH /model |
-| `LLM_BASE_URL` | Gemini endpoint | LLM base URL — swap to use a different provider |
+| `LLM_BASE_URL` | Gemini endpoint | LLM base URL - swap to use a different provider |
 | `MAX_AUDIO_SIZE_MB` | `300` | Total audio directory size cap |
 | `AUDIO_RETENTION_DAYS` | `60` | Delete audio older than N days |
 | `DB_PATH` | `data/articulate.db` | SQLite file |

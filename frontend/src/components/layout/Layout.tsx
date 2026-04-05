@@ -7,7 +7,7 @@ export function Layout() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      {/* Backdrop — mobile only, shown when sidebar open */}
+      {/* Backdrop - mobile only, shown when sidebar open */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-10 bg-black/50 md:hidden"
@@ -15,15 +15,15 @@ export function Layout() {
         />
       )}
 
-      {/* Sidebar — always visible on md+, slide-in on mobile */}
+      {/* Sidebar - always visible on md+, slide-in on mobile */}
       <div className={`fixed inset-y-0 left-0 z-20 transition-transform duration-300
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
         <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
-      {/* Main content — full width on mobile, offset on md+ */}
+      {/* Main content - full width on mobile, offset on md+ */}
       <main className="flex-1 ml-0 md:ml-64 min-h-screen overflow-x-hidden pt-14 md:pt-0">
-        {/* Hamburger button — mobile only */}
+        {/* Hamburger button - mobile only */}
         <button
           className="md:hidden fixed top-4 left-4 z-30 p-2 rounded-lg bg-sidebar border border-cardBorder text-textSecondary hover:text-textPrimary"
           onClick={() => setSidebarOpen(true)}

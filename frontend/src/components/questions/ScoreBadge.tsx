@@ -30,7 +30,7 @@ export function ScoreBadge({ score, size = 'md' }: ScoreBadgeProps) {
       <div
         className={`${sizeClass} rounded-full border-2 border-cardBorder flex items-center justify-center`}
       >
-        <span className="text-textSecondary text-xs">—</span>
+        <span className="text-textSecondary text-xs">-</span>
       </div>
     )
   }

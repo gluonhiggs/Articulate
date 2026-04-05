@@ -40,7 +40,7 @@ def _parse_response(raw: str) -> Dict[str, Any]:
     start = raw.find("{")
     end = raw.rfind("}") + 1
     if start == -1 or end <= start:
-        # No JSON found — treat the whole text as the improved version
+        # No JSON found - treat the whole text as the improved version
         logger.warning("LLM response contained no JSON, using raw text as improved_text.")
         return {"improved_text": raw.strip(), "explanation": ""}
 
@@ -48,7 +48,7 @@ def _parse_response(raw: str) -> Dict[str, Any]:
     try:
         data = json.loads(json_str)
     except json.JSONDecodeError:
-        # JSON parse failed — treat as raw text
+        # JSON parse failed - treat as raw text
         logger.warning("LLM returned invalid JSON for improve, using raw text.")
         return {"improved_text": raw.strip(), "explanation": ""}
 

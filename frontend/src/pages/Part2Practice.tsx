@@ -74,7 +74,7 @@ export function Part2Practice() {
       </div>
 
       <div className="flex flex-1">
-        {/* Left panel — category tabs */}
+        {/* Left panel - category tabs */}
         <div className="w-72 border-r border-cardBorder bg-sidebar flex-shrink-0 sticky top-[65px] h-[calc(100vh-65px)] overflow-y-auto">
           <div className="p-4">
             <div className="flex items-center justify-between mb-3">
@@ -120,7 +120,7 @@ export function Part2Practice() {
           </div>
         </div>
 
-        {/* Right panel — question grid */}
+        {/* Right panel - question grid */}
         <div className="flex-1 p-6 overflow-y-auto">
           <div className="mb-4">
             <p className="text-textPrimary font-semibold">
