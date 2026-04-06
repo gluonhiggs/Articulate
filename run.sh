@@ -74,10 +74,20 @@ fi
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 echo "Starting frontend dev server (port 5173) in new terminal..."
 
+# Ensure gnome-terminal is available (Linux only)
+if [[ "$OSTYPE" == linux* ]] && ! command -v gnome-terminal &>/dev/null; then
+  echo "gnome-terminal not found - attempting installation..."
+  if command -v apt-get &>/dev/null; then
+    sudo apt-get install -y gnome-terminal
+  else
+    echo "WARNING: Cannot auto-install gnome-terminal. Install it manually or run frontend separately: cd '$ROOT/frontend' && bun run dev"
+  fi
+fi
+
 _open_terminal() {
   local title="$1" cmd="$2"
   if command -v gnome-terminal &>/dev/null; then
-    gnome-terminal --title="$title" -- bash -c "$cmd; exec bash"
+    gnome-terminal --title="$title" -- bash -c "$cmd; exec bash" &
   elif command -v xterm &>/dev/null; then
     xterm -title "$title" -e bash -c "$cmd; exec bash" &
   elif [[ "$OSTYPE" == darwin* ]]; then
