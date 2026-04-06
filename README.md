@@ -1,6 +1,6 @@
 # Articulate
 
-An IELTS Speaking practice app. Record your responses, get Whisper transcription via Groq API, and receive band scores (Fluency, Vocabulary, Grammar, Pronunciation) from a cloud LLM.
+A 100% free English Speaking app.
 
 ---
 
@@ -8,31 +8,67 @@ An IELTS Speaking practice app. Record your responses, get Whisper transcription
 
 | Tool | Why | Install |
 |------|-----|---------|
-| **Python 3.11+** | Backend runtime | [python.org](https://www.python.org/downloads/) |
-| **[uv](https://docs.astral.sh/uv/)** | Python package manager | `pip install uv` |
+| **[uv](https://docs.astral.sh/uv/)** | Python package manager (also manages Python) | Linux/Mac: `curl -LsSf https://astral.sh/uv/install.sh \| sh` — Windows: `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 \| iex"` |
+| **Python 3.11+** | Backend runtime | `uv python install 3.11` (after installing uv) |
 | **[Bun](https://bun.sh/)** | Frontend build & dev server | [bun.sh](https://bun.sh/) |
 | **Groq API key** | Whisper transcription | [console.groq.com](https://console.groq.com) (free tier) |
 | **LLM API key** | Scoring LLM (Gemini, Groq, or any OpenAI-compatible API) | [aistudio.google.com](https://aistudio.google.com/apikey) (free) |
-| **Java 11+** | LanguageTool grammar checker *(optional - auto-installed on Windows)* | [adoptium.net](https://adoptium.net/) |
+| **Java 11+** | LanguageTool grammar checker *(optional - run script auto-installs via apt-get on Linux, Homebrew on Mac, winget on Windows; falls back to LanguageTool public API if unavailable)* | [adoptium.net](https://adoptium.net/) |
 
 ---
 
 ## Installation
 
+### 1. Install uv
+
+**Linux / Mac:**
 ```sh
-# 1. Clone the repository
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+**Windows:**
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+### 2. Install Bun
+
+**Linux / Mac:**
+```sh
+curl -fsSL https://bun.com/install | bash
+```
+
+**Windows:**
+```powershell
+powershell -c "irm bun.sh/install.ps1 | iex"
+```
+
+### 3. Clone and configure
+
+**Linux / Mac:**
+```sh
 git clone https://github.com/gluonhiggs/Articulate.git
 cd Articulate
-
-# 2. Create your config file
 cp .env.example .env
 # Edit .env - fill in GROQ_API_KEY and LLM_API_KEY
+```
 
-# 3. Install Python dependencies
+**Windows:**
+```powershell
+git clone https://github.com/gluonhiggs/Articulate.git
+cd Articulate
+copy .env.example .env
+# Edit .env - fill in GROQ_API_KEY and LLM_API_KEY
+```
+
+### 4. Install dependencies
+
+```sh
+uv python install 3.11
 uv sync
-
-# 4. Install frontend dependencies
-cd frontend && bun install && cd ..
+cd frontend
+bun install
+cd ..
 ```
 
 ---
@@ -40,7 +76,7 @@ cd frontend && bun install && cd ..
 ## Running
 
 ```sh
-./run.sh        # Linux
+./run.sh        # Linux / Mac
 .\run.ps1       # Windows
 ```
 
@@ -74,4 +110,10 @@ Edit `.env` to customise. All have defaults.
 | `TTS_CACHE_MAX_MB` | `100` | TTS cache size cap |
 
 ---
-See [ARCHITECTURE.md](ARCHITECTURE.md) for a full system overview, API reference, and database schema.
+
+## Vision
+
+I want to build a Math Tutor app powered by LLM. But first, to test what LLMs can do, I build this.
+
+---
+See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for a full system overview, API reference, and database schema.
