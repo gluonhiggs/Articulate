@@ -15,7 +15,7 @@ You are grading an IELTS candidate.
 - **CANDIDATE RESPONSE TRANSCRIPT:** {transcript}
 
 Signals derived from the audio:
-- **FLAGGED WORDS** (low STT confidence or long pause before word): {flagged_words}
+- **MISPRONOUNCED WORDS** (low STT confidence or long pause before word): {mispronounced_words}
 - **FLUENCY SIGNAL:** {fluency_context}
 - **LEXICAL RESOURCE SIGNAL:** {vocab_signal}
 - **GRAMMAR SIGNALS:** {grammar_context}

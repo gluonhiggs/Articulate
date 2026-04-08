@@ -27,7 +27,7 @@ async def run_eval():
                 question_text=case["question"],
                 part=case["part"],
                 transcript=case["transcript"],
-                flagged_words=[],
+                mispronounced_words=[],
             )
         except Exception as e:
             print(f"  ERROR: {e}")

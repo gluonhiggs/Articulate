@@ -379,11 +379,9 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                 logger.warning("Grammar signals (spaCy) failed: %s", exc)
 
             # ----------------------------------------------------------------
-            # 3. Flagged words for pronunciation
+            # 3. Mispronounced words for pronunciation
             # ----------------------------------------------------------------
-            # 3. Flagged words for pronunciation
-            # ----------------------------------------------------------------
-            flagged_words = [
+            mispronounced_words = [
                 w["word"]
                 for w in words
                 if (
@@ -398,12 +396,12 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                 "  fluency : %d gaps / %d words = %.1f per 100\n"
                 "  vocab   : %s\n"
                 "  grammar : %s\n"
-                "  flagged : %s",
+                "  mispronounced : %s",
                 attempt_id,
                 gap_count, total_words, gaps_per_100,
                 vocab_signal,
                 grammar_context,
-                flagged_words,
+                mispronounced_words,
             )
 
             # ----------------------------------------------------------------
@@ -424,7 +422,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                     question_text=question.text,
                     part=question.part,
                     transcript=transcript,
-                    flagged_words=flagged_words,
+                    mispronounced_words=mispronounced_words,
                     fluency_context=fluency_context,
                     vocab_signal=vocab_signal,
                     grammar_context=grammar_context,

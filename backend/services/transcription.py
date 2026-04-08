@@ -390,7 +390,7 @@ def _sync_transcribe_groq(audio_path: str) -> Dict[str, Any]:
             "start": round(float(_start), 3),
             "end": round(float(_end), 3),
             # Groq does not expose per-word confidence scores.
-            # probability=1.0 means the flagged_words guard skips confidence-based
+            # probability=1.0 means the mispronounced_words guard skips confidence-based
             # flagging; timing-gap disfluency detection still works.
             "probability": 1.0,
         })
