@@ -50,7 +50,6 @@ const TIER_CONFIG: Record<Tier, {
   },
 }
 
-const TIER_ORDER: Tier[] = ['poor', 'unclear', 'imprecise']
 
 export function PronunciationRightPanel({
   attempt,
