@@ -256,7 +256,10 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                     lt = _get_lt_tool()
                     if lt is not None:
                         loop = asyncio.get_event_loop()
-                        matches = await loop.run_in_executor(None, lt.check, transcript)
+                        matches = await asyncio.wait_for(
+                            loop.run_in_executor(None, lt.check, transcript),
+                            timeout=30.0,
+                        )
                         filtered_matches = [
                             m for m in matches
                             if m.rule_id not in _LT_FILTERED_RULE_IDS
@@ -366,8 +369,13 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             # filtered_matches is [] in that case - Signal 3 error-density reports 0
             # but Signal 5 (tense inventory, passive, conditionals, tree depth) still runs.
             try:
-                grammar_result = compute_grammar_signals(
-                    transcript, _sentence_spans(transcript), filtered_matches,
+                loop = asyncio.get_event_loop()
+                grammar_result = await asyncio.wait_for(
+                    loop.run_in_executor(
+                        None, compute_grammar_signals,
+                        transcript, _sentence_spans(transcript), filtered_matches,
+                    ),
+                    timeout=30.0,
                 )
                 grammar_context += "\n\n" + grammar_result["detail"]
                 grammar_context += "\n" + grammar_result["structural_detail"]
