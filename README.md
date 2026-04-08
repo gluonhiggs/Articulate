@@ -8,7 +8,7 @@ A 100% free English Speaking app.
 
 | Tool | Why | Install |
 |------|-----|---------|
-| **[uv](https://docs.astral.sh/uv/)** | Python package manager (also manages Python) | Linux/Mac: `curl -LsSf https://astral.sh/uv/install.sh \| sh` — Windows: `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 \| iex"` |
+| **[uv](https://docs.astral.sh/uv/)** | Python package manager (also manages Python) | Linux/Mac: `curl -LsSf https://astral.sh/uv/install.sh \| sh` - Windows: `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 \| iex"` |
 | **Python 3.11+** | Backend runtime | `uv python install 3.11` (after installing uv) |
 | **[Bun](https://bun.sh/)** | Frontend build & dev server | [bun.sh](https://bun.sh/) |
 | **Groq API key** | Whisper transcription | [console.groq.com](https://console.groq.com) (free tier) |

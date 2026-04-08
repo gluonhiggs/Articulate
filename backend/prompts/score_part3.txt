@@ -20,7 +20,9 @@ Signals derived from the audio:
 - **LEXICAL RESOURCE SIGNAL:** {vocab_signal}
 - **GRAMMAR SIGNALS:** {grammar_context}
 
-## STRICTLY FOLLOW
+## SCORING FRAMEWORK
+
+The Band Descriptors are your scoring standard - every band must match their qualitative descriptions. The Criteria translate computed signals into numbers that tell you which Band Descriptor level the response meets. Use the Criteria to locate the band, then cross-check with the Band Descriptors - a score requires both to align.
 
 ### Official IELTS Band Descriptors
 
@@ -29,7 +31,7 @@ Signals derived from the audio:
 Part 3 requires: opinion + justification, hedging language (might, could, tends to),
 discourse markers (on the other hand, having said that), abstract vocabulary.
 
-### Criteria — score each 0–9 in steps of 0.5
+### Criteria - score each 0–9 in steps of 0.5
 
 **Fluency**
 Ability to discuss ideas at length, use of discourse markers. Also consult the `turn_length:` line in GRAMMAR SIGNALS:
@@ -37,10 +39,10 @@ Ability to discuss ideas at length, use of discourse markers. Also consult the `
 - Band 7: "readily produce long turns without noticeable effort"
 - A short total word count is a ceiling signal for fluency as well as grammar.
 
-**Vocabulary** (IELTS: Lexical Resource — use the Lexical Resource descriptors above)
+**Vocabulary** (IELTS: Lexical Resource - use the Lexical Resource descriptors above)
 Abstract and topic-specific vocabulary:
 - Use the CEFR distribution to anchor your score.
-- The idiomatic density counts only phrases from a fixed list — if you find additional
+- The idiomatic density counts only phrases from a fixed list - if you find additional
   idiomatic, hedging, or discourse marker phrases in the transcript not reflected in the
   count, weigh them in your score (Part 3 specifically rewards these).
 - Evaluate the collocation pairs for naturalness and flag any non-native combinations.
@@ -48,13 +50,13 @@ Abstract and topic-specific vocabulary:
 
 **Grammar**
 Accuracy and variety, including complex sentences and modal verbs:
-- Use `clean_pct` from GRAMMAR SIGNALS as a directional anchor — higher clean_pct = higher
+- Use `clean_pct` from GRAMMAR SIGNALS as a directional anchor - higher clean_pct = higher
   band; calibrate against the band descriptors above (e.g. "majority error-free" = Band 8,
   "frequent error-free" = Band 7).
 - Also use rule ×N counts to judge whether errors are systematic (repeated rule = fossilised gap).
 - For structural range, scan the transcript and list in `grammar_notes` which construction
   types you observe (relative clauses, passives, conditionals, complement clauses,
-  nominalisations, modal constructions — cite sentence if helpful), then anchor your score
+  nominalisations, modal constructions - cite sentence if helpful), then anchor your score
   to the rubric ladder:
   - Band 4: "structures are repetitive", "subordinate clauses are rare"
   - Band 5: "complex structures are attempted but these are limited in range"
@@ -62,9 +64,9 @@ Accuracy and variety, including complex sentences and modal verbs:
   - Band 7: "a range of structures flexibly used", "both simple and complex sentences are used effectively"
   - Band 8: "wide range of structures, flexibly used"
 - If GRAMMAR SIGNALS includes a `complexity:` section, use the `band_hint` as a directional
-  anchor for structural range — but override it if your own reading of the transcript
+  anchor for structural range - but override it if your own reading of the transcript
   contradicts it (e.g. the parser missed a conditional or passive that you can see).
-- If GRAMMAR SIGNALS includes a `structural_range:` section, use it as additional evidence —
+- If GRAMMAR SIGNALS includes a `structural_range:` section, use it as additional evidence -
   tense count anchors the band range directly; passive and conditional presence are positive
   signals; `tree_depth` is directional but treat high depth alongside low complex sentence
   rate as possible run-on sentences rather than genuine complexity.
@@ -75,7 +77,7 @@ Accuracy and variety, including complex sentences and modal verbs:
   - Short word count is a ceiling for both grammar range and fluency.
 - Also judge communication impact: at Band 6, errors "rarely impede communication"; at
   Band 8–9, distinguish real-time performance slips (one-off, self-corrected,
-  native-speaker-like) from fossilised systematic errors — the former do not lower the band.
+  native-speaker-like) from fossilised systematic errors - the former do not lower the band.
 
 **Pronunciation**
 Clarity and intelligibility across the full response.
@@ -139,7 +141,7 @@ Write `feedback_text` as exactly 1 concise sentence (≤ 20 words) focused on th
 most impactful improvement.
 
 You MUST output all five keys (`fluency`, `vocabulary`, `grammar_notes`, `grammar`,
-`pronunciation`) even if you are uncertain — use your best estimate.
+`pronunciation`) even if you are uncertain - use your best estimate.
 
 ### Example
 

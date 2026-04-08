@@ -313,7 +313,7 @@ class TestMispronouncedWords:
         assert _build_mispronounced_words(words) == ["friends"]
 
     def test_disfluent_word_not_in_mispronounced(self):
-        # Disfluency is now separate — high-confidence word after pause not flagged here
+        # Disfluency is now separate - high-confidence word after pause not flagged here
         words = [{"word": "um", "probability": 1.0}]
         assert _build_mispronounced_words(words) == []
 
