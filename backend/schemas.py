@@ -171,7 +171,7 @@ class ImproveOut(BaseModel):
 class PronunciationWord(BaseModel):
     word: str
     confidence: float
-    is_mispronounced: bool
+    tier: str
 
 
 class PronunciationOut(BaseModel):

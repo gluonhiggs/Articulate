@@ -2,6 +2,56 @@ import { useEffect, useRef, useState } from 'react'
 import { fetchPronunciationDetails } from '../../api/client'
 import type { Attempt, PronunciationWord } from '../../types'
 
+type Tier = 'poor' | 'unclear' | 'imprecise'
+
+const TIER_CONFIG: Record<Tier, {
+  label: string
+  iconColor: string
+  wordColor: string
+  selectedBorder: string
+  selectedBg: string
+  transcriptHoverBg: string
+  transcriptSelectedBg: string
+  transcriptSelectedRing: string
+  selectedWordTextColor: string
+}> = {
+  poor: {
+    label: 'Poorly Pronounced',
+    iconColor: 'text-red-400',
+    wordColor: 'text-red-300',
+    selectedBorder: 'border-red-500/30',
+    selectedBg: 'bg-red-500/10',
+    transcriptHoverBg: 'hover:bg-red-500/10',
+    transcriptSelectedBg: 'bg-red-500/15',
+    transcriptSelectedRing: 'ring-1 ring-red-500/40',
+    selectedWordTextColor: 'text-red-300',
+  },
+  unclear: {
+    label: 'Unclear',
+    iconColor: 'text-orange-400',
+    wordColor: 'text-orange-300',
+    selectedBorder: 'border-orange-500/30',
+    selectedBg: 'bg-orange-500/10',
+    transcriptHoverBg: 'hover:bg-orange-500/10',
+    transcriptSelectedBg: 'bg-orange-500/15',
+    transcriptSelectedRing: 'ring-1 ring-orange-500/40',
+    selectedWordTextColor: 'text-orange-300',
+  },
+  imprecise: {
+    label: 'Imprecise',
+    iconColor: 'text-yellow-400',
+    wordColor: 'text-yellow-300',
+    selectedBorder: 'border-yellow-500/30',
+    selectedBg: 'bg-yellow-500/10',
+    transcriptHoverBg: 'hover:bg-yellow-500/10',
+    transcriptSelectedBg: 'bg-yellow-500/15',
+    transcriptSelectedRing: 'ring-1 ring-yellow-500/40',
+    selectedWordTextColor: 'text-yellow-300',
+  },
+}
+
+const TIER_ORDER: Tier[] = ['poor', 'unclear', 'imprecise']
+
 export function PronunciationRightPanel({
   attempt,
   onClose,
@@ -64,10 +114,14 @@ export function PronunciationRightPanel({
     setSelectedWord(word === selectedWord ? null : word)
   }
 
-  // Build pronunciation highlight map
-  const flaggedSet = new Set(
-    words?.filter((w) => w.is_mispronounced).map((w) => w.word.toLowerCase()) ?? []
+  // Build pronunciation tier map
+  const tierMap = new Map(
+    words?.filter((w) => w.tier !== 'clear').map((w) => [w.word.toLowerCase(), w.tier as Tier]) ?? []
   )
+
+  // Get the tier of the currently selected word
+  const selectedTier = selectedWord ? tierMap.get(selectedWord) : undefined
+  const selectedTierConfig = selectedTier ? TIER_CONFIG[selectedTier] : undefined
 
   // Split the transcript to render with pronunciation highlights
   const transcriptWords = attempt.transcript?.split(/(\s+)/) ?? []
@@ -104,19 +158,20 @@ export function PronunciationRightPanel({
                 {transcriptWords.map((token, i) => {
                   if (/^\s+$/.test(token)) return token
                   const clean = token.replace(/[.,!?;:'"()\-]/g, '').toLowerCase()
-                  const isFlagged = flaggedSet.has(clean)
+                  const wordTier = tierMap.get(clean)
                   const isSelected = selectedWord?.toLowerCase() === clean
+                  const config = wordTier ? TIER_CONFIG[wordTier] : undefined
 
                   return (
                     <span
                       key={i}
-                      onClick={isFlagged ? () => handleWordClick(clean) : undefined}
+                      onClick={wordTier ? () => handleWordClick(clean) : undefined}
                       className={[
                         'inline-block rounded px-0.5 py-0.5 transition-all',
-                        isFlagged
-                          ? 'pronun-word-flagged hover:bg-orange-500/10 cursor-pointer'
+                        wordTier
+                          ? `pronun-word-${wordTier} ${config!.transcriptHoverBg} cursor-pointer`
                           : '',
-                        isSelected ? 'bg-orange-500/15 ring-1 ring-orange-500/40' : '',
+                        isSelected ? `${config!.transcriptSelectedBg} ${config!.transcriptSelectedRing}` : '',
                       ].join(' ')}
                     >
                       {token}
@@ -151,7 +206,7 @@ export function PronunciationRightPanel({
                     </svg>
                   </button>
                   <div>
-                    <p className="text-lg font-semibold text-orange-300">{selectedWord}</p>
+                    <p className={`text-lg font-semibold ${selectedTierConfig?.selectedWordTextColor ?? 'text-gray-200'}`}>{selectedWord}</p>
                     <p className="ipa-display mt-0.5">
                       /{selectedWord}/
                     </p>
@@ -160,50 +215,7 @@ export function PronunciationRightPanel({
               </div>
             )}
 
-            {/* Flagged words list */}
-            {words && words.filter((w) => w.is_mispronounced).length > 0 && (
-              <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">
-                  Mispronounced Words ({words.filter((w) => w.is_mispronounced).length})
-                </p>
-                <div className="space-y-2">
-                  {words
-                    .filter((w) => w.is_mispronounced)
-                    .map((w, i) => (
-                      <button
-                        key={i}
-                        onClick={() => {
-                          handleWordClick(w.word.toLowerCase())
-                          playWord(w.word)
-                        }}
-                        className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-left transition-all ${
-                          selectedWord === w.word.toLowerCase()
-                            ? 'bg-orange-500/10 border border-orange-500/30'
-                            : 'bg-white/[0.03] border border-white/5 hover:bg-white/[0.06]'
-                        }`}
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className={`h-4 w-4 flex-shrink-0 ${playingWord === w.word ? 'text-teal-400 animate-pulse' : 'text-orange-400'}`}
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth={2}
-                        >
-                          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                          <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-                        </svg>
-                        <span className="text-orange-300 font-medium text-sm">{w.word}</span>
-                        <span className="text-gray-500 text-xs ml-auto">
-                          {Math.round(w.confidence * 100)}%
-                        </span>
-                      </button>
-                    ))}
-                </div>
-              </div>
-            )}
-
-            {words && words.filter((w) => w.is_mispronounced).length === 0 && (
+            {words && tierMap.size === 0 && (
               <div className="text-center py-8">
                 <p className="text-green-400 text-sm">All words pronounced clearly</p>
               </div>
@@ -212,8 +224,13 @@ export function PronunciationRightPanel({
         )}
       </div>
 
-      {/* Bottom: pronunciation score */}
-      <div className="p-4 border-t border-white/5 shrink-0">
+      {/* Bottom: legend + score */}
+      <div className="p-4 border-t border-white/5 shrink-0 space-y-2">
+        <div className="flex items-center justify-center gap-4 text-xs">
+          <span className="text-yellow-400">● Imprecise</span>
+          <span className="text-orange-400">● Unclear</span>
+          <span className="text-red-400">● Poor</span>
+        </div>
         <p className="text-center text-sm text-gray-400 line-clamp-1">
           Pronunciation score: {attempt.pronunciation?.toFixed(1) ?? '-'}
         </p>

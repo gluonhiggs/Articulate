@@ -261,76 +261,106 @@ class TestFluencySignal:
 
 
 # ---------------------------------------------------------------------------
-# Flagged words (pronunciation signal)
+# Pronunciation signal (4-tier system)
 # ---------------------------------------------------------------------------
-
-LOW_CONFIDENCE_THRESHOLD = 0.6  # mirrors Settings.low_confidence_threshold default
-
-
-def _build_mispronounced_words(words: list[dict]) -> list[str]:
-    """Replicate the mispronounced_words list comprehension from _run_pipeline() in attempts.py."""
-    return [
-        w["word"]
-        for w in words
-        if (
-            isinstance(w.get("probability"), (int, float))
-            and w["probability"] < LOW_CONFIDENCE_THRESHOLD
-        )
-    ]
-
 
 def _build_disfluent_words(words: list[dict], disfluent: set[str]) -> list[dict]:
     """Replicate the disfluent_words list comprehension from _run_pipeline() in attempts.py."""
     return [w for w in words if w["word"].lower() in disfluent]
 
 
-class TestMispronouncedWords:
-    """Verify probability-threshold flagging only (disfluency is now separate)."""
+class TestPronunciationSignal:
+    """Verify compute_pronunciation_signal tier bucketing and edge cases."""
 
-    def test_groq_mode_no_probability_flags(self):
-        # Groq stubs probability=1.0 → nothing flagged from probability
+    def _sig(self, words):
+        from backend.services.vocab import compute_pronunciation_signal
+        return compute_pronunciation_signal(words)
+
+    def test_cloud_mode_all_ones(self):
+        # All probs exactly 1.0 → Groq/cloud mode detected
         words = [
             {"word": "friends", "probability": 1.0},
             {"word": "charming", "probability": 1.0},
         ]
-        assert _build_mispronounced_words(words) == []
+        assert self._sig(words) == "not available (cloud mode)"
 
-    def test_local_mode_low_probability_flagged(self):
-        # faster-whisper returns real probabilities; <0.6 gets flagged
+    def test_cloud_mode_requires_all_ones(self):
+        # Mixed probs — NOT cloud mode even if some are 1.0
         words = [
-            {"word": "friends", "probability": 0.35},   # mispronounced
-            {"word": "charming", "probability": 0.82},  # fine
+            {"word": "friends", "probability": 1.0},
+            {"word": "charming", "probability": 0.85},
         ]
-        assert _build_mispronounced_words(words) == ["friends"]
+        result = self._sig(words)
+        assert result != "not available (cloud mode)"
+        assert "total: 2 words" in result
 
-    def test_boundary_at_threshold_not_flagged(self):
-        # probability == 0.6 is NOT < 0.6 → not flagged
-        words = [{"word": "friends", "probability": 0.6}]
-        assert _build_mispronounced_words(words) == []
+    def test_empty_words_list(self):
+        assert self._sig([]) == "not available (no word data)"
 
-    def test_just_below_threshold_flagged(self):
-        words = [{"word": "friends", "probability": 0.5999}]
-        assert _build_mispronounced_words(words) == ["friends"]
+    def test_no_probability_fields(self):
+        words = [{"word": "friends"}, {"word": "charming"}]
+        assert self._sig(words) == "not available (no word data)"
 
-    def test_disfluent_word_not_in_mispronounced(self):
-        # Disfluency is now separate - high-confidence word after pause not flagged here
-        words = [{"word": "um", "probability": 1.0}]
-        assert _build_mispronounced_words(words) == []
-
-    def test_missing_probability_not_flagged(self):
-        # Word without 'probability' key → isinstance guard skips it
-        words = [{"word": "friends"}]
-        assert _build_mispronounced_words(words) == []
-
-    def test_only_low_probability_words_flagged(self):
+    def test_four_tier_bucketing(self):
         words = [
-            {"word": "I", "probability": 0.95},
-            {"word": "like", "probability": 0.88},
-            {"word": "dogs", "probability": 0.45},     # flagged
-            {"word": "and", "probability": 0.91},
-            {"word": "friends", "probability": 0.22},  # flagged
+            {"word": "good", "probability": 0.95},    # clear
+            {"word": "morning", "probability": 0.85}, # imprecise
+            {"word": "world", "probability": 0.75},   # unclear
+            {"word": "especial", "probability": 0.60}, # poor
         ]
-        assert _build_mispronounced_words(words) == ["dogs", "friends"]
+        result = self._sig(words)
+        assert "clear: 25%" in result
+        assert "imprecise: 25%" in result
+        assert "unclear: 25%" in result
+        assert "poor: 25%" in result
+        assert "total: 4 words" in result
+        assert "especial" in result   # poor tier listed
+        assert "world" in result      # unclear tier listed
+        assert "morning" in result    # imprecise tier listed
+        assert "good" not in result   # clear tier not listed
+
+    def test_boundary_values(self):
+        # Exactly on boundary: 0.9 → clear, 0.8 → imprecise, 0.7 → unclear
+        words = [
+            {"word": "a", "probability": 0.9},
+            {"word": "b", "probability": 0.8},
+            {"word": "c", "probability": 0.7},
+        ]
+        result = self._sig(words)
+        assert "clear: 33%" in result
+        assert "imprecise: 33%" in result
+        assert "unclear: 33%" in result
+        assert "poor: 0%" in result  # always present in aggregate line
+
+    def test_all_clear_no_tier_lines(self):
+        # All clear → aggregate line only, no per-tier word lines
+        words = [
+            {"word": "hello", "probability": 0.95},
+            {"word": "world", "probability": 0.92},
+        ]
+        result = self._sig(words)
+        lines = result.strip().split("\n")
+        assert len(lines) == 1
+        assert "clear: 100%" in lines[0]
+
+    def test_poor_words_sorted_worst_first(self):
+        # Words within poor tier sorted ascending by probability (worst first)
+        words = [
+            {"word": "comfortable", "probability": 0.65},
+            {"word": "especial", "probability": 0.45},
+        ]
+        result = self._sig(words)
+        poor_line = [l for l in result.split("\n") if "poorly pronounced" in l.lower()][0]
+        assert poor_line.index("especial") < poor_line.index("comfortable")
+
+    def test_missing_probability_words_ignored(self):
+        # Words without probability field are excluded from count
+        words = [
+            {"word": "friends", "probability": 0.95},
+            {"word": "charming"},  # no probability
+        ]
+        result = self._sig(words)
+        assert "total: 1 words" in result
 
 
 class TestDisfluuentWords:

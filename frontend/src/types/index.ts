@@ -50,7 +50,7 @@ export interface ImproveResponse {
 export interface PronunciationWord {
   word: string
   confidence: number
-  is_mispronounced: boolean
+  tier: 'clear' | 'imprecise' | 'unclear' | 'poor'
 }
 
 export interface SampleAnswerResponse {

@@ -105,9 +105,19 @@
 .pronun-word:hover {
   background-color: rgba(255, 255, 255, 0.08);
 }
-.pronun-word-flagged {
+.pronun-word-imprecise {
+  color: #fbbf24;
+  border-bottom: 1px dashed #fbbf24;
+  cursor: pointer;
+}
+.pronun-word-unclear {
   color: #fb923c;
   border-bottom: 1px dashed #fb923c;
+  cursor: pointer;
+}
+.pronun-word-poor {
+  color: #f87171;
+  border-bottom: 1px dashed #f87171;
   cursor: pointer;
 }
 

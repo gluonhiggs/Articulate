@@ -804,7 +804,12 @@ async def get_pronunciation(
             PronunciationWord(
                 word=w.get("word", ""),
                 confidence=round(confidence, 3),
-                is_mispronounced=confidence < get_settings().low_confidence_threshold,
+                tier=(
+                    "clear" if confidence >= 0.9
+                    else "imprecise" if confidence >= 0.8
+                    else "unclear" if confidence >= 0.7
+                    else "poor"
+                ),
             )
         )
 
