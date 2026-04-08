@@ -267,7 +267,7 @@ class TestFluencySignal:
 LOW_CONFIDENCE_THRESHOLD = 0.6  # mirrors Settings.low_confidence_threshold default
 
 
-def _build_mispronounced_words(words: list[dict], disfluent: set[str]) -> list[str]:
+def _build_mispronounced_words(words: list[dict]) -> list[str]:
     """Replicate the mispronounced_words list comprehension from _run_pipeline() in attempts.py."""
     return [
         w["word"]
@@ -276,12 +276,16 @@ def _build_mispronounced_words(words: list[dict], disfluent: set[str]) -> list[s
             isinstance(w.get("probability"), (int, float))
             and w["probability"] < LOW_CONFIDENCE_THRESHOLD
         )
-        or w["word"].lower() in disfluent
     ]
 
 
-class TestFlaggedWords:
-    """Verify probability-threshold and disfluency-based flagging (both modes)."""
+def _build_disfluent_words(words: list[dict], disfluent: set[str]) -> list[dict]:
+    """Replicate the disfluent_words list comprehension from _run_pipeline() in attempts.py."""
+    return [w for w in words if w["word"].lower() in disfluent]
+
+
+class TestMispronouncedWords:
+    """Verify probability-threshold flagging only (disfluency is now separate)."""
 
     def test_groq_mode_no_probability_flags(self):
         # Groq stubs probability=1.0 → nothing flagged from probability
@@ -289,7 +293,7 @@ class TestFlaggedWords:
             {"word": "friends", "probability": 1.0},
             {"word": "charming", "probability": 1.0},
         ]
-        assert _build_mispronounced_words(words, disfluent=set()) == []
+        assert _build_mispronounced_words(words) == []
 
     def test_local_mode_low_probability_flagged(self):
         # faster-whisper returns real probabilities; <0.6 gets flagged
@@ -297,26 +301,26 @@ class TestFlaggedWords:
             {"word": "friends", "probability": 0.35},   # mispronounced
             {"word": "charming", "probability": 0.82},  # fine
         ]
-        assert _build_mispronounced_words(words, disfluent=set()) == ["friends"]
+        assert _build_mispronounced_words(words) == ["friends"]
 
     def test_boundary_at_threshold_not_flagged(self):
         # probability == 0.6 is NOT < 0.6 → not flagged
         words = [{"word": "friends", "probability": 0.6}]
-        assert _build_mispronounced_words(words, disfluent=set()) == []
+        assert _build_mispronounced_words(words) == []
 
     def test_just_below_threshold_flagged(self):
         words = [{"word": "friends", "probability": 0.5999}]
-        assert _build_mispronounced_words(words, disfluent=set()) == ["friends"]
+        assert _build_mispronounced_words(words) == ["friends"]
 
-    def test_disfluent_word_flagged_regardless_of_probability(self):
-        # Word after timing gap → in disfluent set → flagged even with probability=1.0
+    def test_disfluent_word_not_in_mispronounced(self):
+        # Disfluency is now separate — high-confidence word after pause not flagged here
         words = [{"word": "um", "probability": 1.0}]
-        assert _build_mispronounced_words(words, disfluent={"um"}) == ["um"]
+        assert _build_mispronounced_words(words) == []
 
     def test_missing_probability_not_flagged(self):
         # Word without 'probability' key → isinstance guard skips it
         words = [{"word": "friends"}]
-        assert _build_mispronounced_words(words, disfluent=set()) == []
+        assert _build_mispronounced_words(words) == []
 
     def test_only_low_probability_words_flagged(self):
         words = [
@@ -326,18 +330,21 @@ class TestFlaggedWords:
             {"word": "and", "probability": 0.91},
             {"word": "friends", "probability": 0.22},  # flagged
         ]
-        assert _build_mispronounced_words(words, disfluent=set()) == ["dogs", "friends"]
+        assert _build_mispronounced_words(words) == ["dogs", "friends"]
 
-    def test_combined_probability_and_disfluency(self):
-        words = [
-            {"word": "um", "probability": 1.0},        # flagged by timing gap
-            {"word": "friends", "probability": 0.35},  # flagged by probability
-            {"word": "charming", "probability": 0.9},  # fine
-        ]
-        assert set(_build_mispronounced_words(words, disfluent={"um"})) == {"um", "friends"}
 
-    def test_word_satisfying_both_conditions_not_duplicated(self):
-        # A word that is BOTH low-probability AND in disfluent set appears only once
+class TestDisfluuentWords:
+    """Verify disfluency-based word extraction (now separate from mispronounced)."""
+
+    def test_disfluent_word_captured(self):
+        words = [{"word": "um", "probability": 1.0}]
+        assert _build_disfluent_words(words, disfluent={"um"}) == [{"word": "um", "probability": 1.0}]
+
+    def test_non_disfluent_word_excluded(self):
+        words = [{"word": "friends", "probability": 1.0}]
+        assert _build_disfluent_words(words, disfluent=set()) == []
+
+    def test_low_probability_disfluent_word_captured(self):
+        # A word that is both low-confidence AND after a pause → goes to disfluent_words
         words = [{"word": "um", "probability": 0.3}]
-        result = _build_mispronounced_words(words, disfluent={"um"})
-        assert result == ["um"]  # not ["um", "um"]
+        assert _build_disfluent_words(words, disfluent={"um"}) == [{"word": "um", "probability": 0.3}]

@@ -388,8 +388,8 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                     isinstance(w.get("probability"), (int, float))
                     and w["probability"] < settings.low_confidence_threshold
                 )
-                or w["word"].lower() in disfluent
             ]
+            disfluent_words = [w for w in words if w["word"].lower() in disfluent]
 
             logger.info(
                 "\n\n========== SCORING SIGNALS attempt_id=%d ==========\n"
