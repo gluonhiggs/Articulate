@@ -202,7 +202,7 @@ def _run_transcribe_local(model, audio_path: str) -> Dict[str, Any]:
     segments, info = model.transcribe(
         audio_path,
         language="en",
-        beam_size=1,                       # greedy: 2-4× faster, ~1% WER trade-off
+        beam_size=2,                       # greedy: 2-4× faster, ~1% WER trade-off
         word_timestamps=True,
         vad_filter=True,
         condition_on_previous_text=False,  # prevents hallucination loops on disfluent speech
