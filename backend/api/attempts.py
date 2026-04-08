@@ -26,7 +26,7 @@ from backend.services.audio import EXT_TO_MIME
 from backend.services import improve as improve_service
 from backend.services import scoring as scoring_service
 from backend.services import transcription as transcription_service
-from backend.services.vocab import compute_grammar_signals, compute_vocab_signal
+from backend.services.vocab import compute_grammar_signals, compute_pronunciation_signal, compute_vocab_signal
 
 logger = logging.getLogger(__name__)
 
@@ -379,29 +379,22 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                 logger.warning("Grammar signals (spaCy) failed: %s", exc)
 
             # ----------------------------------------------------------------
-            # 3. Mispronounced words for pronunciation
+            # 3. Pronunciation signal
             # ----------------------------------------------------------------
-            mispronounced_words = [
-                w["word"]
-                for w in words
-                if (
-                    isinstance(w.get("probability"), (int, float))
-                    and w["probability"] < settings.low_confidence_threshold
-                )
-            ]
+            pronunciation_signal = compute_pronunciation_signal(words)
             disfluent_words = [w for w in words if w["word"].lower() in disfluent]
 
             logger.info(
                 "\n\n========== SCORING SIGNALS attempt_id=%d ==========\n"
-                "  fluency : %d gaps / %d words = %.1f per 100\n"
-                "  vocab   : %s\n"
-                "  grammar : %s\n"
-                "  mispronounced : %s",
+                "  fluency       : %d gaps / %d words = %.1f per 100\n"
+                "  vocab         : %s\n"
+                "  grammar       : %s\n"
+                "  pronunciation : %s",
                 attempt_id,
                 gap_count, total_words, gaps_per_100,
                 vocab_signal,
                 grammar_context,
-                mispronounced_words,
+                pronunciation_signal,
             )
 
             # ----------------------------------------------------------------
@@ -422,7 +415,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                     question_text=question.text,
                     part=question.part,
                     transcript=transcript,
-                    mispronounced_words=mispronounced_words,
+                    pronunciation_signal=pronunciation_signal,
                     fluency_context=fluency_context,
                     vocab_signal=vocab_signal,
                     grammar_context=grammar_context,

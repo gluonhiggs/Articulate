@@ -799,3 +799,66 @@ def compute_vocab_signal(words: List[Dict[str, Any]], transcript: str) -> str:
     except Exception as exc:
         logger.warning("Vocab signal computation failed: %s", exc)
         return "insufficient vocabulary data"
+
+
+def compute_pronunciation_signal(words: list[dict]) -> str:
+    """Return a two-layer pronunciation signal string from word-level STT probabilities."""
+    # Filter to words with a valid numeric probability
+    valid = [
+        w for w in (words or [])
+        if isinstance(w.get("probability"), (int, float))
+    ]
+
+    if not valid:
+        return "not available (no word data)"
+
+    # Detect Groq/cloud mode: ALL probabilities are exactly 1.0
+    if all(w["probability"] == 1.0 for w in valid):
+        return "not available (cloud mode)"
+
+    total = len(valid)
+
+    # Bucket words into tiers
+    clear: list[tuple[str, float]] = []
+    imprecise: list[tuple[str, float]] = []
+    unclear: list[tuple[str, float]] = []
+    poor: list[tuple[str, float]] = []
+
+    for w in valid:
+        p = w["probability"]
+        word = str(w.get("word", "")).strip()
+        if p >= 0.9:
+            clear.append((word, p))
+        elif p >= 0.8:
+            imprecise.append((word, p))
+        elif p >= 0.7:
+            unclear.append((word, p))
+        else:
+            poor.append((word, p))
+
+    # Sort each tier by ascending probability (worst first)
+    for tier in (clear, imprecise, unclear, poor):
+        tier.sort(key=lambda x: x[1])
+
+    # Percentages
+    clear_pct = round(100 * len(clear) / total)
+    imprecise_pct = round(100 * len(imprecise) / total)
+    unclear_pct = round(100 * len(unclear) / total)
+    poor_pct = round(100 * len(poor) / total)
+
+    # Line 1: summary
+    lines = [
+        f"clear: {clear_pct}% | imprecise: {imprecise_pct}% (0.8\u20130.9) | "
+        f"unclear: {unclear_pct}% (0.7\u20130.8) | poor: {poor_pct}% (<0.7) | "
+        f"total: {total} words"
+    ]
+
+    # Line 2+: per-tier word lists (only tiers with words)
+    if poor:
+        lines.append("poorly pronounced (<0.7): " + ", ".join(w for w, _ in poor))
+    if unclear:
+        lines.append("unclear (0.7\u20130.8): " + ", ".join(w for w, _ in unclear))
+    if imprecise:
+        lines.append("imprecise (0.8\u20130.9): " + ", ".join(w for w, _ in imprecise))
+
+    return "\n".join(lines)

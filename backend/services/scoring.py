@@ -43,19 +43,18 @@ def _build_prompt(
     question_text: str,
     part: str,
     transcript: str,
-    mispronounced_words: List[str],
+    pronunciation_signal: str,
     fluency_context: str = "",
     vocab_signal: str = "",
     grammar_context: str = "",
 ) -> str:
     """Render the prompt template with actual values."""
     template = _load_prompt(part)
-    mispronounced_str = ", ".join(mispronounced_words) if mispronounced_words else "none"
     return (
         template.replace("{band_descriptors}", _BAND_DESCRIPTORS)
         .replace("{question_text}", question_text)
         .replace("{transcript}", transcript)
-        .replace("{mispronounced_words}", mispronounced_str)
+        .replace("{pronunciation_signal}", pronunciation_signal or "not available")
         .replace("{fluency_context}", fluency_context or "not available")
         .replace("{vocab_signal}", vocab_signal or "not available")
         .replace("{grammar_context}", grammar_context or "not available")
@@ -158,7 +157,7 @@ async def score_attempt(
     question_text: str,
     part: str,
     transcript: str,
-    mispronounced_words: List[str],
+    pronunciation_signal: str = "",
     fluency_context: str = "",
     vocab_signal: str = "",
     grammar_context: str = "",
@@ -181,11 +180,11 @@ async def score_attempt(
     active_model = get_active_model()
 
     logger.info(
-        "SCORE_INPUT part=%s model=%s transcript_words=%d flagged=%s",
+        "SCORE_INPUT part=%s model=%s transcript_words=%d pronunciation_signal=%r",
         part,
         active_model,
         len(transcript.split()),
-        mispronounced_words,
+        pronunciation_signal,
     )
     logger.info(
         "SCORE_SIGNALS fluency_context=%r vocab_signal=%r grammar_context=%r",
@@ -198,7 +197,7 @@ async def score_attempt(
         question_text,
         part,
         transcript,
-        mispronounced_words,
+        pronunciation_signal=pronunciation_signal,
         fluency_context=fluency_context,
         vocab_signal=vocab_signal,
         grammar_context=grammar_context,

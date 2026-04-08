@@ -15,7 +15,7 @@ You are grading an IELTS candidate.
 - **CANDIDATE RESPONSE TRANSCRIPT:** {transcript}
 
 Signals derived from the audio:
-- **MISPRONOUNCED WORDS** (low STT confidence or long pause before word): {mispronounced_words}
+- **PRONUNCIATION SIGNAL** (STT confidence tiers): {pronunciation_signal}
 - **FLUENCY SIGNAL:** {fluency_context}
 - **LEXICAL RESOURCE SIGNAL:** {vocab_signal}
 - **GRAMMAR SIGNALS:** {grammar_context}
@@ -78,7 +78,25 @@ Accuracy and variety, including complex sentences and modal verbs:
   native-speaker-like) from fossilised systematic errors — the former do not lower the band.
 
 **Pronunciation**
-Clarity and intelligibility; penalise flagged words as evidence of mispronunciation.
+Clarity and intelligibility across the full response.
+
+Use PRONUNCIATION SIGNAL to anchor your score:
+- `clear_pct` = % of words prob >= 0.9 - proxy for well-articulated speech
+- `imprecise_pct` = % of words 0.8-0.9 - minor deviation, unlikely to affect clarity
+- `unclear_pct` = % of words 0.7-0.8 - noticeable mispronunciation, occasional lack of clarity
+- `poor_pct` = % of words < 0.7 - likely seriously mispronounced or unintelligible
+
+Band anchors (from official IELTS descriptors):
+- clear_pct >= 95%, poor_pct ~ 0%          -> Band 8-9
+- clear_pct 85-95%, few unclear/poor        -> Band 7-8
+- clear_pct 75-85%, some unclear, few poor  -> Band 6-7
+- clear_pct 65-75%, moderate unclear/poor   -> Band 5-6
+- clear_pct 50-65%, significant poor_pct    -> Band 4-5
+- clear_pct 30-50%, most words unclear/poor -> Band 3-4
+- clear_pct < 30%                           -> Band 2-3
+
+If signal is "not available (cloud mode)", score pronunciation conservatively
+based on transcript legibility alone.
 
 ## FIND USAGE ERRORS
 
