@@ -8,7 +8,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -242,8 +242,8 @@ else:
 async def spa_fallback(request, exc: StarletteHTTPException):
     """Serve index.html for SPA deep-link navigation."""
     if exc.status_code != 404 or request.url.path.startswith("/api/"):
-        raise exc
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
     idx = _FRONTEND_DIST / "index.html"
     if idx.exists():
         return FileResponse(str(idx))
-    raise exc
+    return JSONResponse(status_code=404, content={"detail": exc.detail})
