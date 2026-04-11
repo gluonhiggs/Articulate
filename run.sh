@@ -99,4 +99,4 @@ _open_terminal() {
 
 _open_terminal "Articulate frontend" "cd '$ROOT/frontend' && bun run dev"
 
-exec uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 1 --reload
+exec uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 1 --reload --reload-include '*.json' --reload-include '*.txt'
