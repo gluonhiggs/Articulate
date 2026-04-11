@@ -424,14 +424,6 @@ def compute_grammar_signals(
 
         # ── Signal 5: summaries ───────────────────────────────────────────────
         n_tenses = len(tense_forms)
-        if n_tenses <= 2:
-            tense_band = "B4-5"
-        elif n_tenses <= 4:
-            tense_band = "B6"
-        elif n_tenses <= 6:
-            tense_band = "B7"
-        else:
-            tense_band = "B8+"
 
         if all_depths:
             mean_depth = round(statistics.mean(all_depths), 1)
@@ -452,7 +444,7 @@ def compute_grammar_signals(
         tense_list = ", ".join(sorted(tense_forms)) if tense_forms else "none"
         structural_lines = [
             "structural_range:",
-            f"  tenses: {n_tenses} distinct [{tense_list}] ({tense_band})",
+            f"  tenses: {n_tenses} distinct [{tense_list}]",
         ]
         if passive_count > 0:
             ex_str = " - e.g. " + ", ".join(passive_examples) if passive_examples else ""
@@ -555,8 +547,8 @@ def _compute_idiom_signal(transcript: str, total_words: int) -> str:
     Normalise by response length.
 
     Calibration (per 100 words):
-      0       → none detected (Band 5–6)
-      1–2     → limited (Band 6)
+      0       → none detected (no uplift)
+      1–2     → limited (Band 5–6)
       2–4     → adequate (Band 6–7)
       4–6     → good (Band 7)
       >6      → high (Band 7–8+)
@@ -594,7 +586,7 @@ def _compute_idiom_signal(transcript: str, total_words: int) -> str:
     per_100 = round(count / total_words * 100, 1) if total_words > 0 else 0
 
     if per_100 == 0:
-        level = "none detected (Band 5–6 indicator)"
+        level = "none detected (no uplift from idiomatic language)"
     elif per_100 < 2:
         level = "limited (Band 6)"
     elif per_100 < 4:
