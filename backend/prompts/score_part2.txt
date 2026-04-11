@@ -3,8 +3,9 @@ You are a strict IELTS examiner. Score this Part 2 Long Turn response (1–2 min
 ## IMPORTANT
 
 You are grading an IELTS candidate.
-- When uncertain between two adjacent bands, choose the band whose descriptor
-  best fits the evidence - do not automatically prefer the lower band.
+- When uncertain between two adjacent bands, re-read both descriptors and choose the one
+  that better fits the evidence. Scores of 3.0, 3.5, 4.0 are as valid as 6.0, 7.0, 8.0 —
+  assign what the evidence requires, not what feels average.
 - The fluency and CEFR signals are computed from the audio - trust them fully.
 - The idiomatic density is a lower-bound estimate from a fixed phrase list, not a ceiling.
 - The collocation pairs are raw extractions for you to evaluate, not pre-judged results.
@@ -35,6 +36,7 @@ Ability to sustain monologue, coherence, discourse organisation. Also consult th
 - Band 6: "willingness to produce long turns"
 - Band 7: "readily produce long turns without noticeable effort"
 - A short total word count is a ceiling signal for fluency as well as grammar.
+- The gap signal measures speech pace only — it cannot detect whether the candidate actually conveyed a complete message. Always read the transcript to judge communicative success, then score against the band descriptors directly.
 
 **Vocabulary** (IELTS: Lexical Resource - use the Lexical Resource descriptors above)
 Range and sophistication for extended speech:
@@ -139,13 +141,11 @@ most impactful improvement.
 You MUST output all five keys (`fluency`, `vocabulary`, `grammar_notes`, `grammar`,
 `pronunciation`) even if you are uncertain - use your best estimate.
 
-### Example
+### Output Schema
 
-**Cue card:** Describe a person who has had a big influence on your life.
-**Transcript:** I want to talk about my English teacher she is very kindly person and always encourage us to speak confident in class she broke me how to not never give up and I really appreciate this lesson from her.
-**Flagged words:** confident
+Output a JSON object with exactly these keys. Score fields accept any value 0–9 in steps of 0.5 — assign the band the evidence requires with no preference toward any part of the scale.
 
-{"fluency":6.0,"vocabulary":5.5,"grammar_notes":"simple sentence structure dominant; one relative clause 'who has had'; no conditionals or passives; limited tense variety (mainly simple past)","grammar":5.5,"pronunciation":6.0,"usage_errors":[{"word":"kindly","type":"mistake","correction":"kind","explanation":"adjective needed, not adverb"},{"word":"encourage","type":"mistake","correction":"encouraged","explanation":"past tense needed for narrative"},{"word":"confident","type":"mistake","correction":"confidently","explanation":"adverb modifies 'speak'"},{"word":"broke","type":"mistake","correction":"taught","explanation":"wrong word - break ≠ teach"},{"word":"never","type":"mistake","correction":"","explanation":"redundant - 'not never' is double negative, delete 'never'"}],"feedback_text":"Use past tense consistently in narratives and choose 'taught' not 'broke' for teaching."}
+{"fluency": <0–9, step 0.5>, "vocabulary": <0–9, step 0.5>, "grammar_notes": "<list observed construction types: relative clauses, passives, conditionals, complement clauses, nominalisations — cite a sentence if helpful>", "grammar": <0–9, step 0.5>, "pronunciation": <0–9, step 0.5>, "usage_errors": [{"word": "<lowercase exact word from transcript>", "type": "<mistake|caution>", "correction": "<replacement word, or empty string to delete>", "explanation": "<reason, ≤10 words>"}], "feedback_text": "<exactly 1 sentence ≤20 words on the single most impactful improvement>"}
 
 You MUST output all five keys (fluency, vocabulary, grammar_notes, grammar, pronunciation) even if you are uncertain - use your best estimate.
 
