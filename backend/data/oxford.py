@@ -3,9 +3,9 @@ Oxford 5000 vocabulary data - loaded once at module level.
 Source: backend/data/oxford_5000.csv (scraped from Oxford Learner's Dictionaries)
 
 Three dicts built at import time:
-  WORD_TO_CEFR    - word → CEFR level str ("A1"…"C1")
-  WORD_TO_DATA    - word → {type, phon_n_am, definition, example}
-  CEFR_TO_WORDS   - level → [words]  (for future word-suggestion features)
+  WORD_TO_CEFR    - word -> CEFR level str ("A1"…"C1")
+  WORD_TO_DATA    - word -> {type, phon_n_am, definition, example}
+  CEFR_TO_WORDS   - level -> [words]  (for future word-suggestion features)
 
 US spelling aliases are applied at load time so American spellings
 (color, favorite, organize…) resolve to the same entry as their
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 _CSV = Path(__file__).parent / "oxford_5000.csv"
 
-# Common US→UK spelling aliases so American-spelled words hit the dict.
+# Common US->UK spelling aliases so American-spelled words hit the dict.
 # Only entries whose UK form is actually in the Oxford 5000 take effect.
 _US_TO_UK: Dict[str, str] = {
     # -our / -or

@@ -69,7 +69,7 @@ export async function submitAttempt(
   return apiFetch<{ id: number; status: string }>('/attempts/submit', {
     method: 'POST',
     body: formData,
-    signal: AbortSignal.timeout(120_000), // 2 min — Part 2 audio uploads are large
+    signal: AbortSignal.timeout(120_000), // 2 min - Part 2 audio uploads are large
   })
 }
 

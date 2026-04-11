@@ -79,7 +79,7 @@ class TestCEFRSignal:
         # "the", "and", "for" are stop words - should not inflate A1 count
         words = [_w("the"), _w("and"), _w("for")]
         signal = compute_vocab_signal(words, "the and for")
-        # All tokens filtered → matched=0 → CEFR insufficient
+        # All tokens filtered -> matched=0 -> CEFR insufficient
         assert "insufficient" in signal
 
     def test_short_words_filtered_out(self):
@@ -179,21 +179,21 @@ class TestCollocationSignal:
         from backend.services.vocab import _compute_collocation_signal, _get_spacy
         signal = _compute_collocation_signal("She made a decision to leave.")
         if _get_spacy() is not None:
-            assert "make→decision" not in signal
+            assert "make->decision" not in signal
 
     def test_unusual_pair_reported_in_inventory(self):
-        # "do a mistake" - verb→obj pair "do→mistake" should appear in inventory
+        # "do a mistake" - verb->obj pair "do->mistake" should appear in inventory
         from backend.services.vocab import _compute_collocation_signal, _get_spacy
         signal = _compute_collocation_signal("He did a mistake in his work.")
         if _get_spacy() is not None:
-            assert "do→mistake" in signal
+            assert "do->mistake" in signal
 
     def test_adj_noun_pair_extracted(self):
-        # "delicious meal" - adj→noun pair should appear
+        # "delicious meal" - adj->noun pair should appear
         from backend.services.vocab import _compute_collocation_signal, _get_spacy
         signal = _compute_collocation_signal("She cooked a delicious meal.")
         if _get_spacy() is not None:
-            assert "delicious→meal" in signal
+            assert "delicious->meal" in signal
 
 
 class TestFluencySignal:
@@ -209,7 +209,7 @@ class TestFluencySignal:
         assert gap_count == 0
 
     def test_no_gap_below_threshold(self):
-        # Gap is 0.1s < 0.5s threshold → not counted
+        # Gap is 0.1s < 0.5s threshold -> not counted
         words = [
             {"word": "hello", "start": 0.0, "end": 0.4},
             {"word": "world", "start": 0.5, "end": 0.9},
@@ -219,7 +219,7 @@ class TestFluencySignal:
         assert len(disfluent) == 0
 
     def test_gap_exactly_at_threshold_is_counted(self):
-        # Gap is exactly 0.5s = threshold → counted
+        # Gap is exactly 0.5s = threshold -> counted
         words = [
             {"word": "hello", "start": 0.0, "end": 0.4},
             {"word": "um", "start": 0.9, "end": 1.1},  # 0.9 - 0.4 = 0.5 >= 0.5
@@ -277,7 +277,7 @@ class TestPronunciationSignal:
         return compute_pronunciation_signal(words)
 
     def test_cloud_mode_all_ones(self):
-        # All probs exactly 1.0 → Groq/cloud mode detected
+        # All probs exactly 1.0 -> Groq/cloud mode detected
         words = [
             {"word": "friends", "probability": 1.0},
             {"word": "charming", "probability": 1.0},
@@ -285,7 +285,7 @@ class TestPronunciationSignal:
         assert self._sig(words) == "not available (cloud mode)"
 
     def test_cloud_mode_requires_all_ones(self):
-        # Mixed probs — NOT cloud mode even if some are 1.0
+        # Mixed probs - NOT cloud mode even if some are 1.0
         words = [
             {"word": "friends", "probability": 1.0},
             {"word": "charming", "probability": 0.85},
@@ -320,7 +320,7 @@ class TestPronunciationSignal:
         assert "good" not in result   # clear tier not listed
 
     def test_boundary_values(self):
-        # Exactly on boundary: 0.9 → clear, 0.8 → imprecise, 0.7 → unclear
+        # Exactly on boundary: 0.9 -> clear, 0.8 -> imprecise, 0.7 -> unclear
         words = [
             {"word": "a", "probability": 0.9},
             {"word": "b", "probability": 0.8},
@@ -333,7 +333,7 @@ class TestPronunciationSignal:
         assert "poor: 0%" in result  # always present in aggregate line
 
     def test_all_clear_no_tier_lines(self):
-        # All clear → aggregate line only, no per-tier word lines
+        # All clear -> aggregate line only, no per-tier word lines
         words = [
             {"word": "hello", "probability": 0.95},
             {"word": "world", "probability": 0.92},
@@ -375,6 +375,6 @@ class TestDisfluuentWords:
         assert _build_disfluent_words(words, disfluent=set()) == []
 
     def test_low_probability_disfluent_word_captured(self):
-        # A word that is both low-confidence AND after a pause → goes to disfluent_words
+        # A word that is both low-confidence AND after a pause -> goes to disfluent_words
         words = [{"word": "um", "probability": 0.3}]
         assert _build_disfluent_words(words, disfluent={"um"}) == [{"word": "um", "probability": 0.3}]

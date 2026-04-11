@@ -37,8 +37,8 @@ def _patch_cuda_dll_path() -> None:
 _patch_cuda_dll_path()
 
 # ── Thread pools ─────────────────────────────────────────────────────────────
-# Local whisper is CPU-bound → single thread to avoid contention.
-# Groq is network I/O → multiple threads fine.
+# Local whisper is CPU-bound -> single thread to avoid contention.
+# Groq is network I/O -> multiple threads fine.
 _local_executor = concurrent.futures.ThreadPoolExecutor(
     max_workers=1, thread_name_prefix="whisper-local"
 )
@@ -69,9 +69,9 @@ def _resolve_device_and_model() -> Tuple[str, str, str]:
     """Return (device, compute_type, model_size) for local mode.
 
     Priority:
-      1. local_whisper_device == "cpu" → force CPU
-      2. detect_gpu() → CUDA  (large-v3-turbo / float16)
-      3. fallback        → CPU (small / int8)
+      1. local_whisper_device == "cpu" -> force CPU
+      2. detect_gpu() -> CUDA  (large-v3-turbo / float16)
+      3. fallback        -> CPU (small / int8)
     local_whisper_model and local_whisper_compute_type override auto-selection.
     """
     settings = get_settings()
@@ -219,7 +219,7 @@ def _run_transcribe_local(model, audio_path: str) -> Dict[str, Any]:
 
 
 def _sync_transcribe_local(audio_path: str) -> Dict[str, Any]:
-    """Synchronous local transcription with CUDA→CPU runtime fallback."""
+    """Synchronous local transcription with CUDA->CPU runtime fallback."""
     global _whisper_model, _force_cpu_fallback
 
     model = _get_model()
@@ -412,8 +412,8 @@ async def transcribe(audio_path: str) -> Dict[str, Any]:
     """
     Transcribe an audio file asynchronously.
 
-    Mode "local" → faster-whisper; real word.probability; full pronunciation scoring.
-    Mode "groq"  → Groq Whisper API; probability=1.0; no pronunciation signal.
+    Mode "local" -> faster-whisper; real word.probability; full pronunciation scoring.
+    Mode "groq"  -> Groq Whisper API; probability=1.0; no pronunciation signal.
 
     Returns:
         {

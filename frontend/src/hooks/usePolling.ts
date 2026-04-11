@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { fetchAttemptStatus } from '../api/client'
 import type { Attempt } from '../types'
 
-const POLLING_TIMEOUT_MS = 6 * 60 * 1000 // 6 minutes — Part 2: transcription (120s) + signals (30s) + LLM (120s) = ~270s max
+const POLLING_TIMEOUT_MS = 6 * 60 * 1000 // 6 minutes - Part 2: transcription (120s) + signals (30s) + LLM (120s) = ~270s max
 
 export function usePolling(attemptId: number | null): { data: Attempt | null; isTimedOut: boolean } {
   const startedAtRef = useRef<number | null>(null)

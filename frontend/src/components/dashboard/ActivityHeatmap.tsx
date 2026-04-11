@@ -21,7 +21,7 @@ function getColor(intensity: number): string {
 
 export function ActivityHeatmap({ values }: ActivityHeatmapProps) {
   const { weeks, monthLabels } = useMemo(() => {
-    // Build a date → entry lookup
+    // Build a date -> entry lookup
     const lookup = new Map<string, HeatmapEntry>()
     for (const v of values) lookup.set(v.date, v)
 

@@ -123,7 +123,7 @@ def _map_complexity_band(
     """Map (complex_sentence_rate, error_density_ratio) to an IELTS GRA band hint.
 
     Two-dimensional heuristic grounded in rubric qualitative language:
-      B4 - "structures are repetitive" → almost no complex sentences
+      B4 - "structures are repetitive" -> almost no complex sentences
       B5 - complex attempted but error-prone (density ratio ≥ 2.0)
       B6 - complex used with limited flexibility
       B7 - "a range of structures flexibly used"
@@ -529,7 +529,7 @@ def _mtld(words: list[str], threshold: float = 0.72) -> float:
 def _length_label(n: int) -> str:
     """Map raw word count to a Band-descriptor-aligned label."""
     if n < 30:
-        return "very short (Band ≤5 ceiling)"
+        return "very short (Band <=5 ceiling)"
     if n < 60:
         return "short"
     if n < 100:
@@ -547,11 +547,11 @@ def _compute_idiom_signal(transcript: str, total_words: int) -> str:
     Normalise by response length.
 
     Calibration (per 100 words):
-      0       → none detected (no uplift)
-      1–2     → limited (Band 5–6)
-      2–4     → adequate (Band 6–7)
-      4–6     → good (Band 7)
-      >6      → high (Band 7–8+)
+      0       -> none detected (no uplift)
+      1–2     -> limited (Band 5–6)
+      2–4     -> adequate (Band 6–7)
+      4–6     -> good (Band 7)
+      >6      -> high (Band 7–8+)
     """
     if not transcript or total_words == 0:
         return "idiomatic density: insufficient data"
@@ -602,7 +602,7 @@ def _compute_idiom_signal(transcript: str, total_words: int) -> str:
 
 
 # ── Signal 5: Collocation awareness ──────────────────────────────────────────
-# Very high-frequency verb→object pairs that are universally natural and
+# Very high-frequency verb->object pairs that are universally natural and
 # too common to be informative - skip them so the LLM inventory stays concise.
 _COMMON_NATURAL_PAIRS: frozenset[tuple[str, str]] = frozenset({
     ("have", "time"), ("have", "idea"), ("have", "problem"), ("have", "effect"),
@@ -631,12 +631,12 @@ def _compute_collocation_signal(transcript: str) -> str:
     The LLM (not a hardcoded whitelist) judges whether each pair is natural or
     non-native - this avoids false positives from a fixed lookup table.
 
-    Very common pairs (e.g. have→time, make→decision) are skipped to keep the
+    Very common pairs (e.g. have->time, make->decision) are skipped to keep the
     inventory concise and focus the LLM's attention on less obvious choices.
 
     Returns e.g.:
-      "collocation pairs (spaCy): verb→obj: [cook→recipe, do→mistake];
-       adj→noun: [creative→person, daily→problem]"
+      "collocation pairs (spaCy): verb->obj: [cook->recipe, do->mistake];
+       adj->noun: [creative->person, daily->problem]"
     or a skip message if spaCy is unavailable.
     """
     nlp = _get_spacy()
@@ -662,23 +662,23 @@ def _compute_collocation_signal(transcript: str) -> str:
             noun_lemma = token.lemma_.lower()
             pair = (verb_lemma, noun_lemma)
             if pair not in _COMMON_NATURAL_PAIRS and len(verb_obj_pairs) < 6:
-                verb_obj_pairs.append(f"{verb_lemma}→{noun_lemma}")
+                verb_obj_pairs.append(f"{verb_lemma}->{noun_lemma}")
 
         # Adjective–noun: token is the modifier (amod), head is the noun
         elif dep == "amod" and head.pos_ == "NOUN":
             adj_lemma = token.lemma_.lower()
             noun_lemma = head.lemma_.lower()
             if len(adj_noun_pairs) < 6:
-                adj_noun_pairs.append(f"{adj_lemma}→{noun_lemma}")
+                adj_noun_pairs.append(f"{adj_lemma}->{noun_lemma}")
 
     if not verb_obj_pairs and not adj_noun_pairs:
         return "collocation pairs (spaCy): none extracted"
 
     parts: list[str] = []
     if verb_obj_pairs:
-        parts.append(f"verb→obj: [{', '.join(verb_obj_pairs)}]")
+        parts.append(f"verb->obj: [{', '.join(verb_obj_pairs)}]")
     if adj_noun_pairs:
-        parts.append(f"adj→noun: [{', '.join(adj_noun_pairs)}]")
+        parts.append(f"adj->noun: [{', '.join(adj_noun_pairs)}]")
 
     return "collocation pairs (spaCy): " + "; ".join(parts)
 

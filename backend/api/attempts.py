@@ -95,7 +95,7 @@ _LT_FILTERED_CATEGORIES: frozenset[str] = frozenset({
 
 # Rules that belong to filtered categories but catch genuine errors worth surfacing.
 _LT_WHITELISTED_RULE_IDS: frozenset[str] = frozenset({
-    "BORED_OF",  # STYLE: 'bored of' → 'bored with/by' - real preposition error
+    "BORED_OF",  # STYLE: 'bored of' -> 'bored with/by' - real preposition error
 })
 
 
@@ -122,7 +122,7 @@ def _sentence_spans(text: str) -> list[tuple[int, int]]:
 
 
 async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> None:
-    """Background task: transcribe → score → update attempt + stats."""
+    """Background task: transcribe -> score -> update attempt + stats."""
     logger.info(
         "\n\n========== PIPELINE START attempt_id=%d ==========\n"
         "  question_id=%d\n"
@@ -271,7 +271,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                         logger.info(
                             "\n\n========== LT_RAW_MATCHES attempt_id=%d ==========\n"
                             "  source : %s\n"
-                            "  count  : %d (raw) → %d (after artifact filter)\n"
+                            "  count  : %d (raw) -> %d (after artifact filter)\n"
                             "  matches: %s",
                             attempt_id,
                             "local" if type(lt).__name__ == "LanguageTool" else "public API",
@@ -333,7 +333,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                                 cat = grp[0].category
                                 examples = " | ".join(
                                     f"'{transcript[m.offset:m.offset + m.error_length]}'"
-                                    f" → {list(m.replacements[:2])}"
+                                    f" -> {list(m.replacements[:2])}"
                                     for m in grp
                                 )
                                 by_rule_lines.append(
@@ -348,7 +348,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                                 span = transcript[m.offset:m.offset + m.error_length]
                                 by_sent_lines.append(
                                     f"  S{s_num}: '{span}'"
-                                    f" → {list(m.replacements[:2])}"
+                                    f" -> {list(m.replacements[:2])}"
                                     f" ({m.message})"
                                 )
 
@@ -642,7 +642,7 @@ async def submit_attempt(
         file_size_kb = os.path.getsize(audio_path) / 1024 if os.path.exists(audio_path) else -1
         logger.info(
             "\n\n========== SUBMIT attempt_id=%d question_id=%d ==========\n"
-            "  audio saved → %s  (%.1f KB)\n"
+            "  audio saved -> %s  (%.1f KB)\n"
             "  content_type=%s",
             attempt.id, question_id, audio_path, file_size_kb, audio.content_type,
         )

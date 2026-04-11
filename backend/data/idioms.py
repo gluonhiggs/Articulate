@@ -14,11 +14,11 @@ Coverage strategy:
   - Higher-register fixed expressions (Band 7-8+)
 
 Calibration thresholds (per 100 words of transcript):
-  0     → no formulaic use detected (Band 5–6 indicator)
-  1–2   → limited (Band 6)
-  2–4   → adequate (Band 6–7)
-  4–6   → good (Band 7)
-  >6    → high (Band 7–8+)
+  0     -> no formulaic use detected (Band 5–6 indicator)
+  1–2   -> limited (Band 6)
+  2–4   -> adequate (Band 6–7)
+  4–6   -> good (Band 7)
+  >6    -> high (Band 7–8+)
 
 Phrases are stored lowercased. Matching is done case-insensitively against
 the lowercased transcript. Multi-word phrases matched greedily (longest first).

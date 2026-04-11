@@ -37,7 +37,7 @@ describe('TTS auto-play NotAllowedError silencing', () => {
   })
 
   it('does not crash on non-Error thrown values', () => {
-    // Non-Error objects (e.g. thrown strings) → instanceof Error is false → shouldLog is false
+    // Non-Error objects (e.g. thrown strings) -> instanceof Error is false -> shouldLog is false
     expect(shouldLogError('some string error')).toBe(false)
     expect(shouldLogError(null)).toBe(false)
     expect(shouldLogError(undefined)).toBe(false)

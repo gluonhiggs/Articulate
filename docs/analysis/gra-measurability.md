@@ -12,7 +12,7 @@ by the LLM reading the transcript.
 ## How scoring works (overview)
 
 ```
-Audio → Whisper → transcript
+Audio -> Whisper -> transcript
                       │
               LanguageTool (LT)
                       │
@@ -208,16 +208,16 @@ canonical sub-components of "range of structures" at bands 6–9.
 
 **Measurability:** ✅ Computable (with spaCy).
 - **Tense inventory:** spaCy morphological analysis extracts `{Tense, Aspect, Mood}` feature
-  combinations across all verb tokens. Simple present + simple past only → bands 4–5.
-  Present perfect, modals, conditionals, past progressive → bands 6–7. Full tense system
-  including future-in-the-past and subjunctive-like conditionals → bands 8–9.
+  combinations across all verb tokens. Simple present + simple past only -> bands 4–5.
+  Present perfect, modals, conditionals, past progressive -> bands 6–7. Full tense system
+  including future-in-the-past and subjunctive-like conditionals -> bands 8–9.
 - **Passive voice:** Count sentences containing `aux:pass` arc. Presence is a positive signal;
   absence is neutral (short Part 1 responses rarely use passive).
 - **Conditional constructions:** Heuristic: `mark` arc with text "if"/"unless" heading an
   `advcl`, combined with a modal in the governing clause. Second-conditional pattern:
   past-tense `if`-clause + `would/could` main clause.
-- **Parse tree depth:** Mean and 90th-percentile max token depth from root. Mean < 3 → simple
-  sentences dominant. Mean 4–5 → bands 6–7. Mean > 5 → genuine syntactic complexity.
+- **Parse tree depth:** Mean and 90th-percentile max token depth from root. Mean < 3 -> simple
+  sentences dominant. Mean 4–5 -> bands 6–7. Mean > 5 -> genuine syntactic complexity.
   Should be read alongside clause counts, not in isolation.
 
 **Status:** ✅ Implemented. All four sub-signals are computed in `compute_grammar_signals()`
@@ -229,7 +229,7 @@ in `backend/services/vocab.py`, in the same per-sentence spaCy parse loop as Sig
 - **Passive:** `dep_=="auxpass"` with VBG guard - prevents "she's been working"
   (present perfect progressive) from being falsely classified as passive by `en_core_web_sm`.
 - **Conditionals:** `if/unless/provided` marker + `advcl` guard (excludes complementizer
-  "I wonder if…") + main-clause modal → classified as zero/first/second/third conditional.
+  "I wonder if…") + main-clause modal -> classified as zero/first/second/third conditional.
 - **Tree depth:** mean and p90 token hops to root; punctuation and `parataxis` subtrees
   excluded; run-on caveat surfaced in prompt (high depth + low complex rate = coordination,
   not subordination).
@@ -324,15 +324,15 @@ Structured multi-line format:
 4 error(s) in 12 sentences (67% error-free)
 
 By rule:
-  [GRAMMAR] SUBJECT_VERB_AGREEMENT ×2: 'he go' → ['he goes'] | 'they was' → ['they were']
-  [GRAMMAR] MISSING_VERB_FORM ×1: 'have walk' → ['have walked']
-  [GRAMMAR] GRAMMAR ×1: 'which teach' → ['who teaches']
+  [GRAMMAR] SUBJECT_VERB_AGREEMENT ×2: 'he go' -> ['he goes'] | 'they was' -> ['they were']
+  [GRAMMAR] MISSING_VERB_FORM ×1: 'have walk' -> ['have walked']
+  [GRAMMAR] GRAMMAR ×1: 'which teach' -> ['who teaches']
 
 By sentence:
-  S2: 'he go' → ['he goes'] (Subject-verb agreement: 'He go' should be 'He goes')
-  S4: 'have walk' → ['have walked'] (Use the past participle 'walked')
-  S7: 'they was' → ['they were'] (Subject-verb agreement)
-  S9: 'which teach' → ['who teaches'] (Use a relative pronoun for people)
+  S2: 'he go' -> ['he goes'] (Subject-verb agreement: 'He go' should be 'He goes')
+  S4: 'have walk' -> ['have walked'] (Use the past participle 'walked')
+  S7: 'they was' -> ['they were'] (Subject-verb agreement)
+  S9: 'which teach' -> ['who teaches'] (Use a relative pronoun for people)
 ```
 
 All errors included (no cap). Stats computed from the full filtered match list.

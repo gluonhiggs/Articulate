@@ -41,29 +41,29 @@ Mock IELTS Part 1 response
 
   Scans consecutive word pairs. Gap = words[i].start - words[i-1].end. Any gap ≥ 0.5s is a "long pause" and the word after it is marked disfluent.
 
-  Gap before "I" (second sentence): 1.90 - 1.80 = 0.10s  → OK
-  Gap before "sometimes" (last sentence): ~7.00 - 6.85 = 0.15s → OK
+  Gap before "I" (second sentence): 1.90 - 1.80 = 0.10s  -> OK
+  Gap before "sometimes" (last sentence): ~7.00 - 6.85 = 0.15s -> OK
   (No gaps ≥ 0.5s in this response)
 
-  → fluency_context = "0 long pause(s) in 46 words (0.0/100 words)"
-  → disfluent = set()  (empty)
+  -> fluency_context = "0 long pause(s) in 46 words (0.0/100 words)"
+  -> disfluent = set()  (empty)
 
   Signal B: flagged_words
 
   Words where probability < low_confidence_threshold (default ~0.85) OR word is disfluent:
 
-  "cycling"  → prob 0.89 → OK (above threshold)
-  "satisfying" → prob 0.87 → OK
+  "cycling"  -> prob 0.89 -> OK (above threshold)
+  "satisfying" -> prob 0.87 -> OK
   All words above threshold in this response.
   Disfluent set is empty.
 
-  → flagged_words = ""  (none)
+  -> flagged_words = ""  (none)
 
   Signal C: grammar_context
 
   LanguageTool runs on the full transcript. For this response it finds nothing major:
 
-  → grammar_context = "no grammar errors detected"
+  -> grammar_context = "no grammar errors detected"
 
   Signal D: vocab_signal - this is the main one
 
@@ -84,45 +84,45 @@ Mock IELTS Part 1 response
          "find", "it", "quite", "satisfying", "and", "creative"]
 
   # After len > 2 AND not in _STOP_WORDS:
-  # ✗ "i"        → len=1 (filtered)
-  # ✗ "really"   → in _STOP_WORDS (filtered)
-  # ✓ "well"     → keep
-  # ✓ "enjoy"    → keep
-  # ✓ "spending" → keep
-  # ✓ "time"     → keep
-  # ✓ "outdoors" → keep
-  # ✗ "like"     → in _STOP_WORDS (filtered)
-  # ✓ "hiking"   → keep
-  # ✗ "and"      → in _STOP_WORDS (filtered)
-  # ✓ "sometimes"→ keep
-  # ✓ "cycling"  → keep
-  # ✗ "with"     → in _STOP_WORDS (filtered)
-  # ✗ "my"       → in _STOP_WORDS (filtered)
-  # ✓ "friends"  → keep
-  # ✗ "also"     → in _STOP_WORDS (filtered)
-  # ✓ "read"     → keep
-  # ✓ "books"    → keep
-  # ✓ "especially"→ keep
-  # ✓ "novels"   → keep
-  # ✗ "about"    → in _STOP_WORDS (filtered)
-  # ✓ "adventure"→ keep
-  # ✗ "think"    → in _STOP_WORDS (filtered)
-  # ✗ "it"       → in _STOP_WORDS (filtered)
-  # ✓ "helps"    → keep
-  # ✗ "me"       → in _STOP_WORDS (filtered)
-  # ✓ "relax"    → keep
-  # ✗ "forget"   → NOT in stop words → keep ✓  (content verb)
-  # ✗ "about"    → filtered
-  # ✓ "daily"    → keep
-  # ✓ "problems" → keep
-  # ✓ "cook"     → keep
-  # ✓ "new"      → keep
-  # ✓ "recipes"  → keep
-  # ✗ "because"  → in _STOP_WORDS (filtered)
-  # ✓ "find"     → keep (not in stop words)
-  # ✓ "quite"    → keep
-  # ✓ "satisfying"→ keep
-  # ✓ "creative" → keep
+  # ✗ "i"        -> len=1 (filtered)
+  # ✗ "really"   -> in _STOP_WORDS (filtered)
+  # ✓ "well"     -> keep
+  # ✓ "enjoy"    -> keep
+  # ✓ "spending" -> keep
+  # ✓ "time"     -> keep
+  # ✓ "outdoors" -> keep
+  # ✗ "like"     -> in _STOP_WORDS (filtered)
+  # ✓ "hiking"   -> keep
+  # ✗ "and"      -> in _STOP_WORDS (filtered)
+  # ✓ "sometimes"-> keep
+  # ✓ "cycling"  -> keep
+  # ✗ "with"     -> in _STOP_WORDS (filtered)
+  # ✗ "my"       -> in _STOP_WORDS (filtered)
+  # ✓ "friends"  -> keep
+  # ✗ "also"     -> in _STOP_WORDS (filtered)
+  # ✓ "read"     -> keep
+  # ✓ "books"    -> keep
+  # ✓ "especially"-> keep
+  # ✓ "novels"   -> keep
+  # ✗ "about"    -> in _STOP_WORDS (filtered)
+  # ✓ "adventure"-> keep
+  # ✗ "think"    -> in _STOP_WORDS (filtered)
+  # ✗ "it"       -> in _STOP_WORDS (filtered)
+  # ✓ "helps"    -> keep
+  # ✗ "me"       -> in _STOP_WORDS (filtered)
+  # ✓ "relax"    -> keep
+  # ✗ "forget"   -> NOT in stop words -> keep ✓  (content verb)
+  # ✗ "about"    -> filtered
+  # ✓ "daily"    -> keep
+  # ✓ "problems" -> keep
+  # ✓ "cook"     -> keep
+  # ✓ "new"      -> keep
+  # ✓ "recipes"  -> keep
+  # ✗ "because"  -> in _STOP_WORDS (filtered)
+  # ✓ "find"     -> keep (not in stop words)
+  # ✓ "quite"    -> keep
+  # ✓ "satisfying"-> keep
+  # ✓ "creative" -> keep
 
   content_words = [
     "well", "enjoy", "spending", "time", "outdoors",
@@ -134,36 +134,36 @@ Mock IELTS Part 1 response
   ]
   # total = 26 content words
 
-  3b. Lemmatize each word → look up Oxford 5000
+  3b. Lemmatize each word -> look up Oxford 5000
 
   # word           lemma (simplemma)   Oxford 5000 level
   # ─────────────────────────────────────────────────────
-  # "well"       → "well"            →  A1
-  # "enjoy"      → "enjoy"           →  A2
-  # "spending"   → "spend"           →  A2
-  # "time"       → "time"            →  A1
-  # "outdoors"   → "outdoors"        →  B2
-  # "hiking"     → "hike"            →  ❌ not in Oxford 5000  ← unmatched
-  # "sometimes"  → "sometimes"       →  A1
-  # "cycling"    → "cycle"           →  B1
-  # "friends"    → "friend"          →  A1
-  # "read"       → "read"            →  A1
-  # "books"      → "book"            →  A1
-  # "especially" → "especially"      →  B1
-  # "novels"     → "novel"           →  B2
-  # "adventure"  → "adventure"       →  B1
-  # "helps"      → "help"            →  A1
-  # "relax"      → "relax"           →  B1
-  # "forget"     → "forget"          →  A2
-  # "daily"      → "daily"           →  B1
-  # "problems"   → "problem"         →  A2
-  # "cook"       → "cook"            →  A2
-  # "new"        → "new"             →  A1
-  # "recipes"    → "recipe"          →  B1
-  # "find"       → "find"            →  A2
-  # "quite"      → "quite"           →  A2
-  # "satisfying" → "satisfy"         →  B2
-  # "creative"   → "creative"        →  B2
+  # "well"       -> "well"            ->  A1
+  # "enjoy"      -> "enjoy"           ->  A2
+  # "spending"   -> "spend"           ->  A2
+  # "time"       -> "time"            ->  A1
+  # "outdoors"   -> "outdoors"        ->  B2
+  # "hiking"     -> "hike"            ->  ❌ not in Oxford 5000  ← unmatched
+  # "sometimes"  -> "sometimes"       ->  A1
+  # "cycling"    -> "cycle"           ->  B1
+  # "friends"    -> "friend"          ->  A1
+  # "read"       -> "read"            ->  A1
+  # "books"      -> "book"            ->  A1
+  # "especially" -> "especially"      ->  B1
+  # "novels"     -> "novel"           ->  B2
+  # "adventure"  -> "adventure"       ->  B1
+  # "helps"      -> "help"            ->  A1
+  # "relax"      -> "relax"           ->  B1
+  # "forget"     -> "forget"          ->  A2
+  # "daily"      -> "daily"           ->  B1
+  # "problems"   -> "problem"         ->  A2
+  # "cook"       -> "cook"            ->  A2
+  # "new"        -> "new"             ->  A1
+  # "recipes"    -> "recipe"          ->  B1
+  # "find"       -> "find"            ->  A2
+  # "quite"      -> "quite"           ->  A2
+  # "satisfying" -> "satisfy"         ->  B2
+  # "creative"   -> "creative"        ->  B2
 
   3c. Tally up
 
@@ -171,11 +171,11 @@ Mock IELTS Part 1 response
   matched = 25  (hiking was unmatched)
 
   counts:
-    A1: well, time, sometimes, friend, read, book, help, new = 8 tokens  → 32%
-    A2: enjoy, spend, forget, problem, cook, find, quite     = 7 tokens  → 28%
-    B1: cycle, especially, adventure, relax, daily, recipe   = 6 tokens  → 24%
-    B2: outdoors, novel, satisfy, creative                   = 4 tokens  → 16%
-    C1: (none)                                               = 0         →  0%
+    A1: well, time, sometimes, friend, read, book, help, new = 8 tokens  -> 32%
+    A2: enjoy, spend, forget, problem, cook, find, quite     = 7 tokens  -> 28%
+    B1: cycle, especially, adventure, relax, daily, recipe   = 6 tokens  -> 24%
+    B2: outdoors, novel, satisfy, creative                   = 4 tokens  -> 16%
+    C1: (none)                                               = 0         ->  0%
 
   high (B2+) = 4 tokens
   unique lemmas = 25 (hiking has its own lemma "hike" too)
@@ -183,14 +183,14 @@ Mock IELTS Part 1 response
   unmatched = ["hike"]  (only one)
 
   B2+ words with IPA (capped at 5):
-    outdoors  → /ˌaʊtˈdɔːrz/
-    novel     → /ˈnɑːvl/
-    satisfy   → /ˈsætɪsfaɪ/
-    creative  → /kriˈeɪtɪv/
+    outdoors  -> /ˌaʊtˈdɔːrz/
+    novel     -> /ˈnɑːvl/
+    satisfy   -> /ˈsætɪsfaɪ/
+    creative  -> /kriˈeɪtɪv/
 
   3d. MTLD check
 
-  Full transcript word count: ~46 words → below the 50-word threshold → MTLD skipped.
+  Full transcript word count: ~46 words -> below the 50-word threshold -> MTLD skipped.
 
   3e. Final vocab_signal string assembled
 
@@ -241,7 +241,7 @@ Mock IELTS Part 1 response
   ├───────────────────────────────────────────┼─────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────┤
   │ 100% unique lemma ratio                   │ -                                                   │ Good variety, no repetition                                                                         │
   ├───────────────────────────────────────────┼─────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────┤
-  │ novel, creative, satisfying in transcript │ Band 6→7 boundary                                   │ Three good B2 choices but all common, no real idioms                                                │
+  │ novel, creative, satisfying in transcript │ Band 6->7 boundary                                   │ Three good B2 choices but all common, no real idioms                                                │
   ├───────────────────────────────────────────┼─────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────┤
   │ No collocation signal                     │ Band 7: "collocation awareness"                     │ LLM reads transcript and notices "cook new recipes" (collocation gap - should be "try new recipes") │
   ├───────────────────────────────────────────┼─────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────┤
@@ -268,7 +268,7 @@ Mock IELTS Part 1 response
     ]
   }
 
-  Overall score: (6.5 + 6.0 + 6.5 + 6.0) / 4 = 6.25 → rounded to 6.5
+  Overall score: (6.5 + 6.0 + 6.5 + 6.0) / 4 = 6.25 -> rounded to 6.5
 
   ---
   What the signal currently cannot tell the LLM

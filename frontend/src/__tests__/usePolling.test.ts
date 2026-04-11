@@ -94,7 +94,7 @@ describe('usePolling interval logic', () => {
     const startedAtRef = { current: Date.now() - POLLING_TIMEOUT_MS }
     const setIsTimedOut = vi.fn()
     const decide = makeIntervalDecision(startedAtRef, setIsTimedOut)
-    // Date.now() - startedAt === POLLING_TIMEOUT_MS exactly → NOT > → should still poll
+    // Date.now() - startedAt === POLLING_TIMEOUT_MS exactly -> NOT > -> should still poll
     expect(decide('processing')).toBe(1500)
     expect(setIsTimedOut).not.toHaveBeenCalledWith(true)
   })

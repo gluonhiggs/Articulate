@@ -6,14 +6,14 @@ LLM HTTP client - any OpenAI-compatible cloud API (Gemini, Groq, OpenAI, etc.).
   │  ──────────────────────────────────────────────────────     │
   │  Unified interface: POST /v1/chat/completions               │
   │  Works with:                                                │
-  │    • Gemini   → base_url=https://generativelanguage...      │
-  │    • Groq     → base_url=https://api.groq.com/openai/v1    │
-  │    • OpenAI   → base_url=https://api.openai.com/v1         │
+  │    • Gemini   -> base_url=https://generativelanguage...      │
+  │    • Groq     -> base_url=https://api.groq.com/openai/v1    │
+  │    • OpenAI   -> base_url=https://api.openai.com/v1         │
   │                                                             │
-  │  generate(base_url, model, prompt, *, api_key, ...)→ str   │
+  │  generate(base_url, model, prompt, *, api_key, ...)-> str   │
   │    ├─ POST {base_url}/chat/completions     (versioned base) │
   │    ├─ POST {base_url}/v1/chat/completions  (bare base)      │
-  │    ├─ on ConnectError → retry once                         │
+  │    ├─ on ConnectError -> retry once                         │
   │    └─ logs model, prompt_len, resp_len, latency_ms         │
   │                                                             │
   │  close_if_initialized()  ← lifespan shutdown               │
@@ -52,9 +52,9 @@ def _chat_completions_url(base_url: str) -> str:
     """
     Build the correct chat completions endpoint from a base URL.
 
-    - OpenAI   https://api.openai.com/v1       → .../chat/completions
-    - Groq     https://api.groq.com/openai/v1  → .../chat/completions
-    - Gemini   https://.../v1beta/openai        → .../chat/completions
+    - OpenAI   https://api.openai.com/v1       -> .../chat/completions
+    - Groq     https://api.groq.com/openai/v1  -> .../chat/completions
+    - Gemini   https://.../v1beta/openai        -> .../chat/completions
     """
     base = base_url.rstrip("/")
     versioned_suffixes = ("/v1", "/openai", "/v1beta/openai")

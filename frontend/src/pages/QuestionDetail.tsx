@@ -256,7 +256,7 @@ export function QuestionDetail() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [companionAttempt, attemptId])
 
-  // Auto-transition: preparing → recording
+  // Auto-transition: preparing -> recording
   useEffect(() => {
     if (status !== 'preparing' || !question) return
     if (question.part !== '2') {

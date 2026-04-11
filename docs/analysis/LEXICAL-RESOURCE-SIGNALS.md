@@ -12,7 +12,7 @@ by the LLM reading the transcript.
 ## How scoring works (overview)
 
 ```
-Audio → Whisper → transcript + word dicts
+Audio -> Whisper -> transcript + word dicts
                         │
                  compute_vocab_signal()
                         │
@@ -134,8 +134,8 @@ that native speakers reach for naturally ("a wide range", "it goes without sayin
 **Measurability:** Partially computable.
 - A curated list of IELTS-relevant formulaic phrases (`backend/data/idioms.py`) is matched
   against the transcript. Density is computed as matches per 100 words and mapped to a
-  band-aligned label (none → Band 5–6, limited → Band 6, adequate → Band 6–7, good → Band 7,
-  high → Band 7–8+).
+  band-aligned label (none -> Band 5–6, limited -> Band 6, adequate -> Band 6–7, good -> Band 7,
+  high -> Band 7–8+).
 - **Limitation:** The list is a fixed lower-bound - idioms not on it are invisible to the
   counter. The prompts explicitly instruct the LLM to detect additional idiomatic language
   from the transcript and weigh it in the score.
@@ -164,14 +164,14 @@ Note: Collocation only appears explicitly at Band 7–8. This is why it is the p
 discriminator between Band 6 and Band 7.
 
 **Measurability:** Partially computable.
-- spaCy dependency parsing extracts verb→object (`dobj`/`obj`) and adjective→noun (`amod`)
-  pairs from the transcript. Very common pairs (e.g. `have→time`, `make→decision`) are
+- spaCy dependency parsing extracts verb->object (`dobj`/`obj`) and adjective->noun (`amod`)
+  pairs from the transcript. Very common pairs (e.g. `have->time`, `make->decision`) are
   filtered out via `_COMMON_NATURAL_PAIRS` to keep the inventory concise.
 - The extracted pairs are passed as a raw inventory to the LLM, which evaluates naturalness.
   This avoids false positives from a fixed lookup table - the LLM's linguistic knowledge
   judges any pair regardless of whether it's in a predefined list.
 - **Limitation:** spaCy extracts surface pairs but cannot detect omitted collocations (e.g.
-  if the speaker avoided "heavy rain" by saying "big rain" - the pair `big→rain` will appear
+  if the speaker avoided "heavy rain" by saying "big rain" - the pair `big->rain` will appear
   and the LLM should flag it). Pairs not mentioned in the transcript are invisible.
 
 **Status:** ✅ Implemented - `_compute_collocation_signal()` sends pair inventory to LLM.
@@ -238,7 +238,7 @@ At higher bands, speakers avoid word repetition and deploy a broad range of form
 | 2 | Vocabulary Sophistication (less common words) | B6 ↔ B7 ↔ B8 ↔ B9 | Yes | ✅ B2+ count + unmatched words |
 | 3 | Precision / Accuracy in word choice | B4 ↔ B6 ↔ B7 ↔ B8 ↔ B9 | No | LLM-only (reads transcript) |
 | 4 | Idiomatic Language | B7 ↔ B8 ↔ B9 | Partially | ✅ Density from `idioms.py` (lower-bound) + LLM reads transcript for remainder |
-| 5 | Collocation Awareness | **B6 ↔ B7** ↔ B8 | Partially | ✅ spaCy pair inventory → LLM evaluates naturalness |
+| 5 | Collocation Awareness | **B6 ↔ B7** ↔ B8 | Partially | ✅ spaCy pair inventory -> LLM evaluates naturalness |
 | 6 | Paraphrase Ability | B4 ↔ B5 ↔ B6 ↔ B7 | No | LLM-only (reads transcript) |
 | 7 | Lexical Diversity / Flexibility | B5 ↔ B6 ↔ B7 ↔ B8 ↔ B9 | Yes | ✅ MTLD + unique lemma ratio |
 
@@ -264,7 +264,7 @@ lexical diversity MTLD={score} ({level})   OR   lexical diversity: insufficient 
 
 idiomatic density: {per_100}/100 words ({level}); matched: 'phrase' | 'phrase' | …
 
-collocation pairs (spaCy): verb→obj: [v→n, …]; adj→noun: [adj→n, …]
+collocation pairs (spaCy): verb->obj: [v->n, …]; adj->noun: [adj->n, …]
 ```
 
 Signal coverage:

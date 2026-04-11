@@ -2,8 +2,8 @@
 English collocation data - loaded once at module level.
 
 Two tables:
-  VERB_OBJ_COLLOCATIONS  - noun → set of natural verbs that take it as object
-  ADJ_NOUN_COLLOCATIONS  - noun → set of natural adjectives that modify it
+  VERB_OBJ_COLLOCATIONS  - noun -> set of natural verbs that take it as object
+  ADJ_NOUN_COLLOCATIONS  - noun -> set of natural adjectives that modify it
 
 Used by compute_collocation_signal() in backend/services/vocab.py to detect
 non-native word combinations. If spaCy extracts a verb+object or adj+noun pair
@@ -18,8 +18,8 @@ Do NOT import this per-request - it is loaded once at module import time.
 """
 from __future__ import annotations
 
-# verb → object collocations
-# Format: noun_lemma → frozenset of natural verb lemmas
+# verb -> object collocations
+# Format: noun_lemma -> frozenset of natural verb lemmas
 # If a speaker uses a verb NOT in this set with this noun object, it is flagged.
 VERB_OBJ_COLLOCATIONS: dict[str, frozenset[str]] = {
     # decisions and judgments
@@ -112,8 +112,8 @@ VERB_OBJ_COLLOCATIONS: dict[str, frozenset[str]] = {
     "help":        frozenset({"provide", "give", "receive", "get", "offer", "need", "ask"}),
 }
 
-# adjective → noun collocations
-# Format: noun_lemma → frozenset of natural adjective lemmas
+# adjective -> noun collocations
+# Format: noun_lemma -> frozenset of natural adjective lemmas
 ADJ_NOUN_COLLOCATIONS: dict[str, frozenset[str]] = {
     # weather
     "rain":        frozenset({"heavy", "light", "moderate", "torrential", "gentle"}),

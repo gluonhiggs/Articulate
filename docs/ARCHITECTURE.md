@@ -30,15 +30,15 @@ Record audio (WebM/MP4)
   ├─ Poll GET /attempts/{id}/status (every 1.5s, 3min timeout)
   │                                │
   │                                ├─ [status: transcribing]
-  │                                │   └─ Whisper → transcript + word timestamps
+  │                                │   └─ Whisper -> transcript + word timestamps
   │                                │
   │                                ├─ [status: scoring]
-  │                                │   ├─ Gap rate → fluency_context
-  │                                │   ├─ CEFR match → vocab_signal
-  │                                │   ├─ LanguageTool → grammar_context (Java, optional)
-  │                                │   ├─ Low-confidence words → flagged_words
+  │                                │   ├─ Gap rate -> fluency_context
+  │                                │   ├─ CEFR match -> vocab_signal
+  │                                │   ├─ LanguageTool -> grammar_context (Java, optional)
+  │                                │   ├─ Low-confidence words -> flagged_words
   │                                │   ├─ Build prompt (template + all signals)
-  │                                │   └─ POST LLM /chat/completions ─────────→ LLM
+  │                                │   └─ POST LLM /chat/completions ─────────-> LLM
   │                                │       model=get_active_model()             │
   │                                │       temperature=0.3                      │
   │                                │       num_predict=1024                     │
@@ -59,7 +59,7 @@ Record audio (WebM/MP4)
 
 **Attempt status transitions:**
 ```
-processing → transcribing → scoring → ready
+processing -> transcribing -> scoring -> ready
                                     ↘ failed:transcription
                                     ↘ failed:empty_audio
                                     ↘ failed:scoring
@@ -91,7 +91,7 @@ Articulate/
 │   │
 │   ├── services/
 │   │   ├── transcription.py     # Groq Whisper API client, transcribe()
-│   │   ├── scoring.py           # score_attempt(): signals → prompt → LLM → parse → clamp
+│   │   ├── scoring.py           # score_attempt(): signals -> prompt -> LLM -> parse -> clamp
 │   │   ├── llm_client.py        # Singleton httpx client, generate(), ConnectError retry, latency logging
 │   │   ├── audio.py             # save_audio(), cleanup_old_audio() (by age then by total size)
 │   │   ├── tts.py               # Kokoro TTS, get_or_generate_tts(), cache eviction
@@ -107,7 +107,7 @@ Articulate/
 │   │   └── topic_vocab.txt      # Advanced vocabulary extraction
 │   │
 │   └── data/
-│       ├── cefr_wordlist.py     # Dict: word → CEFR level (A1–C2), used for vocab signal
+│       ├── cefr_wordlist.py     # Dict: word -> CEFR level (A1–C2), used for vocab signal
 │       └── seed_questions.json  # Initial question bank, loaded by init_db() (additive, no duplicates)
 │
 ├── frontend/
@@ -169,7 +169,7 @@ Articulate/
 │   ├── audio/                   # Recorded audio files ({attempt_id}.webm/.mp4)
 │   └── tts_cache/               # Kokoro-generated WAV files
 │
-├── certs/                       # Optional TLS certs (cert.pem + key.pem → enables HTTPS)
+├── certs/                       # Optional TLS certs (cert.pem + key.pem -> enables HTTPS)
 ├── BAND-SCORES.md               # IELTS band descriptors Band 3–9, injected into every scoring prompt
 ├── BAND-SCORES.original.md      # Full official band descriptors (source of truth)
 ├── pyproject.toml               # Python deps + uv config
@@ -236,26 +236,26 @@ Articulate/
 
 ```typescript
 // Questions
-fetchPart1Questions(hideAnswered)           → Question[]
-fetchPart2Questions(category, hideAnswered) → Question[]
-fetchPart3Questions(category, hideAnswered) → Part3Group[]
-fetchQuestion(id)                           → Question
-fetchForecast()                             → ForecastEntry[]
-fetchSampleAnswer(questionId)               → SampleAnswerResponse   // 60s timeout
-fetchTopicVocab(questionId)                 → TopicVocabResponse      // 60s timeout
+fetchPart1Questions(hideAnswered)           -> Question[]
+fetchPart2Questions(category, hideAnswered) -> Question[]
+fetchPart3Questions(category, hideAnswered) -> Part3Group[]
+fetchQuestion(id)                           -> Question
+fetchForecast()                             -> ForecastEntry[]
+fetchSampleAnswer(questionId)               -> SampleAnswerResponse   // 60s timeout
+fetchTopicVocab(questionId)                 -> TopicVocabResponse      // 60s timeout
 
 // Attempts
-submitAttempt(questionId, audioBlob)        → { id, status }
-fetchAttemptStatus(attemptId)               → Attempt
-fetchAttemptHistory(questionId)             → Attempt[]
-fetchImprovedVersion(attemptId)             → ImproveResponse         // 60s timeout
-fetchPronunciationDetails(attemptId)        → { words: PronunciationWord[] }
-getAttemptAudioUrl(attemptId)               → string  (URL, no fetch)
+submitAttempt(questionId, audioBlob)        -> { id, status }
+fetchAttemptStatus(attemptId)               -> Attempt
+fetchAttemptHistory(questionId)             -> Attempt[]
+fetchImprovedVersion(attemptId)             -> ImproveResponse         // 60s timeout
+fetchPronunciationDetails(attemptId)        -> { words: PronunciationWord[] }
+getAttemptAudioUrl(attemptId)               -> string  (URL, no fetch)
 
 // System & Dashboard
-fetchDashboard()                            → DashboardData
-fetchSystemInfo()                           → SystemInfo
-patchLlmModel(model)                        → SystemInfo
+fetchDashboard()                            -> DashboardData
+fetchSystemInfo()                           -> SystemInfo
+patchLlmModel(model)                        -> SystemInfo
 ```
 
 Default timeout: 10s. Scoring/TTS/AI features: 60s.
@@ -277,7 +277,7 @@ Orchestrates the full scoring pipeline:
 ### `services/transcription.py`
 - Sends audio to Groq Whisper API (`whisper-large-v3-turbo` by default)
 - Returns `{transcript, words: [{word, start, end, probability}]}`
-- Empty audio → raises immediately without calling the API
+- Empty audio -> raises immediately without calling the API
 
 ### `services/llm_client.py`
 - Singleton `httpx.AsyncClient` (connection pooling)
@@ -304,7 +304,7 @@ Orchestrates the full scoring pipeline:
 | part | str | `"1"`, `"2"`, `"3"` |
 | topic | str? | |
 | category | str? | `person`, `object`, `activity`, `place` |
-| parent_question_id | FK? | Part 3 → Part 2 parent |
+| parent_question_id | FK? | Part 3 -> Part 2 parent |
 | text | str | Unique for dedup during seeding |
 | bullet_points | JSON str? | Part 2 cue card points |
 | topic_tag | str? | e.g. `environment`, `technology` |
@@ -366,8 +366,8 @@ Set in `.env` (copy from `.env.example`), loaded by `run.ps1`/`run.sh`. All have
 | `TTS_CACHE_DIR` | `data/tts_cache` | TTS cache |
 | `TTS_VOICE` | `af_heart` | Kokoro voice |
 | `TTS_CACHE_MAX_MB` | `100` | TTS cache size cap |
-| `LOW_CONFIDENCE_THRESHOLD` | `0.6` | Whisper word confidence below this → flagged for pronunciation |
-| `GAP_THRESHOLD` | `0.5` | Pause (seconds) before a word → counted as fluency gap |
+| `LOW_CONFIDENCE_THRESHOLD` | `0.6` | Whisper word confidence below this -> flagged for pronunciation |
+| `GAP_THRESHOLD` | `0.5` | Pause (seconds) before a word -> counted as fluency gap |
 | `CORS_ORIGINS` | `http://localhost:5173,...` | Comma-separated allowed origins |
 
 **Runtime model override:** `PATCH /api/v1/system/model` sets `_runtime_model` in memory. Survives page refresh, resets on server restart. Env var is the durable default.

@@ -105,5 +105,5 @@ async def get_or_generate_tts(
     await _ensure_pipeline()
     loop = asyncio.get_running_loop()
     await loop.run_in_executor(None, _synthesize, _pipeline, text, voice, wav_file)
-    logger.info("Generated TTS for question %s → %s", question_id, wav_file)
+    logger.info("Generated TTS for question %s -> %s", question_id, wav_file)
     return wav_file
