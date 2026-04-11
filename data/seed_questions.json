@@ -361,6 +361,19 @@
   {
     "part": "2",
     "topic": null,
+    "topic_tag": "pitch",
+    "category": "Professional",
+    "text": "Present a pitch for a product, service, or idea of your choice",
+    "bullet_points": [
+      "What the product, service, or idea is",
+      "Who it is for and what problem it solves",
+      "Why someone should care or invest in it",
+      "What makes it different from existing alternatives"
+    ]
+  },
+  {
+    "part": "2",
+    "topic": null,
     "topic_tag": "environment",
     "source": "IELTS community",
     "last_seen_date": "2024-12",
