@@ -210,7 +210,7 @@ async def score_attempt(
             prompt=prompt,
             api_key=settings.llm_api_key,
             temperature=0.3,    # allow natural band uncertainty; 0.0 locks in anchoring bias
-            num_predict=1024,   # restored; 600 was too tight for responses with many error highlights
+            num_predict=2048,   # 8bd8c98 added 4 *_evidence fields (~200-300 extra tokens); 1024 cut off usage_errors
             num_ctx=8192,       # headroom for long Part 2 transcripts; was 4096
             timeout=120.0,
         )
