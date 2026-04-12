@@ -111,4 +111,4 @@ Write-Host "Starting frontend dev server (port 5173) in new window..." -Foregrou
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$frontendDir'; bun run dev"
 
 Write-Host "Starting Articulate..." -ForegroundColor Green
-uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 1 --reload
+uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 1 --reload --reload-include "*.json" --reload-include "*.txt"
