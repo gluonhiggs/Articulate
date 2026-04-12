@@ -206,7 +206,11 @@ def compute_grammar_signals(
     n_sentences = len(sent_spans)
 
     if n_sentences < 3:
-        return _degraded_grammar_result(n_sentences, "insufficient data (< 3 sentences)")
+        return _degraded_grammar_result(
+            n_sentences,
+            f"insufficient data ({n_sentences} sentence(s) — structural range cannot be assessed; "
+            "do NOT assume high grammar band from a small error-free sample)",
+        )
 
     nlp = _get_spacy()
     if nlp is None:
@@ -529,11 +533,11 @@ def _mtld(words: list[str], threshold: float = 0.72) -> float:
 def _length_label(n: int) -> str:
     """Map raw word count to a Band-descriptor-aligned label."""
     if n < 30:
-        return "very short (Band <=5 ceiling)"
-    if n < 60:
-        return "short"
-    if n < 100:
-        return "adequate"
+        return "very short (Band <=4 ceiling for fluency and grammar range)"
+    if n < 80:
+        return "short (Band <=5 ceiling for fluency; grammar range limited by sample size)"
+    if n < 150:
+        return "moderate (sufficient for Part 1; borderline short for Part 2 long turn)"
     return "extended"
 
 

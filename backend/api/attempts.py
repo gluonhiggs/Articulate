@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import re
+import threading
 import time
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
@@ -36,13 +37,15 @@ router = APIRouter(prefix="/api/v1/attempts", tags=["attempts"])
 
 _lt_tool = None
 _lt_tool_init_attempted = False
+_lt_lock = threading.Lock()
 
 
 def _get_lt_tool():
     global _lt_tool, _lt_tool_init_attempted
-    if _lt_tool_init_attempted:
-        return _lt_tool
-    _lt_tool_init_attempted = True
+    with _lt_lock:
+        if _lt_tool_init_attempted:
+            return _lt_tool
+        _lt_tool_init_attempted = True
     try:
         import language_tool_python  # type: ignore[import]
         _lt_tool = language_tool_python.LanguageTool('en-US')
@@ -240,8 +243,18 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                     disfluent.add(words[i]["word"].lower())
             total_words = len(words)
             gaps_per_100 = round(gap_count / total_words * 100, 1) if total_words > 0 else 0.0
+            # Part-specific length warnings:
+            # Part 2 requires a 1-2 min monologue (150-250 words); <80 is a ceiling signal.
+            # Part 3 requires extended answers (~50-120 words); <40 is notably short.
+            # Part 1 short answers are naturally brief; no length flag applied.
+            if question.part == "2" and total_words < 80:
+                short_flag = f" ⚠ SHORT RESPONSE: only {total_words} words, fails Part 2 long-turn criterion (expected 150-250)"
+            elif question.part == "3" and total_words < 40:
+                short_flag = f" ⚠ SHORT RESPONSE: only {total_words} words, notably brief for a Part 3 discussion answer"
+            else:
+                short_flag = ""
             fluency_context = (
-                f"{gap_count} long pause(s) in {total_words} words ({gaps_per_100}/100 words)"
+                f"{gap_count} long pause(s) in {total_words} words ({gaps_per_100}/100 words){short_flag}"
             )
             _t0 = time.perf_counter()
 
@@ -249,17 +262,29 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             vocab_signal = compute_vocab_signal(words, transcript)
 
             # Signal 3: Grammar checker (LanguageTool - requires Java)
+            # Both _get_lt_tool() initialization AND lt.check() run inside
+            # run_in_executor so the first-time Java startup (10-30s on Windows)
+            # never blocks the event loop. Without this, the first pipeline after
+            # a server restart freezes all concurrent requests (including status
+            # polls) until Java starts, causing "Cannot connect to server (timeout)".
+            def _lt_check(text: str) -> tuple[str | None, list]:
+                """Returns (source_label, matches). source_label is None when LT unavailable."""
+                lt = _get_lt_tool()
+                if lt is None:
+                    return (None, [])
+                source = "local" if type(lt).__name__ == "LanguageTool" else "public API"
+                return (source, lt.check(text))
+
             grammar_context = "grammar checker unavailable"
             filtered_matches: list = []  # initialised here so spaCy signals run even if LT fails
             if transcript and transcript.strip():
                 try:
-                    lt = _get_lt_tool()
-                    if lt is not None:
-                        loop = asyncio.get_event_loop()
-                        matches = await asyncio.wait_for(
-                            loop.run_in_executor(None, lt.check, transcript),
-                            timeout=30.0,
-                        )
+                    loop = asyncio.get_running_loop()
+                    lt_source, matches = await asyncio.wait_for(
+                        loop.run_in_executor(None, _lt_check, transcript),
+                        timeout=30.0,
+                    )
+                    if lt_source is not None:
                         filtered_matches = [
                             m for m in matches
                             if m.rule_id not in _LT_FILTERED_RULE_IDS
@@ -274,7 +299,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                             "  count  : %d (raw) -> %d (after artifact filter)\n"
                             "  matches: %s",
                             attempt_id,
-                            "local" if type(lt).__name__ == "LanguageTool" else "public API",
+                            lt_source,
                             len(matches),
                             len(filtered_matches),
                             [
@@ -310,17 +335,24 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                             100 * (n_sentences - n_error_sents) / n_sentences
                         ) if n_sentences else 100
 
+                        # Warn about small samples only for Part 2/3 where more sentences
+                        # are expected; Part 1 answers are naturally 1-3 sentences.
+                        small_sample_note = (
+                            f" ⚠ tiny sample ({n_sentences} sentences) — "
+                            "error-free rate does not imply high grammar range"
+                            if n_sentences <= 3 and question.part != "1" else ""
+                        )
                         if not filtered_matches:
                             grammar_context = (
                                 f"no grammar errors detected "
-                                f"({n_sentences} sentences, 100% error-free)"
+                                f"({n_sentences} sentences, 100% error-free{small_sample_note})"
                             )
                         else:
                             displayed = filtered_matches
                             total = len(filtered_matches)
                             header = (
                                 f"{total} error(s) in {n_sentences} sentences "
-                                f"({clean_pct}% error-free)"
+                                f"({clean_pct}% error-free{small_sample_note})"
                             )
 
                             # Group by rule_id - systematicity signal
@@ -369,7 +401,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             # filtered_matches is [] in that case - Signal 3 error-density reports 0
             # but Signal 5 (tense inventory, passive, conditionals, tree depth) still runs.
             try:
-                loop = asyncio.get_event_loop()
+                loop = asyncio.get_running_loop()
                 grammar_result = await asyncio.wait_for(
                     loop.run_in_executor(
                         None, compute_grammar_signals,

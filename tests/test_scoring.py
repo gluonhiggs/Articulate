@@ -22,12 +22,12 @@ class TestClampBand:
 
 class TestParseLlmResponse:
     def test_valid_full_response(self):
-        raw = '{"fluency":5.5,"vocabulary":5.0,"grammar":4.5,"pronunciation":5.5,"error_highlights":[{"word":"broke","type":"error","correction":"woke","explanation":"wrong word"}],"feedback_text":"Watch verb choice."}'
+        raw = '{"fluency":5.5,"vocabulary":5.0,"grammar":4.5,"pronunciation":5.5,"usage_errors":[{"word":"broke","type":"error","correction":"woke","explanation":"wrong word"}],"feedback_text":"Watch verb choice."}'
         result = _parse_llm_response(raw)
         assert result["fluency"] == 5.5
         assert result["score"] == 5.0  # mean of 4 criteria
-        assert len(result["error_highlights"]) == 1
-        assert result["error_highlights"][0]["word"] == "broke"
+        assert len(result["usage_errors"]) == 1
+        assert result["usage_errors"][0]["word"] == "broke"
 
     def test_missing_criteria_returns_none(self):
         raw = '{"fluency":5.0}'
@@ -40,7 +40,7 @@ class TestParseLlmResponse:
         raw = '{}'
         result = _parse_llm_response(raw)
         assert result["score"] is None
-        assert result["error_highlights"] == []
+        assert result["usage_errors"] == []
 
     def test_no_json_returns_nulls(self):
         result = _parse_llm_response("Sorry, I cannot score this.")
@@ -48,42 +48,64 @@ class TestParseLlmResponse:
 
     def test_json_with_trailing_noise_extracts_via_rfind(self):
         # Valid JSON object followed by trailing text - rfind('}') finds the real closing brace
-        raw = '{"fluency":6.0,"vocabulary":5.5,"grammar":5.0,"pronunciation":6.0,"error_highlights":[],"feedback_text":"ok"} some trailing noise'
+        raw = '{"fluency":6.0,"vocabulary":5.5,"grammar":5.0,"pronunciation":6.0,"usage_errors":[],"feedback_text":"ok"} some trailing noise'
         result = _parse_llm_response(raw)
         assert result["fluency"] == 6.0
 
-    def test_error_highlights_non_list_becomes_empty(self):
-        raw = '{"fluency":5.0,"vocabulary":5.0,"grammar":5.0,"pronunciation":5.0,"error_highlights":"none","feedback_text":"ok"}'
+    def test_usage_errors_non_list_becomes_empty(self):
+        raw = '{"fluency":5.0,"vocabulary":5.0,"grammar":5.0,"pronunciation":5.0,"usage_errors":"none","feedback_text":"ok"}'
         result = _parse_llm_response(raw)
-        assert result["error_highlights"] == []
+        assert result["usage_errors"] == []
 
     def test_error_highlight_uses_correction_field(self):
-        raw = '{"fluency":5.0,"vocabulary":5.0,"grammar":5.0,"pronunciation":5.0,"error_highlights":[{"word":"than","type":"error","correction":"then","explanation":"sequence"}],"feedback_text":"ok"}'
+        raw = '{"fluency":5.0,"vocabulary":5.0,"grammar":5.0,"pronunciation":5.0,"usage_errors":[{"word":"than","type":"error","correction":"then","explanation":"sequence"}],"feedback_text":"ok"}'
         result = _parse_llm_response(raw)
-        assert result["error_highlights"][0]["correction"] == "then"
+        assert result["usage_errors"][0]["correction"] == "then"
 
     def test_correction_empty_string_preserved(self):
-        raw = '{"fluency":5.0,"vocabulary":5.0,"grammar":5.0,"pronunciation":5.0,"error_highlights":[{"word":"never","type":"error","correction":"","explanation":"redundant"}],"feedback_text":"ok"}'
+        raw = '{"fluency":5.0,"vocabulary":5.0,"grammar":5.0,"pronunciation":5.0,"usage_errors":[{"word":"never","type":"error","correction":"","explanation":"redundant"}],"feedback_text":"ok"}'
         result = _parse_llm_response(raw)
-        assert result["error_highlights"][0]["correction"] == ""
+        assert result["usage_errors"][0]["correction"] == ""
 
     def test_markdown_fences_stripped(self):
-        raw = '```json\n{"fluency":5.0,"vocabulary":5.0,"grammar":5.0,"pronunciation":5.0,"error_highlights":[],"feedback_text":"ok"}\n```'
+        raw = '```json\n{"fluency":5.0,"vocabulary":5.0,"grammar":5.0,"pronunciation":5.0,"usage_errors":[],"feedback_text":"ok"}\n```'
         result = _parse_llm_response(raw)
         assert result["fluency"] == 5.0
 
     def test_truncated_json_salvaged_via_repair(self):
         # LLM truncated at token limit - no closing brace; repair appends '"}'
-        raw = '{"fluency":6.0,"vocabulary":5.5,"grammar":5.0,"pronunciation":6.0,"error_highlights":[],"feedback_text":"Good'
+        raw = '{"fluency":6.0,"vocabulary":5.5,"grammar":5.0,"pronunciation":6.0,"usage_errors":[],"feedback_text":"Good'
         result = _parse_llm_response(raw)
         assert result["fluency"] == 6.0  # scores recovered via truncation repair
+
+
+class TestLengthLabel:
+    def test_very_short(self):
+        from backend.services.vocab import _length_label
+        label = _length_label(29)
+        assert "<=4" in label  # Band <=4 ceiling
+
+    def test_short(self):
+        from backend.services.vocab import _length_label
+        label = _length_label(79)
+        assert "<=5" in label  # Band <=5 ceiling
+
+    def test_moderate(self):
+        from backend.services.vocab import _length_label
+        label = _length_label(149)
+        assert "moderate" in label
+
+    def test_extended(self):
+        from backend.services.vocab import _length_label
+        label = _length_label(200)
+        assert "extended" in label
 
 
 class TestBuildPromptInjection:
     def test_band_descriptors_placeholder_is_substituted(self):
         """Verify {band_descriptors} is replaced in _build_prompt output."""
         from backend.services.scoring import _build_prompt
-        prompt = _build_prompt("Test question?", "1", "test transcript", [])
+        prompt = _build_prompt("Test question?", "1", "test transcript", "")
         assert "{band_descriptors}" not in prompt
         # BAND-SCORES.md content should appear (check for a distinctive phrase)
         assert "Fluency" in prompt or "fluency" in prompt.lower()

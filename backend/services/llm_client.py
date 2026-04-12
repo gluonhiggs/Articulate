@@ -111,7 +111,13 @@ async def generate(
             )
             response.raise_for_status()
             data = response.json()
-            raw: str = data["choices"][0]["message"]["content"]
+            choices = data.get("choices")
+            if not choices:
+                raise RuntimeError(f"LLM returned no choices: {data}")
+            content = choices[0].get("message", {}).get("content")
+            if content is None:
+                raise RuntimeError(f"LLM choice has no content: {choices[0]}")
+            raw: str = content
             latency_ms = int((time.monotonic() - t0) * 1000)
             logger.info(
                 "LLM generate: model=%s prompt_len=%d resp_len=%d latency_ms=%d",

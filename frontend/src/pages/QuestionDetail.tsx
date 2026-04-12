@@ -293,7 +293,9 @@ export function QuestionDetail() {
       stopRecording()
     } else if (status === 'preparing') {
       if (part2PrepTimerRef.current) clearTimeout(part2PrepTimerRef.current)
-      startRecording(); hasUploadedRef.current = false; void startMediaRecorder()
+      startRecording(); hasUploadedRef.current = false; startMediaRecorder().catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : 'Microphone access denied')
+      })
     }
   }
 
