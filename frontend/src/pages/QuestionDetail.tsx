@@ -55,6 +55,8 @@ export function QuestionDetail() {
 
   // Upload guard ref - declared early so question-change effect can reset it
   const hasUploadedRef = useRef(false)
+  // Pending-stop ref: set when Stop is clicked before MediaRecorder has started
+  const pendingStopRef = useRef(false)
 
   // Fetch question
   const { data: question, isLoading: questionLoading, isError: questionError } = useQuery<Question>({
@@ -169,6 +171,7 @@ export function QuestionDetail() {
       reset()
       resetAudioBlob()
       hasUploadedRef.current = false
+      pendingStopRef.current = false
       prevQuestionIdRef.current = questionId
       setPronunAttempt(null)
       setShownPronunIds(new Set())
@@ -195,6 +198,15 @@ export function QuestionDetail() {
     const interval = setInterval(() => tickElapsed(), 1000)
     return () => clearInterval(interval)
   }, [status, tickElapsed])
+
+  // Deferred stop: fires when MediaRecorder finally starts after a Stop was
+  // requested during the getUserMedia initialisation window
+  useEffect(() => {
+    if (isRecording && pendingStopRef.current) {
+      pendingStopRef.current = false
+      stopRecording()
+    }
+  }, [isRecording, stopRecording])
 
   // Upload effect
   useEffect(() => {
@@ -283,14 +295,21 @@ export function QuestionDetail() {
   }, [status, question, startRecording, startMediaRecorder, setError])
 
   function handleStart() {
-    reset(); resetAudioBlob(); hasUploadedRef.current = false
+    reset(); resetAudioBlob(); hasUploadedRef.current = false; pendingStopRef.current = false
     if (!question) return
     startPreparing(questionId, partMaxSeconds(question.part))
   }
 
   function handleStop() {
-    if (status === 'recording' && isRecording) {
-      stopRecording()
+    if (status === 'recording') {
+      if (isRecording) {
+        stopRecording()
+      } else {
+        // MediaRecorder is still initialising (getUserMedia pending).
+        // Defer the stop — the effect above will call stopRecording() the
+        // moment isRecording transitions to true.
+        pendingStopRef.current = true
+      }
     } else if (status === 'preparing') {
       if (part2PrepTimerRef.current) clearTimeout(part2PrepTimerRef.current)
       startRecording(); hasUploadedRef.current = false; startMediaRecorder().catch((err: unknown) => {
