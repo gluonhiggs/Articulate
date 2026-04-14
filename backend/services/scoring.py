@@ -126,7 +126,7 @@ def _parse_llm_response(raw: str) -> Dict[str, Any]:
             cleaned_highlights.append(
                 {
                     "word": str(highlight.get("word", "")),
-                    "type": str(highlight.get("type", "error")),
+                    "type": str(highlight.get("type", "mistake")),  # frontend checks for "mistake" to render strikethrough
                     "correction": str(correction),
                     "explanation": str(highlight.get("explanation", "")),
                     # Keep suggestion as alias for backward compat
