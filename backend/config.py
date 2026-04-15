@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -40,6 +42,28 @@ class Settings(BaseSettings):
     low_confidence_threshold: float = 0.6
     gap_threshold: float = 0.5
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+    # ── Desktop / packaged app overrides ────────────────────────────────────
+    # Set ARTICULATE_DATA_DIR to relocate db/audio/tts paths to OS user-data dir.
+    data_dir: str = ""
+    # Set ARTICULATE_PORT to override the uvicorn port (Electron picks a free port).
+    port: int = 8000
+    # Set ARTICULATE_HF_HOME to redirect HuggingFace model cache (Kokoro weights).
+    hf_home: str = ""
+
+    @model_validator(mode="after")
+    def _apply_desktop_overrides(self) -> "Settings":
+        if self.data_dir:
+            import os as _os
+            base = self.data_dir
+            if not self.db_path.startswith(base):
+                self.db_path = _os.path.join(base, "articulate.db")
+            if not self.audio_dir.startswith(base):
+                self.audio_dir = _os.path.join(base, "audio")
+            if not self.tts_cache_dir.startswith(base):
+                self.tts_cache_dir = _os.path.join(base, "tts_cache")
+        if self.hf_home:
+            os.environ["HUGGINGFACE_HUB_CACHE"] = self.hf_home
+        return self
 
 
 @lru_cache(maxsize=1)

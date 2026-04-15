@@ -66,6 +66,7 @@ async def system_info() -> SystemInfoOut:
         whisper_model = settings.groq_whisper_model
         whisper_device = "groq-api"
 
+    import sys
     from backend.services.transcription import is_faster_whisper_installed
     return SystemInfoOut(
         profile=settings.profile,
@@ -77,6 +78,7 @@ async def system_info() -> SystemInfoOut:
         transcription_mode=settings.transcription_mode or "groq",
         faster_whisper_installed=is_faster_whisper_installed(),
         op_status=_get_op_status(),
+        is_desktop=getattr(sys, "frozen", False),
     )
 
 
@@ -103,6 +105,9 @@ async def _install_faster_whisper() -> None:
 
 
 def _run_uv_sync() -> None:
+    import sys
+    if getattr(sys, "frozen", False):
+        raise RuntimeError("Local transcription install is not available in the desktop app.")
     result = subprocess.run(
         ["uv", "sync", "--group", "local-transcription"],
         capture_output=True,

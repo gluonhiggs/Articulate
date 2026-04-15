@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Articulate — Setup</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0b0f19;
+      color: #e2e8f0;
+      font-family: Inter, system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 32px 16px;
+    }
+    .card {
+      background: #111827;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 32px;
+      width: 100%;
+      max-width: 460px;
+    }
+    h1 { font-size: 1.4rem; font-weight: 600; margin-bottom: 8px; }
+    .subtitle { font-size: 0.875rem; color: #94a3b8; margin-bottom: 28px; line-height: 1.5; }
+    label { display: block; font-size: 0.8rem; font-weight: 500; color: #cbd5e1; margin-bottom: 6px; margin-top: 18px; }
+    input[type=text], input[type=password] {
+      width: 100%;
+      background: #0b0f19;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 0.875rem;
+      color: #e2e8f0;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input:focus { border-color: #6366f1; }
+    .hint { font-size: 0.75rem; color: #64748b; margin-top: 5px; }
+    .hint a { color: #6366f1; text-decoration: none; }
+    .row { display: flex; gap: 8px; margin-top: 24px; }
+    button {
+      flex: 1; padding: 11px 20px;
+      border-radius: 8px; border: none;
+      font-size: 0.875rem; font-weight: 500;
+      cursor: pointer; transition: opacity 0.15s;
+    }
+    button:hover { opacity: 0.85; }
+    .btn-primary { background: #6366f1; color: #fff; }
+    .btn-secondary { background: #1e293b; color: #94a3b8; }
+    .error { margin-top: 14px; font-size: 0.8rem; color: #f87171; display: none; }
+    .required { color: #f87171; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Welcome to Articulate</h1>
+    <p class="subtitle">
+      Enter your API keys to get started. These are stored locally on your device and never shared.
+    </p>
+
+    <label for="groq_key">Groq API Key <span class="required">*</span></label>
+    <input type="password" id="groq_key" placeholder="gsk_…" autocomplete="off" />
+    <p class="hint">
+      Required for speech transcription and fast scoring.
+      Get a free key at <a href="#" onclick="openExternal('https://console.groq.com')">console.groq.com</a>.
+    </p>
+
+    <label for="llm_key">LLM API Key (Gemini) <span style="color:#64748b;font-weight:400">(optional)</span></label>
+    <input type="password" id="llm_key" placeholder="AIza…" autocomplete="off" />
+    <p class="hint">
+      Used for IELTS band scoring and feedback.
+      Get a free key at <a href="#" onclick="openExternal('https://aistudio.google.com/apikey')">Google AI Studio</a>.
+    </p>
+
+    <p class="error" id="error-msg">Groq API Key is required.</p>
+
+    <div class="row">
+      <button class="btn-secondary" onclick="skip()">Skip for now</button>
+      <button class="btn-primary" onclick="save()">Save &amp; Start</button>
+    </div>
+  </div>
+
+  <script>
+    function openExternal(url) {
+      // electronAPI is exposed by the preload script.
+      // For links we use a simple workaround — the main process handles shell.openExternal.
+      window.electronAPI && window.electronAPI.openExternal && window.electronAPI.openExternal(url);
+    }
+
+    function save() {
+      const groqKey = document.getElementById('groq_key').value.trim();
+      const llmKey  = document.getElementById('llm_key').value.trim();
+      const errEl   = document.getElementById('error-msg');
+
+      if (!groqKey) {
+        errEl.style.display = 'block';
+        return;
+      }
+      errEl.style.display = 'none';
+
+      const config = [];
+      if (groqKey) config.push(`GROQ_API_KEY=${groqKey}`);
+      if (llmKey)  config.push(`LLM_API_KEY=${llmKey}`);
+
+      // Send to main process via IPC.
+      window.electronAPI.saveConfig(config.join('\n'));
+    }
+
+    function skip() {
+      window.electronAPI.saveConfig('');
+    }
+  </script>
+</body>
+</html>

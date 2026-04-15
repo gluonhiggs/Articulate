@@ -93,6 +93,7 @@ export interface SystemInfo {
   transcription_mode: string          // "groq" | "local"
   faster_whisper_installed: boolean
   op_status: string                   // "" | "installing" | "loading" | "failed"
+  is_desktop: boolean                 // true when running as a packaged Electron app
 }
 
 export interface ForecastEntry {

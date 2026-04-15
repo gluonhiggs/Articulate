@@ -1,0 +1,160 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  # ── Phase 1: Build the React frontend once ──────────────────────────────────
+  build-frontend:
+    name: Build frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: bun install --frozen-lockfile
+
+      - name: Build
+        working-directory: frontend
+        run: bun run build
+
+      - name: Upload frontend dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+          retention-days: 1
+
+  # ── Phase 2: Bundle Python backend per platform ──────────────────────────────
+  build-backend:
+    name: Build backend (${{ matrix.os }})
+    needs: build-frontend
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: backend-windows
+          - os: macos-latest
+            artifact: backend-macos
+          - os: ubuntu-latest
+            artifact: backend-linux
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download frontend dist
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dependencies
+        # No dev group, no local-transcription (faster-whisper not bundled in desktop).
+        run: uv sync --no-group dev --no-group local-transcription
+
+      - name: Install PyInstaller
+        run: uv run pip install pyinstaller
+
+      - name: Build PyInstaller bundle
+        run: uv run pyinstaller backend.spec --noconfirm --clean
+
+      - name: Upload backend bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/articulate_backend/
+          retention-days: 1
+
+  # ── Phase 3: Package Electron app per platform ───────────────────────────────
+  build-electron:
+    name: Package Electron (${{ matrix.os }})
+    needs: build-backend
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            backend-artifact: backend-windows
+            installer-glob: "electron/dist-installer/*.exe"
+          - os: macos-latest
+            backend-artifact: backend-macos
+            installer-glob: "electron/dist-installer/*.dmg"
+          - os: ubuntu-latest
+            backend-artifact: backend-linux
+            installer-glob: "electron/dist-installer/*.AppImage"
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download backend bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.backend-artifact }}
+          path: dist/articulate_backend/
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install Electron dependencies
+        working-directory: electron
+        run: bun install --frozen-lockfile
+
+      - name: Compile TypeScript
+        working-directory: electron
+        run: bun run build
+
+      - name: Package with electron-builder
+        working-directory: electron
+        env:
+          # macOS notarization (optional — set secrets in GitHub repo settings)
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Windows code signing (optional)
+          WIN_CSC_LINK: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: bun run package
+
+      - name: Create GitHub Release and upload installer
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          # Create release if it doesn't exist yet (idempotent across matrix jobs)
+          gh release create "${{ github.ref_name }}" \
+            --title "Articulate ${{ github.ref_name }}" \
+            --generate-notes \
+            2>/dev/null || true
+          # Upload the installer
+          for f in ${{ matrix.installer-glob }}; do
+            gh release upload "${{ github.ref_name }}" "$f" --clobber
+          done

@@ -42,6 +42,14 @@ def _prompt_mode_selection() -> None:
     if settings.transcription_mode in ("groq", "local"):
         return  # already configured - skip prompt
 
+    # Non-interactive mode (Electron desktop app): skip terminal prompt, default to groq.
+    if os.environ.get("ARTICULATE_NO_INTERACTIVE") == "1":
+        from backend.config import write_mode_file
+        write_mode_file("groq")
+        os.environ["TRANSCRIPTION_MODE"] = "groq"
+        get_settings.cache_clear()
+        return
+
     from backend.services.transcription import detect_gpu
     has_gpu = detect_gpu()
 
@@ -226,7 +234,9 @@ app.include_router(tts.router)
 # Frontend static files (catch-all - MUST be last)
 # ---------------------------------------------------------------------------
 
-_FRONTEND_DIST = Path(__file__).parent.parent / "frontend" / "dist"
+import sys as _sys
+_MEIPASS = getattr(_sys, "_MEIPASS", None)
+_FRONTEND_DIST = Path(_MEIPASS) / "frontend" / "dist" if _MEIPASS else Path(__file__).parent.parent / "frontend" / "dist"
 
 if _FRONTEND_DIST.exists():
     app.mount("/", StaticFiles(directory=str(_FRONTEND_DIST), html=True), name="frontend")

@@ -1,0 +1,87 @@
+{
+  "name": "articulate",
+  "version": "1.0.0",
+  "description": "IELTS Speaking Practice — desktop app",
+  "main": "dist/main.js",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "start": "electron .",
+    "dev": "tsc && electron .",
+    "package": "electron-builder"
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "electron": "^31.0.0",
+    "electron-builder": "^25.0.0",
+    "typescript": "^5.5.0"
+  },
+  "build": {
+    "appId": "com.articulate.app",
+    "productName": "Articulate",
+    "copyright": "Copyright © 2025",
+    "directories": {
+      "output": "dist-installer",
+      "buildResources": "../build-resources"
+    },
+    "files": [
+      "dist/**/*",
+      "loading.html",
+      "setup.html"
+    ],
+    "extraResources": [
+      {
+        "from": "../dist/articulate_backend/",
+        "to": "backend/",
+        "filter": ["**/*"]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "../build-resources/icon.ico"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        }
+      ],
+      "icon": "../build-resources/icon.icns",
+      "category": "public.app-category.education",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "../build-resources/entitlements.mac.plist",
+      "entitlementsInherit": "../build-resources/entitlements.mac.plist"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "../build-resources/icon.png",
+      "category": "Education"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false
+    },
+    "dmg": {
+      "contents": [
+        { "x": 410, "y": 150, "type": "link", "path": "/Applications" },
+        { "x": 130, "y": 150, "type": "file" }
+      ]
+    }
+  }
+}

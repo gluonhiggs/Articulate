@@ -189,6 +189,7 @@ class SystemInfoOut(BaseModel):
     transcription_mode: str = "groq"        # "groq" | "local"
     faster_whisper_installed: bool = False
     op_status: str = ""                     # "" | "installing" | "loading" | "failed"
+    is_desktop: bool = False                # True when running as a packaged Electron app
 
 
 class SetModelRequest(BaseModel):

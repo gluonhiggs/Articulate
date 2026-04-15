@@ -326,8 +326,8 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
                   </span>
                 )}
 
-                {/* ── Transcription mode switcher ─────────────────── */}
-                <div className="mt-3 rounded-lg border border-cardBorder bg-card p-2.5">
+                {/* ── Transcription mode switcher (hidden in desktop/packaged app) ── */}
+                {!systemInfo.is_desktop && <div className="mt-3 rounded-lg border border-cardBorder bg-card p-2.5">
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-textSecondary mb-2">
                     Transcription
                   </p>
@@ -427,7 +427,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
                       ⚠ Operation failed - check server logs.
                     </p>
                   )}
-                </div>
+                </div>}
               </>
             ) : systemInfoError ? (
               <p className="text-xs text-red-400">Backend offline</p>
