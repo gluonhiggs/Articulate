@@ -1,6 +1,6 @@
 {
   "name": "articulate",
-  "version": "1.0.0",
+  "version": "0.1.1",
   "description": "IELTS Speaking Practice — desktop app",
   "main": "dist/main.js",
   "private": true,

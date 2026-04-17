@@ -22,6 +22,7 @@ kokoro_datas, kokoro_binaries, kokoro_hiddenimports = collect_all("kokoro")
 spacy_datas, spacy_binaries, spacy_hiddenimports = collect_all("spacy")
 en_core_datas, en_core_binaries, en_core_hiddenimports = collect_all("en_core_web_sm")
 misaki_datas, misaki_binaries, misaki_hiddenimports = collect_all("misaki")
+uvicorn_datas, uvicorn_binaries, uvicorn_hiddenimports = collect_all("uvicorn")
 
 # ── Data files ────────────────────────────────────────────────────────────────
 
@@ -41,6 +42,8 @@ datas = [
     *kokoro_datas,
     # Misaki phoneme data (Kokoro dependency)
     *misaki_datas,
+    # uvicorn package data
+    *uvicorn_datas,
 ]
 
 # ── Binaries ──────────────────────────────────────────────────────────────────
@@ -50,21 +53,14 @@ binaries = [
     *en_core_binaries,
     *kokoro_binaries,
     *misaki_binaries,
+    *uvicorn_binaries,
 ]
 
 # ── Hidden imports ────────────────────────────────────────────────────────────
 
 hiddenimports = [
-    # uvicorn internals not picked up by static analysis
-    "uvicorn.lifespan.on",
-    "uvicorn.lifespan.off",
-    "uvicorn.logging",
-    "uvicorn.loops.auto",
-    "uvicorn.loops.asyncio",
-    "uvicorn.protocols.http.auto",
-    "uvicorn.protocols.http.h11_impl",
-    "uvicorn.protocols.websockets.auto",
-    "uvicorn.protocols.websockets.websockets_impl",
+    # uvicorn — fully collected to avoid static-analysis misses
+    *uvicorn_hiddenimports,
     # Database
     "aiosqlite",
     "sqlalchemy.dialects.sqlite",
