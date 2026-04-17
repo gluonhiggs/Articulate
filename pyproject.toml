@@ -49,6 +49,9 @@ explicit = true
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.24",
+    # Icon generation for desktop app (scripts/create_icons.py)
+    "pillow>=10.0",
+    "icnsutil>=1.1.0",
 ]
 local-transcription = [
     "faster-whisper>=1.0",
