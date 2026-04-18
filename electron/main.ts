@@ -210,9 +210,15 @@ app.whenReady().then(async () => {
 
   try {
     // Wait up to 30 min — first launch downloads Kokoro models (~330 MB).
-    // On a slow connection (1 Mbps) that can take 44 minutes; 30 min covers most cases.
-    // The loading screen shows a "downloading AI models" hint after 10 seconds.
-    await waitForBackend(backendPort, 30 * 60 * 1_000);
+    // Race against process exit so a crash fails fast instead of waiting 30 min.
+    await Promise.race([
+      waitForBackend(backendPort, 30 * 60 * 1_000),
+      new Promise<never>((_, reject) => {
+        backendProcess!.once("exit", (code) => {
+          reject(new Error(`Backend exited with code ${code ?? "unknown"} before becoming ready.`));
+        });
+      }),
+    ]);
   } catch (err) {
     // Backend failed to start; show the log file path in a dialog.
     const { dialog } = await import("electron");

@@ -62,7 +62,8 @@ class Settings(BaseSettings):
             if not self.tts_cache_dir.startswith(base):
                 self.tts_cache_dir = _os.path.join(base, "tts_cache")
         if self.hf_home:
-            os.environ["HUGGINGFACE_HUB_CACHE"] = self.hf_home
+            os.environ["HF_HOME"] = self.hf_home
+            os.environ["HUGGINGFACE_HUB_CACHE"] = os.path.join(self.hf_home, "hub")
         return self
 
 
