@@ -67,17 +67,60 @@ jobs:
           python-version: "3.11"
 
       - name: Install uv
-        run: pip install uv
+        # Pin uv: prevents silent CI regressions on uv releases.
+        run: pip install "uv==0.10.0"
 
       - name: Install dependencies
-        # No dev group, no local-transcription (faster-whisper not bundled in desktop).
-        run: uv sync --no-group dev --no-group local-transcription
-
-      - name: Install PyInstaller
-        run: uv run pip install pyinstaller
+        # Includes pyinstaller via the `build` group; excludes dev tests and
+        # local-transcription (faster-whisper not bundled in desktop).
+        run: uv sync --group build --no-group dev --no-group local-transcription
 
       - name: Build PyInstaller bundle
-        run: uv run pyinstaller backend.spec --noconfirm --clean
+        # --no-sync: forbid uv run from triggering a second sync that could prune the venv.
+        run: uv run --no-sync pyinstaller backend.spec --noconfirm --clean
+
+      - name: Verify bundle integrity
+        shell: bash
+        env:
+          ARTICULATE_NO_INTERACTIVE: "1"
+          ARTICULATE_PORT: "8765"
+        run: |
+          set -uo pipefail
+          BUNDLE="dist/articulate_backend/_internal"
+
+          echo "=== Presence check ==="
+          for pkg in uvicorn fastapi starlette spacy kokoro torch pydantic; do
+            if [ ! -d "$BUNDLE/$pkg" ]; then
+              echo "FAIL: $BUNDLE/$pkg is missing — bundle is incomplete"
+              exit 1
+            fi
+            echo "OK: $pkg"
+          done
+
+          echo "=== Size check ==="
+          SIZE_MB=$(du -sm dist/articulate_backend | cut -f1)
+          echo "Bundle size: ${SIZE_MB} MB"
+          if [ "$SIZE_MB" -lt 300 ]; then
+            echo "FAIL: bundle is ${SIZE_MB} MB, expected >= 300 MB"
+            exit 1
+          fi
+
+          echo "=== Smoke test ==="
+          EXE="dist/articulate_backend/articulate_backend"
+          [ -f "${EXE}.exe" ] && EXE="${EXE}.exe"
+          set +e
+          timeout 10 "$EXE" > smoke.log 2>&1
+          EXIT=$?
+          set -e
+          echo "--- smoke.log (first 40 lines) ---"
+          head -40 smoke.log || true
+          echo "--- end log ---"
+          # exit 124 = timed out (server started and was killed — expected)
+          if [ "$EXIT" -ne 124 ]; then
+            echo "FAIL: backend exited with code $EXIT (expected 124 from timeout)"
+            exit 1
+          fi
+          echo "Smoke test passed"
 
       - name: Upload backend bundle
         uses: actions/upload-artifact@v4
