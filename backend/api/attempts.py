@@ -344,8 +344,13 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                         )
                         if not filtered_matches:
                             grammar_context = (
-                                f"no grammar errors detected "
-                                f"({n_sentences} sentences, 100% error-free{small_sample_note})"
+                                f"LanguageTool flagged no errors in {n_sentences} sentence(s). "
+                                "LT reliably catches surface errors (agreement, articles, "
+                                "prepositions, tense forms) but has limited coverage of "
+                                "movement/structural syntax (embedded-question word order, "
+                                "complementizer choice, reported-speech inversion). Scan the "
+                                "transcript yourself for these classes before assigning a high "
+                                f"grammar band.{small_sample_note}"
                             )
                         else:
                             displayed = filtered_matches

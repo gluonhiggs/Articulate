@@ -119,6 +119,7 @@ _MODAL_SECOND_COND: frozenset[str] = frozenset({"would", "could", "might"})
 def _map_complexity_band(
     complex_sentence_rate: float,
     error_density_ratio: float,
+    n_total_errors: int,
 ) -> str:
     """Map (complex_sentence_rate, error_density_ratio) to an IELTS GRA band hint.
 
@@ -128,11 +129,21 @@ def _map_complexity_band(
       B6 - complex used with limited flexibility
       B7 - "a range of structures flexibly used"
 
+    When n_total_errors == 0 the error_density_ratio signal is uninformative:
+    LT silence does not imply a clean transcript (LT's English rules have
+    known gaps on movement/structural syntax like embedded-question word
+    order and complementizer choice). Emit a range rather than a point
+    estimate in that case so the LLM does not read B7 as confirmed.
+
     These thresholds are heuristics, not rubric-specified numbers.
     The LLM should override if the transcript contradicts the signal.
     """
     if complex_sentence_rate < 0.20:
         return "B4"
+    if n_total_errors == 0:
+        if complex_sentence_rate < 0.45:
+            return "B5-B7 (no LT errors, range unconfirmed)"
+        return "B6-B7 (no LT errors, range unconfirmed)"
     if complex_sentence_rate < 0.45:
         if error_density_ratio >= 2.0:
             return "B5"
@@ -416,7 +427,10 @@ def compute_grammar_signals(
         else:
             error_density_ratio = round(density_complex / density_simple, 2)
 
-        band_hint = _map_complexity_band(complex_sentence_rate, error_density_ratio)
+        n_total_errors = n_errors_complex + n_errors_simple
+        band_hint = _map_complexity_band(
+            complex_sentence_rate, error_density_ratio, n_total_errors
+        )
 
         detail = (
             f"complexity: {n_complex}/{n_sentences} complex sentences "
