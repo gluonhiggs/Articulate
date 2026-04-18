@@ -120,17 +120,19 @@ For each error found, output one object in `usage_errors`.
 If there are no errors, output an empty array.
 
 Each object contains:
-- `"word"` = single word from transcript (lowercase, exact)
+- `"word"` = single word or short phrase from transcript (lowercase, exact substring)
 - `"type"` = `"mistake"` (clear mistake) or `"caution"` (possible issue)
-- `"correction"` = replacement word, or `""` if the word should be deleted
+- `"correction"` = replacement word/phrase, or `""` if it should be deleted
 - `"explanation"` = brief reason, 10 words max
 
 ### STRICT SCOPE
 
-Do NOT flag words as errors when they are grammatically valid and contextually appropriate,
-even if a different word would sound more sophisticated or stylistically better.
-Flag only when there is a clear violation: a grammar rule is broken,
-or the word is semantically wrong for the context it appears in.
+Do NOT flag a word as an error just because a different word would sound more sophisticated
+or stylistically better. Flag only when there is a concrete violation:
+- a grammar rule is broken, OR
+- the word is semantically wrong for the context (means the wrong thing), OR
+- the collocation / phrasal verb / preposition pairing is wrong for the intended meaning
+  (e.g. "looking after" when "looking for" is meant; "discuss about" instead of "discuss").
 Pronunciation issues are out of scope here regardless.
 
 ## OUTPUT
@@ -153,6 +155,11 @@ You MUST output all eight keys (`fluency_evidence`, `fluency`, `vocabulary_evide
 
 Output a JSON object with exactly these keys. Score fields accept any value 0–9 in steps of 0.5 - assign the band the evidence requires with no preference toward any part of the scale.
 
-{"fluency_evidence": "<1-2 observations: monologue length vs 1-2 min expectation, coherence, discourse organisation, turn length>", "fluency": <0–9, step 0.5>, "vocabulary_evidence": "<1-2 observations: specific word choices, CEFR level, idiomatic phrases, notable gaps>", "vocabulary": <0–9, step 0.5>, "grammar_notes": "<list observed construction types: relative clauses, passives, conditionals, complement clauses, nominalisations - cite a sentence if helpful>", "grammar_evidence": "<1-2 observations: range of structures observed, error patterns, whether range matches band descriptor>", "grammar": <0–9, step 0.5>, "pronunciation_evidence": "<1-2 observations from signal tiers: clear_pct, poor_pct, any notable patterns>", "pronunciation": <0–9, step 0.5>, "usage_errors": [{"word": "<lowercase exact word from transcript>", "type": "<mistake|caution>", "correction": "<replacement word, or empty string to delete>", "explanation": "<reason, <=10 words>"}], "feedback_text": "<exactly 1 sentence <=20 words on the single most impactful improvement>"}
+{"fluency_evidence": "<1-2 observations: monologue length vs 1-2 min expectation, coherence, discourse organisation, turn length>", "fluency": <0–9, step 0.5>, "vocabulary_evidence": "<1-2 observations: specific word choices, CEFR level, idiomatic phrases, notable gaps>", "vocabulary": <0–9, step 0.5>, "grammar_notes": "<list observed construction types: relative clauses, passives, conditionals, complement clauses, nominalisations - cite a sentence if helpful>", "grammar_evidence": "<1-2 observations: range of structures observed, error patterns, whether range matches band descriptor>", "grammar": <0–9, step 0.5>, "pronunciation_evidence": "<1-2 observations from signal tiers: clear_pct, poor_pct, any notable patterns>", "pronunciation": <0–9, step 0.5>, "usage_errors": [{"word": "<exact substring from transcript, lowercase>", "type": "<mistake|caution>", "correction": "<replacement, or empty string to delete>", "explanation": "<reason, <=10 words>"}], "feedback_text": "<exactly 1 sentence <=20 words on the single most impactful improvement>"}
+
+Reference shape for `usage_errors` entries only (illustrate the collocation / phrasal-verb / wrong-preposition pattern — do NOT copy these unless the same error actually appears in the transcript):
+{"word": "looking after", "type": "mistake", "correction": "looking for", "explanation": "after=caring; for=searching"}
+{"word": "too much beauty", "type": "mistake", "correction": "so much beauty", "explanation": "too much=negative excess; so much=positive abundance"}
+{"word": "discuss about", "type": "mistake", "correction": "discuss", "explanation": "discuss takes no preposition"}
 
 Now score the ACTUAL response above. Output ONLY valid JSON. No markdown fences. No extra text.
