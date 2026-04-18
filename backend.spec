@@ -33,6 +33,8 @@ datas = [
     (str(ROOT / "backend" / "data" / "oxford_5000.csv"), "backend/data"),
     # LLM prompt templates
     (str(ROOT / "backend" / "prompts"), "backend/prompts"),
+    # IELTS band descriptors (read at import time by backend/services/scoring.py)
+    (str(ROOT / "BAND-SCORES.md"), "."),
     # simplemma language data
     *collect_data_files("simplemma"),
     # spaCy + model

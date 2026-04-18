@@ -108,16 +108,22 @@ jobs:
           echo "=== Smoke test ==="
           EXE="dist/articulate_backend/articulate_backend"
           [ -f "${EXE}.exe" ] && EXE="${EXE}.exe"
-          set +e
-          timeout 10 "$EXE" > smoke.log 2>&1
-          EXIT=$?
-          set -e
+          "$EXE" > smoke.log 2>&1 &
+          PID=$!
+          sleep 10
+          if kill -0 "$PID" 2>/dev/null; then
+            kill "$PID" 2>/dev/null || true
+            wait "$PID" 2>/dev/null || true
+            EXIT=124
+          else
+            wait "$PID"
+            EXIT=$?
+          fi
           echo "--- smoke.log (first 40 lines) ---"
           head -40 smoke.log || true
           echo "--- end log ---"
-          # exit 124 = timed out (server started and was killed — expected)
           if [ "$EXIT" -ne 124 ]; then
-            echo "FAIL: backend exited with code $EXIT (expected 124 from timeout)"
+            echo "FAIL: backend exited with code $EXIT (expected it to still be running after 10s)"
             exit 1
           fi
           echo "Smoke test passed"
