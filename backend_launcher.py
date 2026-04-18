@@ -6,9 +6,24 @@ Electron spawns it with ARTICULATE_PORT and ARTICULATE_NO_INTERACTIVE set.
 """
 from __future__ import annotations
 
-import multiprocessing
 import os
 import sys
+
+# Redirect stdout/stderr to a file when ARTICULATE_LOG_PATH is set.
+# Runs before every other import so import-time tracebacks and missing-DLL
+# errors are captured. Windows windowed exes (console=False in backend.spec)
+# have no usable stdout, so shell redirection `> foo.log` captures nothing —
+# this is how CI smoke tests and end-user bug reports get diagnostic output.
+_log_path = os.environ.get("ARTICULATE_LOG_PATH")
+if _log_path:
+    try:
+        _log_file = open(_log_path, "a", buffering=1, encoding="utf-8", errors="replace")
+        sys.stdout = _log_file
+        sys.stderr = _log_file
+    except OSError:
+        pass
+
+import multiprocessing
 
 # Required for PyInstaller one-dir mode when the bundle uses multiprocessing.
 multiprocessing.freeze_support()

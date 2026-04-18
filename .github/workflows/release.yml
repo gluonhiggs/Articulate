@@ -108,19 +108,24 @@ jobs:
           echo "=== Smoke test ==="
           EXE="dist/articulate_backend/articulate_backend"
           [ -f "${EXE}.exe" ] && EXE="${EXE}.exe"
-          "$EXE" > smoke.log 2>&1 &
+          ls -la "$EXE" || true
+          # Windows windowed exes (console=False) have no usable stdout, so shell
+          # redirection captures nothing. backend_launcher.py honours ARTICULATE_LOG_PATH
+          # and writes sys.stdout/stderr to the file itself — works on all three OSes.
+          ARTICULATE_LOG_PATH=smoke.log "$EXE" &
           PID=$!
           sleep 10
+          EXIT=0
           if kill -0 "$PID" 2>/dev/null; then
             kill "$PID" 2>/dev/null || true
             wait "$PID" 2>/dev/null || true
             EXIT=124
           else
-            wait "$PID"
-            EXIT=$?
+            # Process exited before 10s; capture its code without tripping `set -e`.
+            wait "$PID" || EXIT=$?
           fi
-          echo "--- smoke.log (first 40 lines) ---"
-          head -40 smoke.log || true
+          echo "--- smoke.log (first 80 lines) ---"
+          head -80 smoke.log || true
           echo "--- end log ---"
           if [ "$EXIT" -ne 124 ]; then
             echo "FAIL: backend exited with code $EXIT (expected it to still be running after 10s)"
