@@ -4,12 +4,14 @@ import asyncio
 import logging
 import os
 import subprocess
+import sys
 
 import httpx
 from fastapi import APIRouter, HTTPException
 
 from backend.config import get_active_model, get_mode_file, get_settings, set_runtime_model, write_mode_file
 from backend.schemas import SetModelRequest, SetTranscriptionModeRequest, SystemInfoOut
+from backend.services.transcription import is_faster_whisper_installed
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/system", tags=["system"])
@@ -66,8 +68,6 @@ async def system_info() -> SystemInfoOut:
         whisper_model = settings.groq_whisper_model
         whisper_device = "groq-api"
 
-    import sys
-    from backend.services.transcription import is_faster_whisper_installed
     return SystemInfoOut(
         profile=settings.profile,
         whisper_model=whisper_model,
@@ -163,11 +163,24 @@ async def update_transcription_mode(body: SetTranscriptionModeRequest) -> System
         return await system_info()
 
     # mode == "local"
+    # Desktop installer bundles faster-whisper, so the normal path has it
+    # available. If a frozen build somehow lacks it (build regression), fail
+    # fast with a 400 — pip-installing into a PyInstaller bundle can't work
+    # because imports resolve against frozen bytecode, not site-packages.
+    if getattr(sys, "frozen", False) and not is_faster_whisper_installed():
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Local transcription is not available in this build. "
+                "Reinstall the latest Articulate release or run from source with "
+                "`uv sync --group local-transcription`."
+            ),
+        )
+
     if current_op in ("installing", "loading"):
         # Already in progress -- return current state, do not double-launch
         return await system_info()
 
-    from backend.services.transcription import is_faster_whisper_installed
     if not is_faster_whisper_installed():
         _set_op_status("installing")
         _task = asyncio.create_task(_install_faster_whisper())

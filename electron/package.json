@@ -1,6 +1,6 @@
 {
   "name": "articulate",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "IELTS Speaking Practice — desktop app",
   "main": "dist/main.js",
   "private": true,
@@ -27,6 +27,7 @@
       "output": "dist-installer",
       "buildResources": "../build-resources"
     },
+    "artifactName": "Articulate-${os}-${env.ARTICULATE_VARIANT}-${version}.${ext}",
     "files": [
       "dist/**/*",
       "loading.html",

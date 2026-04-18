@@ -17,6 +17,7 @@ from backend.config import get_settings
 from backend.database import init_db
 from backend.services import llm_client
 from backend.services.audio import cleanup_old_audio
+from backend.services.transcription import is_faster_whisper_installed
 from backend.services.tts import evict_tts_cache, _ensure_pipeline as _ensure_tts_pipeline
 from backend.api.attempts import _get_lt_tool
 
@@ -25,6 +26,14 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+
+def _should_downgrade_to_groq(mode: str | None, fw_installed: bool) -> bool:
+    """Capability gate: saved mode=local + missing fw → run as groq this session.
+
+    Pure predicate so the invariant can be unit-tested without booting the app.
+    """
+    return mode == "local" and not fw_installed
 
 
 def _prompt_mode_selection() -> None:
@@ -42,11 +51,16 @@ def _prompt_mode_selection() -> None:
     if settings.transcription_mode in ("groq", "local"):
         return  # already configured - skip prompt
 
-    # Non-interactive mode (Electron desktop app): skip terminal prompt, default to groq.
+    # Non-interactive mode (Electron desktop app): skip terminal prompt.
+    # Default to local when faster-whisper is bundled (the installer case) so
+    # new users get full pronunciation scoring out-of-box; otherwise default
+    # to groq so source installs without the local-transcription group still
+    # boot cleanly. Users can flip modes from the UI switcher either way.
     if os.environ.get("ARTICULATE_NO_INTERACTIVE") == "1":
         from backend.config import write_mode_file
-        write_mode_file("groq")
-        os.environ["TRANSCRIPTION_MODE"] = "groq"
+        default_mode = "local" if is_faster_whisper_installed() else "groq"
+        write_mode_file(default_mode)
+        os.environ["TRANSCRIPTION_MODE"] = default_mode
         get_settings.cache_clear()
         return
 
@@ -152,6 +166,21 @@ async def lifespan(app: FastAPI):
     _prompt_mode_selection()
     settings = get_settings()  # re-read after potential mode change
 
+    # Capability gate: the shipped desktop bundle excludes faster-whisper (~3 GB
+    # of CUDA weights). If the user's saved preference is "local" but the
+    # runtime lacks faster-whisper, fall back to groq *in-memory only*. We do
+    # not overwrite data/mode — the preference survives for environments where
+    # local is supported (e.g. a source install with `uv sync --group local-transcription`).
+    if _should_downgrade_to_groq(settings.transcription_mode, is_faster_whisper_installed()):
+        logger.warning(
+            "TRANSCRIPTION_MODE=local requested but faster-whisper is not available "
+            "in this runtime (likely a packaged desktop build). Falling back to groq "
+            "for this session. Saved preference is preserved."
+        )
+        os.environ["TRANSCRIPTION_MODE"] = "groq"
+        get_settings.cache_clear()
+        settings = get_settings()
+
     if settings.transcription_mode == "local":
         logger.info("Transcription: Mode 1 - local faster-whisper.")
         try:
@@ -162,12 +191,34 @@ async def lifespan(app: FastAPI):
             await _warmup_probe()
             logger.info("faster-whisper ready (device validated).")
         except ImportError:
+            # Missing dep → hard fail. Signals a broken source install (dev forgot
+            # `uv sync --group local-transcription`) or a build regression where
+            # the packaged bundle is missing fw. The capability gate above is the
+            # intended in-memory fallback for that second case, so reaching here
+            # means the gate mis-routed — don't mask it.
             logger.critical(
                 "faster-whisper is not installed but TRANSCRIPTION_MODE=local.\n"
                 "  Install: uv sync --group local-transcription\n"
                 "  Or set TRANSCRIPTION_MODE=groq in .env and restart."
             )
             raise SystemExit(1)
+        except Exception as exc:
+            # Runtime failure loading fw or downloading Whisper weights (HF
+            # network error, captive proxy, CUDA driver mismatch not caught by
+            # _force_cpu_fallback). Mirror the capability gate: degrade to groq
+            # in-memory without overwriting the saved preference.
+            logger.error(
+                "faster-whisper init failed (%s). Falling back to groq for this session; "
+                "saved preference is preserved.",
+                exc,
+            )
+            os.environ["TRANSCRIPTION_MODE"] = "groq"
+            get_settings.cache_clear()
+            settings = get_settings()
+            logger.info(
+                "Transcription: Mode 2 - Groq API (model=%s) [runtime fallback].",
+                settings.groq_whisper_model,
+            )
     else:
         logger.info(
             "Transcription: Mode 2 - Groq API (model=%s). "

@@ -326,8 +326,11 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
                   </span>
                 )}
 
-                {/* ── Transcription mode switcher (hidden in desktop/packaged app) ── */}
-                {!systemInfo.is_desktop && <div className="mt-3 rounded-lg border border-cardBorder bg-card p-2.5">
+                {/* ── Transcription mode switcher ──
+                    Visible when the runtime has faster-whisper bundled OR the auto-install
+                    path is available (source installs). Both CPU and GPU installer variants
+                    ship faster-whisper, so packaged users always see this. */}
+                {(systemInfo.faster_whisper_installed || !systemInfo.is_desktop) && <div className="mt-3 rounded-lg border border-cardBorder bg-card p-2.5">
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-textSecondary mb-2">
                     Transcription
                   </p>

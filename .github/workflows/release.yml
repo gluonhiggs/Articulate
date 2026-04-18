@@ -36,20 +36,27 @@ jobs:
           path: frontend/dist/
           retention-days: 1
 
-  # ── Phase 2: Bundle Python backend per platform ──────────────────────────────
+  # ── Phase 2: Bundle Python backend per platform × variant ────────────────────
+  # 5-leg matrix: 2x Windows (cpu/gpu), 2x Linux (cpu/gpu), 1x macOS (cpu only).
+  # macOS has no CUDA backend in ctranslate2, so GPU variant is excluded.
   build-backend:
-    name: Build backend (${{ matrix.os }})
+    name: Build backend (${{ matrix.os }} ${{ matrix.variant }})
     needs: build-frontend
     strategy:
       fail-fast: false
       matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        variant: [cpu, gpu]
+        exclude:
+          - os: macos-latest
+            variant: gpu
         include:
           - os: windows-latest
-            artifact: backend-windows
-          - os: macos-latest
-            artifact: backend-macos
+            short_os: windows
           - os: ubuntu-latest
-            artifact: backend-linux
+            short_os: linux
+          - os: macos-latest
+            short_os: macos
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -70,13 +77,33 @@ jobs:
         # Pin uv: prevents silent CI regressions on uv releases.
         run: pip install "uv==0.10.0"
 
-      - name: Install dependencies
-        # Includes pyinstaller via the `build` group; excludes dev tests and
-        # local-transcription (faster-whisper not bundled in desktop).
-        run: uv sync --group build --no-group dev --no-group local-transcription
+      - name: Install dependencies (CPU variant)
+        if: matrix.variant == 'cpu'
+        # CPU variant: faster-whisper + ctranslate2 only. No nvidia-* wheels.
+        # Bundle stays ~510 MB; ctranslate2 falls back to CPU/int8 at runtime.
+        run: uv sync --group build --group local-transcription --no-group dev
+
+      - name: Install dependencies (GPU variant)
+        if: matrix.variant == 'gpu'
+        # GPU variant: add nvidia cuBLAS + cuDNN + cudart. Bundle ~1.7 GB.
+        # sys_platform markers in local-transcription-gpu skip nvidia on macOS,
+        # but macOS-GPU is excluded from the matrix anyway.
+        run: uv sync --group build --group local-transcription --group local-transcription-gpu --no-group dev
+
+      - name: Verify nvidia imports (GPU legs)
+        if: matrix.variant == 'gpu'
+        # Belt + suspenders for backend.spec's loud-fail nvidia collect. If a
+        # dep-group member is missing from the sync (regression in uv resolver
+        # or pyproject.toml), catch it here before PyInstaller runs so the
+        # error message points at the real cause, not a downstream bundle shape
+        # failure.
+        run: uv run --no-sync python -c "import nvidia.cublas, nvidia.cudnn, nvidia.cuda_runtime"
 
       - name: Build PyInstaller bundle
         # --no-sync: forbid uv run from triggering a second sync that could prune the venv.
+        # ARTICULATE_BUILD_GPU: backend.spec gates the nvidia collect_dynamic_libs on this.
+        env:
+          ARTICULATE_BUILD_GPU: ${{ matrix.variant == 'gpu' && '1' || '0' }}
         run: uv run --no-sync pyinstaller backend.spec --noconfirm --clean
 
       - name: Verify bundle integrity
@@ -84,12 +111,19 @@ jobs:
         env:
           ARTICULATE_NO_INTERACTIVE: "1"
           ARTICULATE_PORT: "8765"
+          # Pin smoke test to groq so the 10s window doesn't trigger a ~486 MB
+          # Whisper model download. CI verifies "bundle starts"; exercising local
+          # mode end-to-end is out of scope for smoke.
+          TRANSCRIPTION_MODE: "groq"
+          MATRIX_VARIANT: ${{ matrix.variant }}
         run: |
           set -uo pipefail
           BUNDLE="dist/articulate_backend/_internal"
 
-          echo "=== Presence check ==="
-          for pkg in uvicorn spacy kokoro torch pydantic_core; do
+          echo "=== Presence check (variant=${MATRIX_VARIANT}) ==="
+          # Shipped in every variant, every OS:
+          PACKAGES="uvicorn spacy kokoro torch pydantic_core faster_whisper ctranslate2"
+          for pkg in $PACKAGES; do
             if [ ! -d "$BUNDLE/$pkg" ]; then
               echo "FAIL: $BUNDLE/$pkg is missing — bundle is incomplete"
               exit 1
@@ -97,11 +131,52 @@ jobs:
             echo "OK: $pkg"
           done
 
+          if [ "${MATRIX_VARIANT}" = "gpu" ]; then
+            # PyInstaller can flatten nvidia.* (PEP 420 namespace package) into
+            # _internal/ root OR keep _internal/nvidia/*/bin/ hierarchy. Don't
+            # rely on directory existence — grep for the actual DLL/SO filenames.
+            echo "=== GPU check: CUDA runtime libs ==="
+            FOUND=$(find "$BUNDLE" \
+              -iname "cublas64*.dll" -o -iname "libcublas*.so*" \
+              -o -iname "cudart64*.dll" -o -iname "libcudart*.so*" \
+              -o -iname "cudnn*.dll" -o -iname "libcudnn*.so*" \
+              2>/dev/null | wc -l)
+            if [ "$FOUND" -lt 3 ]; then
+              echo "FAIL: GPU variant bundled only ${FOUND} CUDA libs; expected >= 3 (cuBLAS, cuDNN, cudart)"
+              find "$BUNDLE" -iname "*cuda*" -o -iname "*cublas*" -o -iname "*cudnn*" 2>/dev/null | head -20 || true
+              exit 1
+            fi
+            echo "OK: ${FOUND} CUDA runtime files present"
+          else
+            # CPU variant must NOT ship nvidia libs — check for absence.
+            echo "=== CPU check: no CUDA runtime ==="
+            NVIDIA_LIBS=$(find "$BUNDLE" \
+              -iname "cublas64*.dll" -o -iname "libcublas*.so*" \
+              -o -iname "cudnn*.dll" -o -iname "libcudnn*.so*" \
+              2>/dev/null | wc -l)
+            if [ "$NVIDIA_LIBS" -gt 0 ]; then
+              echo "FAIL: CPU variant bundle contains ${NVIDIA_LIBS} CUDA libs — should be 0"
+              exit 1
+            fi
+            echo "OK: CPU variant has no CUDA libs"
+          fi
+
           echo "=== Size check ==="
           SIZE_MB=$(du -sm dist/articulate_backend | cut -f1)
           echo "Bundle size: ${SIZE_MB} MB"
-          if [ "$SIZE_MB" -lt 300 ]; then
-            echo "FAIL: bundle is ${SIZE_MB} MB, expected >= 300 MB"
+          # Size floors per variant/OS:
+          #   macOS (cpu only): ~510 MB → floor 400
+          #   Win/Linux CPU:    ~510 MB → floor 450
+          #   Win/Linux GPU:    ~1.7 GB → floor 1000
+          if [ "${MATRIX_VARIANT}" = "gpu" ]; then
+            MIN_MB=1000
+          elif [ "${RUNNER_OS}" = "macOS" ]; then
+            MIN_MB=400
+          else
+            MIN_MB=450
+          fi
+          if [ "$SIZE_MB" -lt "$MIN_MB" ]; then
+            echo "FAIL: bundle is ${SIZE_MB} MB, expected >= ${MIN_MB} MB for ${RUNNER_OS}/${MATRIX_VARIANT}"
             exit 1
           fi
 
@@ -136,27 +211,34 @@ jobs:
       - name: Upload backend bundle
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
+          name: backend-${{ matrix.short_os }}-${{ matrix.variant }}
           path: dist/articulate_backend/
           retention-days: 1
 
-  # ── Phase 3: Package Electron app per platform ───────────────────────────────
+  # ── Phase 3: Package Electron app per platform × variant ─────────────────────
+  # Same 5-leg matrix as Phase 2. ARTICULATE_VARIANT flows into electron-builder's
+  # artifactName template so each installer is distinctly named on the release page.
   build-electron:
-    name: Package Electron (${{ matrix.os }})
+    name: Package Electron (${{ matrix.os }} ${{ matrix.variant }})
     needs: build-backend
     strategy:
       fail-fast: false
       matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        variant: [cpu, gpu]
+        exclude:
+          - os: macos-latest
+            variant: gpu
         include:
           - os: windows-latest
-            backend-artifact: backend-windows
+            short_os: windows
             installer-glob: "electron/dist-installer/*.exe"
-          - os: macos-latest
-            backend-artifact: backend-macos
-            installer-glob: "electron/dist-installer/*.dmg"
           - os: ubuntu-latest
-            backend-artifact: backend-linux
+            short_os: linux
             installer-glob: "electron/dist-installer/*.AppImage"
+          - os: macos-latest
+            short_os: macos
+            installer-glob: "electron/dist-installer/*.dmg"
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -165,7 +247,7 @@ jobs:
       - name: Download backend bundle
         uses: actions/download-artifact@v4
         with:
-          name: ${{ matrix.backend-artifact }}
+          name: backend-${{ matrix.short_os }}-${{ matrix.variant }}
           path: dist/articulate_backend/
 
       - name: Setup Node.js
@@ -189,6 +271,9 @@ jobs:
       - name: Package with electron-builder
         working-directory: electron
         env:
+          # ARTICULATE_VARIANT is interpolated into electron/package.json's
+          # artifactName template so we produce e.g. Articulate-windows-gpu-0.1.4.exe.
+          ARTICULATE_VARIANT: ${{ matrix.variant }}
           # macOS notarization (optional — set secrets in GitHub repo settings)
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}

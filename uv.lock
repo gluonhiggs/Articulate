@@ -118,9 +118,13 @@ dev = [
     { name = "pytest-asyncio" },
 ]
 local-transcription = [
+    { name = "ctranslate2" },
     { name = "faster-whisper" },
-    { name = "nvidia-cublas-cu12" },
-    { name = "nvidia-cuda-runtime-cu12" },
+]
+local-transcription-gpu = [
+    { name = "nvidia-cublas-cu12", marker = "sys_platform != 'darwin'" },
+    { name = "nvidia-cuda-runtime-cu12", marker = "sys_platform != 'darwin'" },
+    { name = "nvidia-cudnn-cu12", marker = "sys_platform != 'darwin'" },
 ]
 
 [package.metadata]
@@ -152,9 +156,13 @@ dev = [
     { name = "pytest-asyncio", specifier = ">=0.24" },
 ]
 local-transcription = [
+    { name = "ctranslate2", specifier = ">=4.5,<5" },
     { name = "faster-whisper", specifier = ">=1.0" },
-    { name = "nvidia-cublas-cu12", specifier = ">=12" },
-    { name = "nvidia-cuda-runtime-cu12", specifier = ">=12" },
+]
+local-transcription-gpu = [
+    { name = "nvidia-cublas-cu12", marker = "sys_platform != 'darwin'", specifier = ">=12" },
+    { name = "nvidia-cuda-runtime-cu12", marker = "sys_platform != 'darwin'", specifier = ">=12" },
+    { name = "nvidia-cudnn-cu12", marker = "sys_platform != 'darwin'", specifier = ">=9" },
 ]
 
 [[package]]
@@ -1273,7 +1281,7 @@ name = "nvidia-cublas-cu12"
 version = "12.9.2.10"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-cuda-nvrtc-cu12" },
+    { name = "nvidia-cuda-nvrtc-cu12", marker = "sys_platform != 'darwin'" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f7/a2/c96163a0fff1839c0c9548bbdeae7b853b867009e33b9b9264adc238b1cf/nvidia_cublas_cu12-12.9.2.10-py3-none-manylinux_2_27_aarch64.whl", hash = "sha256:5572131a59c3eebeeb1c4c8144f772d49372c20124916e072a0e3fc30df421d5", size = 575012079, upload-time = "2026-04-08T18:51:47.303Z" },
@@ -1299,6 +1307,19 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/bc/e0/0279bd94539fda525e0c8538db29b72a5a8495b0c12173113471d28bce78/nvidia_cuda_runtime_cu12-12.9.79-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:83469a846206f2a733db0c42e223589ab62fd2fabac4432d2f8802de4bded0a4", size = 3515012, upload-time = "2025-06-05T20:00:35.519Z" },
     { url = "https://files.pythonhosted.org/packages/bc/46/a92db19b8309581092a3add7e6fceb4c301a3fd233969856a8cbf042cd3c/nvidia_cuda_runtime_cu12-12.9.79-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:25bba2dfb01d48a9b59ca474a1ac43c6ebf7011f1b0b8cc44f54eb6ac48a96c3", size = 3493179, upload-time = "2025-06-05T20:00:53.735Z" },
     { url = "https://files.pythonhosted.org/packages/59/df/e7c3a360be4f7b93cee39271b792669baeb3846c58a4df6dfcf187a7ffab/nvidia_cuda_runtime_cu12-12.9.79-py3-none-win_amd64.whl", hash = "sha256:8e018af8fa02363876860388bd10ccb89eb9ab8fb0aa749aaf58430a9f7c4891", size = 3591604, upload-time = "2025-06-05T20:11:17.036Z" },
+]
+
+[[package]]
+name = "nvidia-cudnn-cu12"
+version = "9.21.0.82"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "nvidia-cublas-cu12", marker = "sys_platform != 'darwin'" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f4/e9/aea85c214a5dad046e56131428c22ff40d0359db3a930040698c0c6c8e68/nvidia_cudnn_cu12-9.21.0.82-py3-none-manylinux_2_27_aarch64.whl", hash = "sha256:8ba7c5067854d2b8d8dc21a65bbc5a642b31e4dddc8864cf3a093d25a92e874c", size = 759281118, upload-time = "2026-04-14T15:30:44.958Z" },
+    { url = "https://files.pythonhosted.org/packages/5c/cf/47778414dd633ba93395f9d34c87283916c3163f57000c2aeef1f869c649/nvidia_cudnn_cu12-9.21.0.82-py3-none-manylinux_2_27_x86_64.whl", hash = "sha256:286af0a8ee51e3e5eb0e858b0b93a85a5ae6a686f22a0c83c8d7d4dc9151402f", size = 704763924, upload-time = "2026-04-15T16:43:40.04Z" },
+    { url = "https://files.pythonhosted.org/packages/c6/e9/e91296c0d7b4b565f38de9ccbf757a8c3172b62a485222751d39f673a26c/nvidia_cudnn_cu12-9.21.0.82-py3-none-win_amd64.whl", hash = "sha256:29c69af1d2f8a6778ef6dbc7829416e6a4c8585b7ca2cab5fb1876bf2e393589", size = 686896833, upload-time = "2026-04-14T15:35:00.959Z" },
 ]
 
 [[package]]

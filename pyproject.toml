@@ -58,11 +58,19 @@ build = [
 ]
 local-transcription = [
     "faster-whisper>=1.0",
-    # Windows: ctranslate2 expects cublas/cudart DLLs on PATH.
-    # These packages install the DLLs into site-packages/nvidia/*/bin/,
-    # and transcription.py patches PATH at import time to expose them.
-    "nvidia-cublas-cu12>=12",
-    "nvidia-cuda-runtime-cu12>=12",
+    # Pin ctranslate2 to the cuDNN-v9 era; >=4.5 changes the cuDNN major dep,
+    # and <5 keeps us on a range the transcription fallback paths are tested against.
+    "ctranslate2>=4.5,<5",
+]
+# GPU-only CUDA runtime. CI installs this group on GPU matrix legs (Win/Linux);
+# CPU variants skip it entirely so those installers stay ~510 MB instead of ~1.7 GB.
+# macOS is excluded via the sys_platform marker — ctranslate2 has no CUDA backend on macOS.
+# The wheels install DLLs into site-packages/nvidia/*/bin/ (Windows) or
+# site-packages/nvidia/*/lib/ (Linux); transcription.py patches PATH/LD on import.
+local-transcription-gpu = [
+    "nvidia-cublas-cu12>=12; sys_platform != 'darwin'",
+    "nvidia-cudnn-cu12>=9; sys_platform != 'darwin'",
+    "nvidia-cuda-runtime-cu12>=12; sys_platform != 'darwin'",
 ]
 
 [tool.pytest.ini_options]
