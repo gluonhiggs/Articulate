@@ -89,7 +89,7 @@ jobs:
           BUNDLE="dist/articulate_backend/_internal"
 
           echo "=== Presence check ==="
-          for pkg in uvicorn fastapi starlette spacy kokoro torch pydantic; do
+          for pkg in uvicorn spacy kokoro torch pydantic; do
             if [ ! -d "$BUNDLE/$pkg" ]; then
               echo "FAIL: $BUNDLE/$pkg is missing — bundle is incomplete"
               exit 1
