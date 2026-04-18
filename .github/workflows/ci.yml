@@ -52,7 +52,7 @@ jobs:
         # requires_models and excluded below. Also skip kokoro and spacy for the
         # same reason (they depend on torch or are large model packages).
         run: >
-          uv sync --group dev --no-group local-transcription
+          uv sync --locked --group dev --no-group local-transcription
           --no-install-package torch
           --no-install-package kokoro
           --no-install-package spacy
