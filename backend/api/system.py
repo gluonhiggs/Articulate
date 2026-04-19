@@ -9,7 +9,7 @@ import sys
 import httpx
 from fastapi import APIRouter, HTTPException
 
-from backend.config import get_active_model, get_mode_file, get_settings, set_runtime_model, write_mode_file
+from backend.config import get_active_model, get_settings, set_runtime_model, write_mode_file
 from backend.schemas import SetModelRequest, SetTranscriptionModeRequest, SystemInfoOut
 from backend.services.transcription import is_faster_whisper_installed
 
@@ -34,6 +34,7 @@ def _get_op_status() -> str:
 
 # ── LLM reachability check ────────────────────────────────────────────────────
 
+
 async def _check_llm_reachable(base_url: str, api_key: str) -> bool:
     try:
         if api_key:
@@ -47,6 +48,7 @@ async def _check_llm_reachable(base_url: str, api_key: str) -> bool:
 
 # ── System info ───────────────────────────────────────────────────────────────
 
+
 @router.get("/info", response_model=SystemInfoOut)
 async def system_info() -> SystemInfoOut:
     settings = get_settings()
@@ -58,6 +60,7 @@ async def system_info() -> SystemInfoOut:
     if settings.transcription_mode == "local":
         try:
             from backend.services.transcription import _resolve_device_and_model
+
             device, _, model_size = _resolve_device_and_model()
             whisper_model = model_size
             whisper_device = device
@@ -84,6 +87,7 @@ async def system_info() -> SystemInfoOut:
 
 # ── LLM model switch ──────────────────────────────────────────────────────────
 
+
 @router.patch("/model", response_model=SystemInfoOut)
 async def update_model(body: SetModelRequest) -> SystemInfoOut:
     set_runtime_model(body.model.strip())
@@ -91,6 +95,7 @@ async def update_model(body: SetModelRequest) -> SystemInfoOut:
 
 
 # ── Transcription mode switch ─────────────────────────────────────────────────
+
 
 async def _install_faster_whisper() -> None:
     """Run `uv sync --group local-transcription` in a thread; update op_status."""
@@ -106,6 +111,7 @@ async def _install_faster_whisper() -> None:
 
 def _run_uv_sync() -> None:
     import sys
+
     if getattr(sys, "frozen", False):
         raise RuntimeError("Local transcription install is not available in the desktop app.")
     result = subprocess.run(
@@ -125,6 +131,7 @@ async def _load_model_and_switch() -> None:
             _local_executor,
             warmup_probe,
         )
+
         loop = asyncio.get_running_loop()
         logger.info("Loading faster-whisper model in background...")
         await loop.run_in_executor(_local_executor, _get_model)
@@ -155,6 +162,7 @@ async def update_transcription_mode(body: SetTranscriptionModeRequest) -> System
     if mode == "groq":
         # Synchronous -- fast. Unload model, switch immediately.
         from backend.services.transcription import unload_model
+
         unload_model()
         write_mode_file("groq")
         os.environ["TRANSCRIPTION_MODE"] = "groq"

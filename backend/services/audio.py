@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import os
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -14,9 +13,9 @@ CHUNK_SIZE = 1024 * 1024  # 1 MB read chunks
 
 _MIME_TO_EXT: dict[str, str] = {
     "audio/webm": ".webm",
-    "audio/mp4":  ".mp4",
-    "audio/ogg":  ".ogg",
-    "audio/wav":  ".wav",
+    "audio/mp4": ".mp4",
+    "audio/ogg": ".ogg",
+    "audio/wav": ".wav",
     "audio/mpeg": ".mp3",
 }
 
@@ -54,7 +53,9 @@ async def save_audio(
 
     logger.info(
         "Saved audio for attempt %d as %s (content_type=%s)",
-        attempt_id, dest.name, upload_file.content_type,
+        attempt_id,
+        dest.name,
+        upload_file.content_type,
     )
     return str(dest)
 

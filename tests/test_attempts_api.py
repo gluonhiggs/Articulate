@@ -1,4 +1,5 @@
 """Integration tests for attempts API - history endpoint stale-cleanup logic."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
@@ -46,6 +47,7 @@ async def attempts_client(attempts_db: AsyncSession):
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 async def _make_question(session: AsyncSession) -> Question:
     q = Question(part="1", text="Test question?")
     session.add(q)
@@ -60,9 +62,7 @@ class TestAttemptHistory:
         """An attempt stuck in 'processing' for >10 minutes is marked 'failed' on read."""
         q = await _make_question(attempts_db)
         stale_time = datetime.now(UTC).replace(tzinfo=None) - timedelta(minutes=11)
-        attempt = Attempt(
-            question_id=q.id, status="processing", created_at=stale_time
-        )
+        attempt = Attempt(question_id=q.id, status="processing", created_at=stale_time)
         attempts_db.add(attempt)
         await attempts_db.commit()
 
@@ -72,18 +72,13 @@ class TestAttemptHistory:
         assert len(data) == 1
         assert data[0]["status"] == "failed"
 
-    async def test_stale_attempt_updated_in_db(
-        self, attempts_client: AsyncClient, attempts_db: AsyncSession
-    ) -> None:
+    async def test_stale_attempt_updated_in_db(self, attempts_client: AsyncClient, attempts_db: AsyncSession) -> None:
         """The DB row itself is updated to 'failed', not just the response."""
         q = await _make_question(attempts_db)
         stale_time = datetime.now(UTC).replace(tzinfo=None) - timedelta(minutes=15)
-        attempt = Attempt(
-            question_id=q.id, status="processing", created_at=stale_time
-        )
+        attempt = Attempt(question_id=q.id, status="processing", created_at=stale_time)
         attempts_db.add(attempt)
         await attempts_db.commit()
-        attempt_id = attempt.id
 
         await attempts_client.get(f"/api/v1/attempts/history/{q.id}")
 
@@ -97,9 +92,7 @@ class TestAttemptHistory:
         """An attempt in 'processing' created less than 10 minutes ago is left as-is."""
         q = await _make_question(attempts_db)
         fresh_time = datetime.now(UTC).replace(tzinfo=None) - timedelta(minutes=5)
-        attempt = Attempt(
-            question_id=q.id, status="processing", created_at=fresh_time
-        )
+        attempt = Attempt(question_id=q.id, status="processing", created_at=fresh_time)
         attempts_db.add(attempt)
         await attempts_db.commit()
 
@@ -116,9 +109,7 @@ class TestAttemptHistory:
         q = await _make_question(attempts_db)
         # 5 seconds of headroom to absorb test execution time without flapping
         near_threshold = datetime.now(UTC).replace(tzinfo=None) - timedelta(minutes=10) + timedelta(seconds=5)
-        attempt = Attempt(
-            question_id=q.id, status="processing", created_at=near_threshold
-        )
+        attempt = Attempt(question_id=q.id, status="processing", created_at=near_threshold)
         attempts_db.add(attempt)
         await attempts_db.commit()
 
@@ -132,9 +123,7 @@ class TestAttemptHistory:
         """A 'ready' attempt is never touched regardless of age."""
         q = await _make_question(attempts_db)
         old_time = datetime.now(UTC).replace(tzinfo=None) - timedelta(hours=2)
-        attempt = Attempt(
-            question_id=q.id, status="ready", score=7.0, created_at=old_time
-        )
+        attempt = Attempt(question_id=q.id, status="ready", score=7.0, created_at=old_time)
         attempts_db.add(attempt)
         await attempts_db.commit()
 
@@ -148,9 +137,7 @@ class TestAttemptHistory:
         """An attempt stuck in 'transcribing' for >10 minutes is marked 'failed' on read."""
         q = await _make_question(attempts_db)
         stale_time = datetime.now(UTC).replace(tzinfo=None) - timedelta(minutes=11)
-        attempt = Attempt(
-            question_id=q.id, status="transcribing", created_at=stale_time
-        )
+        attempt = Attempt(question_id=q.id, status="transcribing", created_at=stale_time)
         attempts_db.add(attempt)
         await attempts_db.commit()
 
@@ -164,9 +151,7 @@ class TestAttemptHistory:
         """An attempt stuck in 'scoring' for >10 minutes is marked 'failed' on read."""
         q = await _make_question(attempts_db)
         stale_time = datetime.now(UTC).replace(tzinfo=None) - timedelta(minutes=11)
-        attempt = Attempt(
-            question_id=q.id, status="scoring", created_at=stale_time
-        )
+        attempt = Attempt(question_id=q.id, status="scoring", created_at=stale_time)
         attempts_db.add(attempt)
         await attempts_db.commit()
 
@@ -174,8 +159,6 @@ class TestAttemptHistory:
         assert resp.status_code == 200
         assert resp.json()[0]["status"] == "failed"
 
-    async def test_returns_404_for_unknown_question(
-        self, attempts_client: AsyncClient
-    ) -> None:
+    async def test_returns_404_for_unknown_question(self, attempts_client: AsyncClient) -> None:
         resp = await attempts_client.get("/api/v1/attempts/history/99999")
         assert resp.status_code == 404

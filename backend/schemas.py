@@ -4,8 +4,7 @@ import json
 from datetime import date, datetime
 from typing import Any, List, Literal, Optional
 
-from pydantic import BaseModel, field_validator, model_validator
-
+from pydantic import BaseModel, field_validator
 
 # ---------------------------------------------------------------------------
 # Question schemas
@@ -186,10 +185,10 @@ class SystemInfoOut(BaseModel):
     is_low_accuracy: bool = False
     llm_reachable: bool = False
     # ── Transcription mode ──────────────────────────────────────────────────
-    transcription_mode: str = "groq"        # "groq" | "local"
+    transcription_mode: str = "groq"  # "groq" | "local"
     faster_whisper_installed: bool = False
-    op_status: str = ""                     # "" | "installing" | "loading" | "failed"
-    is_desktop: bool = False                # True when running as a packaged Electron app
+    op_status: str = ""  # "" | "installing" | "loading" | "failed"
+    is_desktop: bool = False  # True when running as a packaged Electron app
 
 
 class SetModelRequest(BaseModel):

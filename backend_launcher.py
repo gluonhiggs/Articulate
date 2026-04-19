@@ -4,6 +4,7 @@ PyInstaller entry point for the Articulate backend.
 This script is bundled by backend.spec into a standalone executable.
 Electron spawns it with ARTICULATE_PORT and ARTICULATE_NO_INTERACTIVE set.
 """
+
 from __future__ import annotations
 
 import os
@@ -23,7 +24,7 @@ if _log_path:
     except OSError:
         pass
 
-import multiprocessing
+import multiprocessing  # noqa: E402
 
 # Required for PyInstaller one-dir mode when the bundle uses multiprocessing.
 multiprocessing.freeze_support()

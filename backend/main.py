@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -13,13 +14,14 @@ from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from backend.api import attempts, dashboard, questions, system, tts
+from backend.api.attempts import _get_lt_tool
 from backend.config import get_settings
 from backend.database import init_db
 from backend.services import llm_client
 from backend.services.audio import cleanup_old_audio
 from backend.services.transcription import is_faster_whisper_installed
-from backend.services.tts import evict_tts_cache, _ensure_pipeline as _ensure_tts_pipeline
-from backend.api.attempts import _get_lt_tool
+from backend.services.tts import _ensure_pipeline as _ensure_tts_pipeline
+from backend.services.tts import evict_tts_cache
 
 logging.basicConfig(
     level=logging.INFO,
@@ -58,6 +60,7 @@ def _prompt_mode_selection() -> None:
     # boot cleanly. Users can flip modes from the UI switcher either way.
     if os.environ.get("ARTICULATE_NO_INTERACTIVE") == "1":
         from backend.config import write_mode_file
+
         default_mode = "local" if is_faster_whisper_installed() else "groq"
         write_mode_file(default_mode)
         os.environ["TRANSCRIPTION_MODE"] = default_mode
@@ -65,6 +68,7 @@ def _prompt_mode_selection() -> None:
         return
 
     from backend.services.transcription import detect_gpu
+
     has_gpu = detect_gpu()
 
     print("\n" + "=" * 60)
@@ -112,6 +116,7 @@ def _prompt_mode_selection() -> None:
 
     # Persist to data/mode (never modifies .env)
     from backend.config import write_mode_file
+
     write_mode_file(mode)
 
     # Update the running process so lifespan reads the chosen mode
@@ -145,15 +150,18 @@ async def lifespan(app: FastAPI):
     logger.info("Verifying vocab signal dependencies…")
     try:
         import simplemma  # noqa: F401
+
         logger.info("Vocab signal deps OK (simplemma).")
     except ImportError as exc:
         logger.warning("Vocab signal deps missing: %s - run `uv sync`", exc)
 
     from backend.data.oxford import WORD_TO_CEFR
+
     logger.info("Oxford 5000 loaded: %d words", len(WORD_TO_CEFR))
 
     # ── Restore last-used transcription mode from data/mode ──────────────────
-    from backend.config import get_mode_file, write_mode_file
+    from backend.config import get_mode_file
+
     _mode_file = get_mode_file()
     if _mode_file.exists():
         _saved_mode = _mode_file.read_text(encoding="utf-8").strip()
@@ -184,7 +192,10 @@ async def lifespan(app: FastAPI):
     if settings.transcription_mode == "local":
         logger.info("Transcription: Mode 1 - local faster-whisper.")
         try:
-            from backend.services.transcription import _get_model as _get_whisper_model, warmup_probe as _warmup_probe, _local_executor as _whisper_local_executor
+            from backend.services.transcription import _get_model as _get_whisper_model
+            from backend.services.transcription import _local_executor as _whisper_local_executor
+            from backend.services.transcription import warmup_probe as _warmup_probe
+
             loop = asyncio.get_running_loop()
             await loop.run_in_executor(_whisper_local_executor, _get_whisper_model)
             logger.info("faster-whisper model loaded - running CUDA warmup probe…")
@@ -243,8 +254,7 @@ async def lifespan(app: FastAPI):
             logger.warning("LanguageTool unavailable - grammar context will be skipped.")
     except asyncio.TimeoutError:
         logger.warning(
-            "LanguageTool timed out after 30s (Java may be blocked by firewall). "
-            "Grammar context will be skipped."
+            "LanguageTool timed out after 30s (Java may be blocked by firewall). Grammar context will be skipped."
         )
 
     yield  # Application runs here
@@ -285,9 +295,10 @@ app.include_router(tts.router)
 # Frontend static files (catch-all - MUST be last)
 # ---------------------------------------------------------------------------
 
-import sys as _sys
-_MEIPASS = getattr(_sys, "_MEIPASS", None)
-_FRONTEND_DIST = Path(_MEIPASS) / "frontend" / "dist" if _MEIPASS else Path(__file__).parent.parent / "frontend" / "dist"
+_MEIPASS = getattr(sys, "_MEIPASS", None)
+_FRONTEND_DIST = (
+    Path(_MEIPASS) / "frontend" / "dist" if _MEIPASS else Path(__file__).parent.parent / "frontend" / "dist"
+)
 
 if _FRONTEND_DIST.exists():
     app.mount("/", StaticFiles(directory=str(_FRONTEND_DIST), html=True), name="frontend")

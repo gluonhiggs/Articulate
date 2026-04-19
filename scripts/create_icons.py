@@ -35,9 +35,9 @@ OUT_DIR = ROOT / "build-resources"
 OUT_DIR.mkdir(exist_ok=True)
 
 SIZE = 1024
-BG_COLOR = (79, 70, 229)       # indigo-600  #4F46E5
+BG_COLOR = (79, 70, 229)  # indigo-600  #4F46E5
 BUBBLE_COLOR = (255, 255, 255)  # white
-TEXT_COLOR = (79, 70, 229)      # indigo — matches bg so "A" pops from bubble
+TEXT_COLOR = (79, 70, 229)  # indigo — matches bg so "A" pops from bubble
 
 
 # ---------------------------------------------------------------------------
@@ -65,8 +65,8 @@ def draw_icon(size: int) -> Image.Image:
     # Tail: a small triangle at the bottom-left of the bubble
     tail_x = bx0 + int(size * 0.14)
     tail_points = [
-        (tail_x, by1),                        # left attach on bubble bottom
-        (tail_x + int(size * 0.12), by1),      # right attach
+        (tail_x, by1),  # left attach on bubble bottom
+        (tail_x + int(size * 0.12), by1),  # right attach
         (bx0 + int(size * 0.06), by1 + tail_h),  # tip
     ]
     draw.polygon(tail_points, fill=BUBBLE_COLOR)
@@ -126,10 +126,12 @@ ico_path = OUT_DIR / "icon.ico"
 # Write a raw ICO container manually so all sizes are included.
 # Format: 6-byte header + N * 16-byte dir entries + N * image data blobs
 
+
 def _png_blob(img: "Image.Image") -> bytes:
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return buf.getvalue()
+
 
 blobs = [_png_blob(f) for f in ico_frames]
 n = len(blobs)
@@ -141,14 +143,16 @@ for img, blob in zip(ico_frames, blobs):
     w, h = img.size
     w_byte = w if w < 256 else 0
     h_byte = h if h < 256 else 0
-    dir_entries += struct.pack("<BBBBHHII",
-        w_byte, h_byte,  # width, height (0 = 256)
-        0,               # color count (0 = no palette)
-        0,               # reserved
-        1,               # color planes
-        32,              # bits per pixel
-        len(blob),       # size of image data
-        offset,          # offset of image data
+    dir_entries += struct.pack(
+        "<BBBBHHII",
+        w_byte,
+        h_byte,  # width, height (0 = 256)
+        0,  # color count (0 = no palette)
+        0,  # reserved
+        1,  # color planes
+        32,  # bits per pixel
+        len(blob),  # size of image data
+        offset,  # offset of image data
     )
     offset += len(blob)
 
@@ -170,8 +174,8 @@ icns_sizes = {
     "ic08": 256,
     "ic09": 512,
     "ic10": 1024,
-    "ic11": 32,   # @2x of ic04 (32px)
-    "ic12": 64,   # @2x of ic05 (64px)
+    "ic11": 32,  # @2x of ic04 (32px)
+    "ic12": 64,  # @2x of ic05 (64px)
     "ic13": 256,  # @2x of ic07 (256px)
     "ic14": 512,  # @2x of ic08 (512px)
 }

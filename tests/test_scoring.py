@@ -1,6 +1,6 @@
 """Unit tests for scoring._parse_llm_response() - no API keys required."""
-import pytest
-from backend.services.scoring import _parse_llm_response, _clamp_band
+
+from backend.services.scoring import _clamp_band, _parse_llm_response
 
 
 class TestClampBand:
@@ -37,7 +37,7 @@ class TestParseLlmResponse:
         assert result["score"] == 5.0  # mean of available scores
 
     def test_empty_json_returns_nulls(self):
-        raw = '{}'
+        raw = "{}"
         result = _parse_llm_response(raw)
         assert result["score"] is None
         assert result["usage_errors"] == []
@@ -74,7 +74,9 @@ class TestParseLlmResponse:
 
     def test_truncated_json_salvaged_via_repair(self):
         # LLM truncated at token limit - no closing brace; repair appends '"}'
-        raw = '{"fluency":6.0,"vocabulary":5.5,"grammar":5.0,"pronunciation":6.0,"usage_errors":[],"feedback_text":"Good'
+        raw = (
+            '{"fluency":6.0,"vocabulary":5.5,"grammar":5.0,"pronunciation":6.0,"usage_errors":[],"feedback_text":"Good'
+        )
         result = _parse_llm_response(raw)
         assert result["fluency"] == 6.0  # scores recovered via truncation repair
 
@@ -82,21 +84,25 @@ class TestParseLlmResponse:
 class TestLengthLabel:
     def test_very_short(self):
         from backend.services.vocab import _length_label
+
         label = _length_label(29)
         assert "<=4" in label  # Band <=4 ceiling
 
     def test_short(self):
         from backend.services.vocab import _length_label
+
         label = _length_label(79)
         assert "<=5" in label  # Band <=5 ceiling
 
     def test_moderate(self):
         from backend.services.vocab import _length_label
+
         label = _length_label(149)
         assert "moderate" in label
 
     def test_extended(self):
         from backend.services.vocab import _length_label
+
         label = _length_label(200)
         assert "extended" in label
 
@@ -105,6 +111,7 @@ class TestBuildPromptInjection:
     def test_band_descriptors_placeholder_is_substituted(self):
         """Verify {band_descriptors} is replaced in _build_prompt output."""
         from backend.services.scoring import _build_prompt
+
         prompt = _build_prompt("Test question?", "1", "test transcript", "")
         assert "{band_descriptors}" not in prompt
         # BAND-SCORES.md content should appear (check for a distinctive phrase)

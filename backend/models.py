@@ -26,33 +26,19 @@ class Question(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     part: Mapped[str] = mapped_column(String(10))  # "1", "2", "3", "custom"
     topic: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)  # Part 1 grouping
-    category: Mapped[Optional[str]] = mapped_column(
-        String(20), nullable=True
-    )  # person/object/activity/place
-    parent_question_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("questions.id"), nullable=True
-    )
+    category: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)  # person/object/activity/place
+    parent_question_id: Mapped[Optional[int]] = mapped_column(ForeignKey("questions.id"), nullable=True)
     text: Mapped[str] = mapped_column(Text)
-    bullet_points: Mapped[Optional[str]] = mapped_column(
-        Text, nullable=True
-    )  # JSON string, Part 2 only
-    topic_tag: Mapped[Optional[str]] = mapped_column(
-        String(50), nullable=True
-    )  # e.g. "environment", "technology"
-    source: Mapped[Optional[str]] = mapped_column(
-        String(100), nullable=True
-    )  # e.g. "IELTS community", "Cambridge 17"
+    bullet_points: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON string, Part 2 only
+    topic_tag: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)  # e.g. "environment", "technology"
+    source: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)  # e.g. "IELTS community", "Cambridge 17"
     last_seen_date: Mapped[Optional[date]] = mapped_column(
         Date, nullable=True
     )  # When this topic last appeared in real IELTS
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
 
-    attempts: Mapped[List["Attempt"]] = relationship(
-        back_populates="question", cascade="all, delete-orphan"
-    )
-    children: Mapped[List["Question"]] = relationship(
-        "Question", back_populates="parent"
-    )
+    attempts: Mapped[List["Attempt"]] = relationship(back_populates="question", cascade="all, delete-orphan")
+    children: Mapped[List["Question"]] = relationship("Question", back_populates="parent")
     parent: Mapped[Optional["Question"]] = relationship(
         "Question",
         back_populates="children",
@@ -76,9 +62,7 @@ class Attempt(Base):
     usage_errors: Mapped[Optional[str]] = mapped_column("error_highlights", Text, nullable=True)  # JSON
     word_timestamps: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON
     duration_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    status: Mapped[str] = mapped_column(
-        String(20), default="processing", index=True
-    )  # processing | ready | failed
+    status: Mapped[str] = mapped_column(String(20), default="processing", index=True)  # processing | ready | failed
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), index=True)
 
     question: Mapped["Question"] = relationship(back_populates="attempts")

@@ -16,6 +16,7 @@ compute_grammar_signals returns a dict covering GRA signals 3 and 5:
   GRA Signal 3 - Complex Sentence Usage and Error Locus
   GRA Signal 5 - Structural Range Markers (tense inventory, passive, conditionals, tree depth)
 """
+
 from __future__ import annotations
 
 import logging
@@ -24,8 +25,8 @@ import statistics
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple
 
-from backend.data.oxford import WORD_TO_CEFR, WORD_TO_DATA
 from backend.data.idioms import IELTS_PHRASES
+from backend.data.oxford import WORD_TO_CEFR, WORD_TO_DATA
 
 logger = logging.getLogger(__name__)
 
@@ -36,39 +37,209 @@ logger = logging.getLogger(__name__)
 # Basis: the function word / content word distinction from linguistics.
 # We do NOT use NLTK/spaCy/scikit-learn stop lists - those are designed for
 # information retrieval and are too aggressive for vocabulary level assessment.
-_STOP_WORDS: frozenset[str] = frozenset({
-    # articles / determiners
-    "the", "a", "an", "this", "that", "these", "those", "my", "your", "his",
-    "her", "its", "our", "their", "each", "every", "any", "all", "both",
-    "few", "more", "most", "other", "some", "such", "no", "nor", "not",
-    # pronouns
-    "i", "me", "we", "us", "you", "he", "him", "she", "they", "them",
-    "who", "whom", "which", "what", "it",
-    # prepositions
-    "in", "on", "at", "by", "for", "with", "about", "against", "between",
-    "into", "through", "during", "before", "after", "above", "below",
-    "from", "up", "down", "out", "off", "over", "under", "again", "then",
-    "once", "here", "there", "when", "where", "why", "how", "of", "to",
-    "as", "per",
-    # conjunctions
-    "and", "but", "or", "yet", "so", "nor", "although", "because", "since",
-    "unless", "until", "while", "whereas", "whether", "though",
-    # auxiliary / modal verbs
-    "be", "is", "are", "was", "were", "been", "being", "am",
-    "have", "has", "had", "having", "do", "does", "did", "done", "doing",
-    "will", "would", "shall", "should", "may", "might", "must", "can",
-    "could", "need", "dare", "ought",
-    # high-frequency function words that pass len > 2
-    "the", "and", "for", "are", "but", "not", "you", "all", "can", "her",
-    "was", "one", "our", "out", "who", "get", "now", "him", "his", "how",
-    "its", "two", "own", "did", "let", "put", "say", "she", "too", "use",
-    "way", "yes", "ago", "due", "per", "via", "etc", "lot", "bit",
-    # discourse fillers / connectors treated as function words for CEFR purposes
-    "that", "than", "then", "also", "just", "even", "like", "well",
-    "much", "many", "own", "same", "very", "also", "back", "after",
-    "think", "know", "said", "want", "going", "gonna", "wanna", "kind",
-    "sort", "mean", "okay", "yeah", "really", "actually",
-})
+_STOP_WORDS: frozenset[str] = frozenset(
+    {
+        # articles / determiners
+        "the",
+        "a",
+        "an",
+        "this",
+        "that",
+        "these",
+        "those",
+        "my",
+        "your",
+        "his",
+        "her",
+        "its",
+        "our",
+        "their",
+        "each",
+        "every",
+        "any",
+        "all",
+        "both",
+        "few",
+        "more",
+        "most",
+        "other",
+        "some",
+        "such",
+        "no",
+        "nor",
+        "not",
+        # pronouns
+        "i",
+        "me",
+        "we",
+        "us",
+        "you",
+        "he",
+        "him",
+        "she",
+        "they",
+        "them",
+        "who",
+        "whom",
+        "which",
+        "what",
+        "it",
+        # prepositions
+        "in",
+        "on",
+        "at",
+        "by",
+        "for",
+        "with",
+        "about",
+        "against",
+        "between",
+        "into",
+        "through",
+        "during",
+        "before",
+        "after",
+        "above",
+        "below",
+        "from",
+        "up",
+        "down",
+        "out",
+        "off",
+        "over",
+        "under",
+        "again",
+        "then",
+        "once",
+        "here",
+        "there",
+        "when",
+        "where",
+        "why",
+        "how",
+        "of",
+        "to",
+        "as",
+        "per",
+        # conjunctions
+        "and",
+        "but",
+        "or",
+        "yet",
+        "so",
+        "nor",
+        "although",
+        "because",
+        "since",
+        "unless",
+        "until",
+        "while",
+        "whereas",
+        "whether",
+        "though",
+        # auxiliary / modal verbs
+        "be",
+        "is",
+        "are",
+        "was",
+        "were",
+        "been",
+        "being",
+        "am",
+        "have",
+        "has",
+        "had",
+        "having",
+        "do",
+        "does",
+        "did",
+        "done",
+        "doing",
+        "will",
+        "would",
+        "shall",
+        "should",
+        "may",
+        "might",
+        "must",
+        "can",
+        "could",
+        "need",
+        "dare",
+        "ought",
+        # high-frequency function words that pass len > 2
+        "the",
+        "and",
+        "for",
+        "are",
+        "but",
+        "not",
+        "you",
+        "all",
+        "can",
+        "her",
+        "was",
+        "one",
+        "our",
+        "out",
+        "who",
+        "get",
+        "now",
+        "him",
+        "his",
+        "how",
+        "its",
+        "two",
+        "own",
+        "did",
+        "let",
+        "put",
+        "say",
+        "she",
+        "too",
+        "use",
+        "way",
+        "yes",
+        "ago",
+        "due",
+        "per",
+        "via",
+        "etc",
+        "lot",
+        "bit",
+        # discourse fillers / connectors treated as function words for CEFR purposes
+        "that",
+        "than",
+        "then",
+        "also",
+        "just",
+        "even",
+        "like",
+        "well",
+        "much",
+        "many",
+        "own",
+        "same",
+        "very",
+        "also",
+        "back",
+        "after",
+        "think",
+        "know",
+        "said",
+        "want",
+        "going",
+        "gonna",
+        "wanna",
+        "kind",
+        "sort",
+        "mean",
+        "okay",
+        "yeah",
+        "really",
+        "actually",
+    }
+)
 
 # ── spaCy lazy singleton ───────────────────────────────────────────────────────
 _spacy_nlp = None
@@ -80,6 +251,7 @@ def _get_spacy() -> Optional[Any]:
     if _spacy_nlp is None:
         try:
             import spacy
+
             _spacy_nlp = spacy.load("en_core_web_sm")
         except Exception as exc:
             logger.warning("spaCy unavailable - collocation signal disabled: %s", exc)
@@ -99,17 +271,25 @@ def _get_spacy() -> Optional[Any]:
 # Intentionally excluded:
 #   xcomp  - infinitive complement ("I want to go") - not an IELTS complex sentence
 #   csubj  - clausal subject (rare in spoken English, omission is harmless)
-_SUBORDINATE_ARCS_DIRECT: frozenset[str] = frozenset({
-    "advcl",
-    "ccomp",
-    "relcl",
-    "acl",
-})
+_SUBORDINATE_ARCS_DIRECT: frozenset[str] = frozenset(
+    {
+        "advcl",
+        "ccomp",
+        "relcl",
+        "acl",
+    }
+)
 
 # Signal 5: conditional marker words (guarded by dep_=="mark" and pos_=="SCONJ")
-_CONDITIONAL_MARKERS: frozenset[str] = frozenset({
-    "if", "unless", "provided", "assuming", "suppose",
-})
+_CONDITIONAL_MARKERS: frozenset[str] = frozenset(
+    {
+        "if",
+        "unless",
+        "provided",
+        "assuming",
+        "suppose",
+    }
+)
 
 # Signal 5: modal sets for conditional classification
 _MODAL_WILL_SHALL: frozenset[str] = frozenset({"will", "shall", "'ll"})
@@ -296,8 +476,7 @@ def compute_grammar_signals(
 
                 # Present perfect: have/has (VBP/VBZ) + VBN (not passive)
                 if main_tag == "VBN" and not has_auxpass:
-                    if any(t in ("VBP", "VBZ") and txt in ("have", "has", "'ve")
-                           for t, txt in aux_tags):
+                    if any(t in ("VBP", "VBZ") and txt in ("have", "has", "'ve") for t, txt in aux_tags):
                         tense_forms.add("present_perfect")
                         continue
                     # Past perfect: had (VBD) + VBN
@@ -311,13 +490,13 @@ def compute_grammar_signals(
 
                 # Present progressive: am/is/are (VBP/VBZ) + VBG
                 if main_tag == "VBG" and not has_auxpass:
-                    if any(t in ("VBP", "VBZ") and txt in ("am", "is", "are", "'m", "'re", "'s")
-                           for t, txt in aux_tags):
+                    if any(
+                        t in ("VBP", "VBZ") and txt in ("am", "is", "are", "'m", "'re", "'s") for t, txt in aux_tags
+                    ):
                         tense_forms.add("present_progressive")
                         continue
                     # Past progressive: was/were (VBD) + VBG
-                    if any(t == "VBD" and txt in ("was", "were")
-                           for t, txt in aux_tags):
+                    if any(t == "VBD" and txt in ("was", "were") for t, txt in aux_tags):
                         tense_forms.add("past_progressive")
                         continue
 
@@ -342,11 +521,7 @@ def compute_grammar_signals(
 
             # ── Signal 5c: conditional constructions ─────────────────────
             for token in doc:
-                if not (
-                    token.dep_ == "mark"
-                    and token.pos_ == "SCONJ"
-                    and token.text.lower() in _CONDITIONAL_MARKERS
-                ):
+                if not (token.dep_ == "mark" and token.pos_ == "SCONJ" and token.text.lower() in _CONDITIONAL_MARKERS):
                     continue
                 # Guard: exclude complementizer "if" ("I wonder if he came")
                 if token.head.dep_ != "advcl":
@@ -354,10 +529,7 @@ def compute_grammar_signals(
 
                 if_head = token.head
                 main_head = if_head.head
-                main_modals = [
-                    c.text.lower() for c in main_head.children
-                    if c.dep_ == "aux" and c.tag_ == "MD"
-                ]
+                main_modals = [c.text.lower() for c in main_head.children if c.dep_ == "aux" and c.tag_ == "MD"]
                 if_children = {c.text.lower() for c in if_head.children}
                 if_tag = if_head.tag_
 
@@ -415,9 +587,7 @@ def compute_grammar_signals(
         complex_sentence_rate = n_complex / n_sentences
 
         n_errors_complex = sum(len(errors_by_sent[i]) for i in complex_sents)
-        n_errors_simple = sum(
-            len(errors_by_sent[i]) for i in range(n_sentences) if i not in complex_sents
-        )
+        n_errors_simple = sum(len(errors_by_sent[i]) for i in range(n_sentences) if i not in complex_sents)
 
         density_complex = n_errors_complex / n_complex if n_complex > 0 else 0.0
         density_simple = n_errors_simple / n_simple if n_simple > 0 else 0.0
@@ -428,9 +598,7 @@ def compute_grammar_signals(
             error_density_ratio = round(density_complex / density_simple, 2)
 
         n_total_errors = n_errors_complex + n_errors_simple
-        band_hint = _map_complexity_band(
-            complex_sentence_rate, error_density_ratio, n_total_errors
-        )
+        band_hint = _map_complexity_band(complex_sentence_rate, error_density_ratio, n_total_errors)
 
         detail = (
             f"complexity: {n_complex}/{n_sentences} complex sentences "
@@ -513,6 +681,7 @@ def _mtld(words: list[str], threshold: float = 0.72) -> float:
     Matches the reference algorithm in McCarthy & Jarvis (2010, p. 385)
     and the lexicalrichness library - without its scipy/pandas/matplotlib deps.
     """
+
     def _one_pass(seq: list[str]) -> float:
         types: set[str] = set()
         token_count = 0
@@ -622,23 +791,61 @@ def _compute_idiom_signal(transcript: str, total_words: int) -> str:
 # ── Signal 5: Collocation awareness ──────────────────────────────────────────
 # Very high-frequency verb->object pairs that are universally natural and
 # too common to be informative - skip them so the LLM inventory stays concise.
-_COMMON_NATURAL_PAIRS: frozenset[tuple[str, str]] = frozenset({
-    ("have", "time"), ("have", "idea"), ("have", "problem"), ("have", "effect"),
-    ("get", "chance"), ("get", "idea"), ("get", "job"), ("get", "result"),
-    ("do", "work"), ("do", "job"), ("do", "thing"), ("do", "research"),
-    ("make", "decision"), ("make", "choice"), ("make", "point"), ("make", "sense"),
-    ("take", "part"), ("take", "time"), ("take", "step"), ("take", "care"),
-    ("give", "example"), ("give", "idea"), ("give", "answer"),
-    ("use", "time"), ("use", "language"), ("use", "word"),
-    ("see", "thing"), ("see", "point"), ("know", "thing"),
-    ("think", "thing"), ("think", "way"), ("say", "thing"),
-    ("find", "way"), ("find", "answer"), ("feel", "pressure"),
-    ("play", "role"), ("play", "part"), ("face", "problem"), ("face", "challenge"),
-    ("build", "skill"), ("learn", "skill"), ("develop", "skill"),
-    ("lose", "time"), ("spend", "time"), ("save", "time"),
-    ("need", "help"), ("need", "support"), ("need", "time"),
-    ("go", "school"), ("go", "work"), ("come", "home"),
-})
+_COMMON_NATURAL_PAIRS: frozenset[tuple[str, str]] = frozenset(
+    {
+        ("have", "time"),
+        ("have", "idea"),
+        ("have", "problem"),
+        ("have", "effect"),
+        ("get", "chance"),
+        ("get", "idea"),
+        ("get", "job"),
+        ("get", "result"),
+        ("do", "work"),
+        ("do", "job"),
+        ("do", "thing"),
+        ("do", "research"),
+        ("make", "decision"),
+        ("make", "choice"),
+        ("make", "point"),
+        ("make", "sense"),
+        ("take", "part"),
+        ("take", "time"),
+        ("take", "step"),
+        ("take", "care"),
+        ("give", "example"),
+        ("give", "idea"),
+        ("give", "answer"),
+        ("use", "time"),
+        ("use", "language"),
+        ("use", "word"),
+        ("see", "thing"),
+        ("see", "point"),
+        ("know", "thing"),
+        ("think", "thing"),
+        ("think", "way"),
+        ("say", "thing"),
+        ("find", "way"),
+        ("find", "answer"),
+        ("feel", "pressure"),
+        ("play", "role"),
+        ("play", "part"),
+        ("face", "problem"),
+        ("face", "challenge"),
+        ("build", "skill"),
+        ("learn", "skill"),
+        ("develop", "skill"),
+        ("lose", "time"),
+        ("spend", "time"),
+        ("save", "time"),
+        ("need", "help"),
+        ("need", "support"),
+        ("need", "time"),
+        ("go", "school"),
+        ("go", "work"),
+        ("come", "home"),
+    }
+)
 
 
 def _compute_collocation_signal(transcript: str) -> str:
@@ -798,13 +1005,15 @@ def compute_vocab_signal(words: List[Dict[str, Any]], transcript: str) -> str:
         # ── Signal 5: Collocation awareness ──────────────────────────────
         collocation_part = _compute_collocation_signal(transcript)
 
-        return "\n".join([
-            f"response length: {total_response_words} words ({length_hint})",
-            cefr_part,
-            diversity_part,
-            idiom_part,
-            collocation_part,
-        ])
+        return "\n".join(
+            [
+                f"response length: {total_response_words} words ({length_hint})",
+                cefr_part,
+                diversity_part,
+                idiom_part,
+                collocation_part,
+            ]
+        )
 
     except Exception as exc:
         logger.warning("Vocab signal computation failed: %s", exc)
@@ -814,10 +1023,7 @@ def compute_vocab_signal(words: List[Dict[str, Any]], transcript: str) -> str:
 def compute_pronunciation_signal(words: list[dict]) -> str:
     """Return a two-layer pronunciation signal string from word-level STT probabilities."""
     # Filter to words with a valid numeric probability
-    valid = [
-        w for w in (words or [])
-        if isinstance(w.get("probability"), (int, float))
-    ]
+    valid = [w for w in (words or []) if isinstance(w.get("probability"), (int, float))]
 
     if not valid:
         return "not available (no word data)"

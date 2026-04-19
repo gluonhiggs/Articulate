@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from backend.config import get_active_model, get_settings
-from backend.constants import PROMPTS_DIR, PROJECT_ROOT
+from backend.constants import PROJECT_ROOT, PROMPTS_DIR
 from backend.services import llm_client
 
 # Load at module level so a missing file raises FileNotFoundError at startup, not per-request
@@ -86,10 +86,10 @@ def _parse_llm_response(raw: str) -> Dict[str, Any]:
 
         if end > start:
             # Happy path: found balanced braces - try as-is first, then repair
-            attempts = [raw[start:end], fragment + '}', fragment + '"}'  ]
+            attempts = [raw[start:end], fragment + "}", fragment + '"}']
         else:
             # No closing brace at all - LLM was truncated; try repair
-            attempts = [fragment + '"}', fragment + '}']
+            attempts = [fragment + '"}', fragment + "}"]
 
         for candidate in attempts:
             try:
@@ -126,7 +126,9 @@ def _parse_llm_response(raw: str) -> Dict[str, Any]:
             cleaned_highlights.append(
                 {
                     "word": str(highlight.get("word", "")),
-                    "type": str(highlight.get("type", "mistake")),  # frontend checks for "mistake" to render strikethrough
+                    "type": str(
+                        highlight.get("type", "mistake")
+                    ),  # frontend checks for "mistake" to render strikethrough
                     "correction": str(correction),
                     "explanation": str(highlight.get("explanation", "")),
                     # Keep suggestion as alias for backward compat
@@ -209,9 +211,9 @@ async def score_attempt(
             model=active_model,
             prompt=prompt,
             api_key=settings.llm_api_key,
-            temperature=0.3,    # allow natural band uncertainty; 0.0 locks in anchoring bias
-            num_predict=2048,   # 8bd8c98 added 4 *_evidence fields (~200-300 extra tokens); 1024 cut off usage_errors
-            num_ctx=8192,       # headroom for long Part 2 transcripts; was 4096
+            temperature=0.3,  # allow natural band uncertainty; 0.0 locks in anchoring bias
+            num_predict=2048,  # 8bd8c98 added 4 *_evidence fields (~200-300 extra tokens); 1024 cut off usage_errors
+            num_ctx=8192,  # headroom for long Part 2 transcripts; was 4096
             timeout=120.0,
         )
     except (RuntimeError, FileNotFoundError) as exc:

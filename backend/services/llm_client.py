@@ -28,6 +28,7 @@ the path. Bare base URLs get /v1/chat/completions appended.
 Rule: if base_url already ends with /v1, /openai, or a similar versioned
 segment, append only /chat/completions. Otherwise append /v1/chat/completions.
 """
+
 from __future__ import annotations
 
 import logging
@@ -71,8 +72,8 @@ async def generate(
     api_key: str = "",
     temperature: float = 0.4,
     num_predict: int = 1024,
-    num_ctx: int = 2048,   # ignored (cloud APIs set context server-side)
-    num_gpu: int = 0,       # ignored
+    num_ctx: int = 2048,  # ignored (cloud APIs set context server-side)
+    num_gpu: int = 0,  # ignored
     timeout: float = 120.0,
 ) -> str:
     """
@@ -129,9 +130,7 @@ async def generate(
             return raw
         except httpx.ConnectError as exc:
             if attempt == 1:
-                logger.warning(
-                    "LLM ConnectError (attempt %d), retrying: %s", attempt, exc
-                )
+                logger.warning("LLM ConnectError (attempt %d), retrying: %s", attempt, exc)
                 continue
             logger.exception("LLM ConnectError after retry: %s", exc)
             raise RuntimeError(f"LLM endpoint unreachable: {exc}") from exc

@@ -25,6 +25,7 @@ the lowercased transcript. Multi-word phrases matched greedily (longest first).
 
 Do NOT import this per-request - it is loaded once at module import time.
 """
+
 from __future__ import annotations
 
 # Sorted by length descending at load time (see bottom of file)
@@ -294,6 +295,4 @@ _RAW_PHRASES: list[str] = [
 ]
 
 # Deduplicate and sort by length descending (longest match first)
-IELTS_PHRASES: list[str] = sorted(
-    set(_RAW_PHRASES), key=lambda p: len(p), reverse=True
-)
+IELTS_PHRASES: list[str] = sorted(set(_RAW_PHRASES), key=lambda p: len(p), reverse=True)

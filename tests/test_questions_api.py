@@ -1,9 +1,9 @@
 """Integration tests for questions API - forecast, bulk import, and list endpoints."""
+
 from __future__ import annotations
 
 from datetime import UTC, date, datetime, timedelta
 
-import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -72,9 +72,7 @@ class TestForecast:
         resp = await api_client.get("/api/v1/questions/forecast")
         assert resp.json() == []
 
-    async def test_tagged_topics_appear_grouped(
-        self, api_client: AsyncClient, db_session: AsyncSession
-    ) -> None:
+    async def test_tagged_topics_appear_grouped(self, api_client: AsyncClient, db_session: AsyncSession) -> None:
         for i in range(3):
             db_session.add(Question(part="1", text=f"Env Q{i}", topic_tag="environment"))
         db_session.add(Question(part="1", text="Tech Q1", topic_tag="technology"))
@@ -87,18 +85,20 @@ class TestForecast:
         assert env["count"] == 3
         assert tech["count"] == 1
 
-    async def test_sorted_by_last_seen_date_desc(
-        self, api_client: AsyncClient, db_session: AsyncSession
-    ) -> None:
+    async def test_sorted_by_last_seen_date_desc(self, api_client: AsyncClient, db_session: AsyncSession) -> None:
         db_session.add(
             Question(
-                part="1", text="Old topic Q", topic_tag="education",
+                part="1",
+                text="Old topic Q",
+                topic_tag="education",
                 last_seen_date=date(2024, 6, 1),
             )
         )
         db_session.add(
             Question(
-                part="1", text="Recent topic Q", topic_tag="technology",
+                part="1",
+                text="Recent topic Q",
+                topic_tag="technology",
                 last_seen_date=date(2025, 3, 1),
             )
         )
@@ -114,7 +114,9 @@ class TestForecast:
     ) -> None:
         db_session.add(
             Question(
-                part="1", text="Dated Q", topic_tag="environment",
+                part="1",
+                text="Dated Q",
+                topic_tag="environment",
                 last_seen_date=date(2025, 1, 15),
             )
         )
@@ -125,12 +127,12 @@ class TestForecast:
         entry = next(e for e in data if e["topic_tag"] == "environment")
         assert entry["last_seen_date"] == "2025-01"
 
-    async def test_null_last_seen_sorted_last(
-        self, api_client: AsyncClient, db_session: AsyncSession
-    ) -> None:
+    async def test_null_last_seen_sorted_last(self, api_client: AsyncClient, db_session: AsyncSession) -> None:
         db_session.add(
             Question(
-                part="1", text="Has date", topic_tag="education",
+                part="1",
+                text="Has date",
+                topic_tag="education",
                 last_seen_date=date(2024, 1, 1),
             )
         )
@@ -151,9 +153,7 @@ class TestForecast:
 
 
 class TestListPart1:
-    async def test_returns_all_questions(
-        self, api_client: AsyncClient, db_session: AsyncSession
-    ) -> None:
+    async def test_returns_all_questions(self, api_client: AsyncClient, db_session: AsyncSession) -> None:
         for i in range(3):
             db_session.add(Question(part="1", text=f"Part1 Q{i}"))
         await db_session.commit()
@@ -162,9 +162,7 @@ class TestListPart1:
         assert resp.status_code == 200
         assert len(resp.json()) == 3
 
-    async def test_latest_score_none_when_no_attempts(
-        self, api_client: AsyncClient, db_session: AsyncSession
-    ) -> None:
+    async def test_latest_score_none_when_no_attempts(self, api_client: AsyncClient, db_session: AsyncSession) -> None:
         db_session.add(Question(part="1", text="Unattempted question?"))
         await db_session.commit()
 
@@ -192,12 +190,8 @@ class TestListPart1:
         q = Question(part="1", text="Multi-attempt question?")
         db_session.add(q)
         await db_session.flush()
-        db_session.add(
-            Attempt(question_id=q.id, status="ready", score=5.0, created_at=now - timedelta(minutes=5))
-        )
-        db_session.add(
-            Attempt(question_id=q.id, status="ready", score=8.0, created_at=now)
-        )
+        db_session.add(Attempt(question_id=q.id, status="ready", score=5.0, created_at=now - timedelta(minutes=5)))
+        db_session.add(Attempt(question_id=q.id, status="ready", score=8.0, created_at=now))
         db_session.add(
             Attempt(question_id=q.id, status="processing", score=None, created_at=now + timedelta(seconds=1))
         )
@@ -223,9 +217,7 @@ class TestListPart1:
         assert "Answered question?" not in texts
         assert "Unanswered question?" in texts
 
-    async def test_hide_answered_false_includes_all(
-        self, api_client: AsyncClient, db_session: AsyncSession
-    ) -> None:
+    async def test_hide_answered_false_includes_all(self, api_client: AsyncClient, db_session: AsyncSession) -> None:
         q = Question(part="1", text="Answered with hide false?")
         db_session.add(q)
         await db_session.flush()
@@ -249,9 +241,7 @@ class TestListPart1:
 
 
 class TestListPart2:
-    async def test_returns_part2_questions(
-        self, api_client: AsyncClient, db_session: AsyncSession
-    ) -> None:
+    async def test_returns_part2_questions(self, api_client: AsyncClient, db_session: AsyncSession) -> None:
         db_session.add(Question(part="2", text="Describe a place.", category="places"))
         db_session.add(Question(part="1", text="Other part question?"))
         await db_session.commit()
@@ -262,9 +252,7 @@ class TestListPart2:
         assert len(data) == 1
         assert data[0]["text"] == "Describe a place."
 
-    async def test_hide_answered_filters_ready_part2(
-        self, api_client: AsyncClient, db_session: AsyncSession
-    ) -> None:
+    async def test_hide_answered_filters_ready_part2(self, api_client: AsyncClient, db_session: AsyncSession) -> None:
         answered = Question(part="2", text="Answered part2.")
         unanswered = Question(part="2", text="Unanswered part2.")
         db_session.add(answered)
@@ -280,16 +268,12 @@ class TestListPart2:
 
 
 class TestListPart3:
-    async def test_groups_children_under_parent(
-        self, api_client: AsyncClient, db_session: AsyncSession
-    ) -> None:
+    async def test_groups_children_under_parent(self, api_client: AsyncClient, db_session: AsyncSession) -> None:
         parent = Question(part="2", text="Describe a hobby.")
         db_session.add(parent)
         await db_session.flush()
         for i in range(3):
-            db_session.add(
-                Question(part="3", text=f"Follow-up {i}?", parent_question_id=parent.id)
-            )
+            db_session.add(Question(part="3", text=f"Follow-up {i}?", parent_question_id=parent.id))
         await db_session.commit()
 
         resp = await api_client.get("/api/v1/questions/part3")
@@ -299,9 +283,7 @@ class TestListPart3:
         assert groups[0]["parent"]["text"] == "Describe a hobby."
         assert len(groups[0]["questions"]) == 3
 
-    async def test_parent_without_children_excluded(
-        self, api_client: AsyncClient, db_session: AsyncSession
-    ) -> None:
+    async def test_parent_without_children_excluded(self, api_client: AsyncClient, db_session: AsyncSession) -> None:
         db_session.add(Question(part="2", text="Childless part2 card."))
         await db_session.commit()
 
@@ -315,12 +297,8 @@ class TestListPart3:
         parent = Question(part="2", text="Describe a challenge.")
         db_session.add(parent)
         await db_session.flush()
-        answered_child = Question(
-            part="3", text="Answered follow-up?", parent_question_id=parent.id
-        )
-        open_child = Question(
-            part="3", text="Open follow-up?", parent_question_id=parent.id
-        )
+        answered_child = Question(part="3", text="Answered follow-up?", parent_question_id=parent.id)
+        open_child = Question(part="3", text="Open follow-up?", parent_question_id=parent.id)
         db_session.add(answered_child)
         db_session.add(open_child)
         await db_session.flush()
@@ -340,9 +318,7 @@ class TestListPart3:
         parent = Question(part="2", text="Describe a skill.")
         db_session.add(parent)
         await db_session.flush()
-        child = Question(
-            part="3", text="Only child follow-up?", parent_question_id=parent.id
-        )
+        child = Question(part="3", text="Only child follow-up?", parent_question_id=parent.id)
         db_session.add(child)
         await db_session.flush()
         db_session.add(Attempt(question_id=child.id, status="ready", score=8.0))
@@ -351,9 +327,7 @@ class TestListPart3:
         resp = await api_client.get("/api/v1/questions/part3?hide_answered=true")
         assert resp.json() == []
 
-    async def test_part3_latest_score_populated(
-        self, api_client: AsyncClient, db_session: AsyncSession
-    ) -> None:
+    async def test_part3_latest_score_populated(self, api_client: AsyncClient, db_session: AsyncSession) -> None:
         parent = Question(part="2", text="Describe a meal.")
         db_session.add(parent)
         await db_session.flush()

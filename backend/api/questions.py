@@ -105,11 +105,7 @@ async def list_part1(
     result = await db.execute(stmt)
     rows = result.all()
 
-    return [
-        _row_to_out(row)
-        for row in rows
-        if not (hide_answered and row.ready_count > 0)
-    ]
+    return [_row_to_out(row) for row in rows if not (hide_answered and row.ready_count > 0)]
 
 
 @router.get("/part2", response_model=List[QuestionOut])
@@ -133,11 +129,7 @@ async def list_part2(
     result = await db.execute(stmt)
     rows = result.all()
 
-    return [
-        _row_to_out(row)
-        for row in rows
-        if not (hide_answered and row.ready_count > 0)
-    ]
+    return [_row_to_out(row) for row in rows if not (hide_answered and row.ready_count > 0)]
 
 
 @router.get("/part3", response_model=List[Part3GroupOut])
@@ -168,11 +160,15 @@ async def list_part3(
     parent_ids = [row.Question.id for row in parent_rows]
 
     # Fetch all Part 3 children for those parents with scores in one query
-    children_stmt = select(
-        Question,
-        _latest_score_subquery().label("latest_score"),
-        _has_ready_subquery().label("ready_count"),
-    ).where(Question.part == "3", Question.parent_question_id.in_(parent_ids)).order_by(Question.id)
+    children_stmt = (
+        select(
+            Question,
+            _latest_score_subquery().label("latest_score"),
+            _has_ready_subquery().label("ready_count"),
+        )
+        .where(Question.part == "3", Question.parent_question_id.in_(parent_ids))
+        .order_by(Question.id)
+    )
 
     children_result = await db.execute(children_stmt)
     children_rows = children_result.all()
@@ -190,11 +186,7 @@ async def list_part3(
         if not child_rows:
             continue
 
-        filtered_children = [
-            _row_to_out(row)
-            for row in child_rows
-            if not (hide_answered and row.ready_count > 0)
-        ]
+        filtered_children = [_row_to_out(row) for row in child_rows if not (hide_answered and row.ready_count > 0)]
 
         if not filtered_children:
             continue
@@ -300,9 +292,7 @@ async def bulk_import_questions(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Bulk import questions; skips duplicates by text match."""
-    existing = set(
-        (await db.execute(select(Question.text))).scalars().all()
-    )
+    existing = set((await db.execute(select(Question.text))).scalars().all())
     inserted = 0
     skipped = 0
     for q in body:

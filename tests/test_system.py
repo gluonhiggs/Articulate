@@ -1,4 +1,5 @@
 """Tests for system info endpoint - specifically the is_low_accuracy detection."""
+
 from __future__ import annotations
 
 import pytest
@@ -21,6 +22,4 @@ import pytest
 def test_is_low_accuracy_detection(model: str, expected: bool) -> None:
     """Test the exact detection logic from api/system.py."""
     is_low_accuracy = any(tag in model for tag in ("1b", "3b"))
-    assert is_low_accuracy == expected, (
-        f"Model {model!r}: expected is_low_accuracy={expected}"
-    )
+    assert is_low_accuracy == expected, f"Model {model!r}: expected is_low_accuracy={expected}"

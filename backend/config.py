@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from functools import lru_cache
+from pathlib import Path as _Path
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -54,6 +55,7 @@ class Settings(BaseSettings):
     def _apply_desktop_overrides(self) -> "Settings":
         if self.data_dir:
             import os as _os
+
             base = self.data_dir
             if not self.db_path.startswith(base):
                 self.db_path = _os.path.join(base, "articulate.db")
@@ -86,8 +88,6 @@ def set_runtime_model(model: str) -> None:
 
 
 # ── Transcription mode persistence ───────────────────────────────────────────
-
-from pathlib import Path as _Path
 
 
 def get_mode_file() -> _Path:

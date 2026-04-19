@@ -4,6 +4,7 @@ Usage: python -m backend.scripts.eval_scoring
 
 Requires LLM_API_KEY and GROQ_API_KEY set in .env. Not for CI - run manually after prompt changes.
 """
+
 import asyncio
 import json
 import sys
@@ -12,7 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(ROOT))
 
-from backend.services.scoring import score_attempt
+from backend.services.scoring import score_attempt  # noqa: E402
 
 CASES_FILE = ROOT / "data" / "scoring_testcases.json"
 
@@ -43,10 +44,7 @@ async def run_eval():
             corrections = {h["word"]: h["correction"] for h in result.get("usage_errors", [])}
             expected_word = case["expect_error_word"]
             expected_correction = case.get("expect_correction", "")
-            error_ok = (
-                expected_word in words
-                and corrections.get(expected_word, "MISSING") == expected_correction
-            )
+            error_ok = expected_word in words and corrections.get(expected_word, "MISSING") == expected_correction
 
         ok = score_ok and error_ok
         if ok:
@@ -58,7 +56,7 @@ async def run_eval():
         )
 
     total = len(cases)
-    print(f"\n{'='*40}")
+    print(f"\n{'=' * 40}")
     print(f"Result: {passed}/{total} passed")
     if passed < total:
         sys.exit(1)

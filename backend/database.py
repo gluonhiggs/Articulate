@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 from datetime import date as date_type
 from pathlib import Path
 from typing import AsyncGenerator
@@ -12,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.future import select
 
 from backend.config import get_settings
-from backend.models import Base, DailyActivity, Question, UserStats
+from backend.models import Base, Question, UserStats
 
 logger = logging.getLogger(__name__)
 
@@ -52,9 +51,7 @@ async def _seed_questions(session: AsyncSession) -> None:
         questions_data = json.load(f)
 
     # Get existing question texts to avoid duplicates
-    existing_texts = set(
-        (await session.execute(select(Question.text))).scalars().all()
-    )
+    existing_texts = set((await session.execute(select(Question.text))).scalars().all())
 
     # Build lookup of all existing questions for parent_text resolution
     existing_by_text: dict[str, Question] = {}
@@ -131,8 +128,7 @@ async def _seed_questions(session: AsyncSession) -> None:
     # This catches seeding mismatches (typos, ordering issues) before they silently
     # disappear from the Part 3 grouped UI.
     orphan_result = await session.execute(
-        select(Question.id, Question.text)
-        .where(Question.part == "3", Question.parent_question_id.is_(None))
+        select(Question.id, Question.text).where(Question.part == "3", Question.parent_question_id.is_(None))
     )
     for row in orphan_result.all():
         logger.warning(
@@ -145,15 +141,9 @@ async def _seed_questions(session: AsyncSession) -> None:
 async def _ensure_indexes() -> None:
     """Create indexes and run column migrations for existing DBs."""
     async with engine.begin() as conn:
-        await conn.execute(text(
-            "CREATE INDEX IF NOT EXISTS ix_attempts_question_id ON attempts(question_id)"
-        ))
-        await conn.execute(text(
-            "CREATE INDEX IF NOT EXISTS ix_attempts_status ON attempts(status)"
-        ))
-        await conn.execute(text(
-            "CREATE INDEX IF NOT EXISTS ix_attempts_created_at ON attempts(created_at)"
-        ))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_attempts_question_id ON attempts(question_id)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_attempts_status ON attempts(status)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_attempts_created_at ON attempts(created_at)"))
         # New column migrations - idempotent via try/except (SQLite has no IF NOT EXISTS for ALTER)
         for col_sql in [
             "ALTER TABLE questions ADD COLUMN topic_tag TEXT",
@@ -178,9 +168,7 @@ async def init_db() -> None:
         await _seed_questions(session)
 
         # Ensure UserStats row with id=1 exists
-        stats_result = await session.execute(
-            select(UserStats).where(UserStats.id == 1)
-        )
+        stats_result = await session.execute(select(UserStats).where(UserStats.id == 1))
         stats = stats_result.scalars().first()
         if stats is None:
             session.add(

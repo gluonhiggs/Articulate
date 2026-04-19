@@ -1,4 +1,5 @@
 """Unit tests for ai_assist.py - specifically the JSON repair logic."""
+
 from __future__ import annotations
 
 import json
@@ -24,8 +25,7 @@ def test_repair_valid_json_round_trips():
 def test_repair_truncated_missing_close_array_and_brace():
     """JSON truncated after last item - missing ] and }."""
     raw = (
-        '{"vocabulary": [{"term": "proliferate", "type": "verb",'
-        ' "definition": "grow rapidly", "example": "test"}'
+        '{"vocabulary": [{"term": "proliferate", "type": "verb", "definition": "grow rapidly", "example": "test"}'
         # missing ]} at end
     )
     repaired = _repair_vocab_json(raw)

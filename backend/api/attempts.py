@@ -9,7 +9,8 @@ import threading
 import time
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
-from typing import List, Optional
+from pathlib import Path
+from typing import List
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
@@ -22,11 +23,10 @@ from backend.database import AsyncSessionLocal, get_db
 from backend.models import Attempt, DailyActivity, Question, UserStats
 from backend.schemas import AttemptOut, AttemptStatusOut, ImproveOut, PronunciationOut, PronunciationWord
 from backend.services import audio as audio_service
-from pathlib import Path
-from backend.services.audio import EXT_TO_MIME
 from backend.services import improve as improve_service
 from backend.services import scoring as scoring_service
 from backend.services import transcription as transcription_service
+from backend.services.audio import EXT_TO_MIME
 from backend.services.vocab import compute_grammar_signals, compute_pronunciation_signal, compute_vocab_signal
 
 logger = logging.getLogger(__name__)
@@ -48,15 +48,17 @@ def _get_lt_tool():
         _lt_tool_init_attempted = True
     try:
         import language_tool_python  # type: ignore[import]
-        _lt_tool = language_tool_python.LanguageTool('en-US')
+
+        _lt_tool = language_tool_python.LanguageTool("en-US")
         _lt_tool.picky = True  # enable stricter rule set (sent as request param to /check)
         logger.info("LanguageTool initialized (local, picky=True)")
     except Exception as exc:
         logger.warning("LanguageTool local unavailable (Java required): %s", exc)
         try:
             import language_tool_python  # type: ignore[import]
+
             # Fallback: sends transcript to languagetool.org - no Java needed.
-            _lt_tool = language_tool_python.LanguageToolPublicAPI('en-US')
+            _lt_tool = language_tool_python.LanguageToolPublicAPI("en-US")
             logger.info("LanguageTool initialized (public API fallback)")
         except Exception as exc2:
             logger.warning("LanguageTool public API also unavailable: %s", exc2)
@@ -73,33 +75,39 @@ def _get_lt_tool():
 #
 # Kept: GRAMMAR, CONFUSED_WORDS, MISC, TYPOS - all genuine error categories.
 
-_LT_FILTERED_RULE_IDS: frozenset[str] = frozenset({
-    # VAD segment-boundary capitalisation - primary transcription artefact
-    "UPPERCASE_SENTENCE_START",
-    # Whitespace / formatting - concepts absent from speech
-    "WHITESPACE_RULE",
-    "EN_QUOTES",
-    # Punctuation absence - spoken language has no terminal punctuation
-    "COMMA_PARENTHESIS_WHITESPACE",
-    "PUNCTUATION_PARAGRAPH_END",
-    "UNLIKELY_OPENING_PUNCTUATION",
-    # Style rules outside the IELTS speaking rubric
-    "TOO_LONG_SENTENCE",
-    "ENGLISH_WORD_REPEAT_BEGINNING_RULE",
-})
+_LT_FILTERED_RULE_IDS: frozenset[str] = frozenset(
+    {
+        # VAD segment-boundary capitalisation - primary transcription artefact
+        "UPPERCASE_SENTENCE_START",
+        # Whitespace / formatting - concepts absent from speech
+        "WHITESPACE_RULE",
+        "EN_QUOTES",
+        # Punctuation absence - spoken language has no terminal punctuation
+        "COMMA_PARENTHESIS_WHITESPACE",
+        "PUNCTUATION_PARAGRAPH_END",
+        "UNLIKELY_OPENING_PUNCTUATION",
+        # Style rules outside the IELTS speaking rubric
+        "TOO_LONG_SENTENCE",
+        "ENGLISH_WORD_REPEAT_BEGINNING_RULE",
+    }
+)
 
-_LT_FILTERED_CATEGORIES: frozenset[str] = frozenset({
-    "CASING",       # all casing rules - meaningless in speech
-    "TYPOGRAPHY",   # formatting rules - meaningless in speech
-    "PUNCTUATION",  # missing / wrong punctuation - transcription artefact
-    "STYLE",        # subjective style - not an IELTS speaking criterion
-    "REDUNDANCY",   # wordy phrasing - not penalised in IELTS speaking
-})
+_LT_FILTERED_CATEGORIES: frozenset[str] = frozenset(
+    {
+        "CASING",  # all casing rules - meaningless in speech
+        "TYPOGRAPHY",  # formatting rules - meaningless in speech
+        "PUNCTUATION",  # missing / wrong punctuation - transcription artefact
+        "STYLE",  # subjective style - not an IELTS speaking criterion
+        "REDUNDANCY",  # wordy phrasing - not penalised in IELTS speaking
+    }
+)
 
 # Rules that belong to filtered categories but catch genuine errors worth surfacing.
-_LT_WHITELISTED_RULE_IDS: frozenset[str] = frozenset({
-    "BORED_OF",  # STYLE: 'bored of' -> 'bored with/by' - real preposition error
-})
+_LT_WHITELISTED_RULE_IDS: frozenset[str] = frozenset(
+    {
+        "BORED_OF",  # STYLE: 'bored of' -> 'bored with/by' - real preposition error
+    }
+)
 
 
 def _sentence_spans(text: str) -> list[tuple[int, int]]:
@@ -119,7 +127,7 @@ def _sentence_spans(text: str) -> list[tuple[int, int]]:
         while nxt < len(text) and text[nxt].isspace():
             nxt += 1
         start = nxt
-    if start < len(text):          # trailing text with no terminal punctuation
+    if start < len(text):  # trailing text with no terminal punctuation
         spans.append((start, len(text)))
     return spans or [(0, len(text))]
 
@@ -127,10 +135,10 @@ def _sentence_spans(text: str) -> list[tuple[int, int]]:
 async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> None:
     """Background task: transcribe -> score -> update attempt + stats."""
     logger.info(
-        "\n\n========== PIPELINE START attempt_id=%d ==========\n"
-        "  question_id=%d\n"
-        "  audio=%s",
-        attempt_id, question_id, audio_path,
+        "\n\n========== PIPELINE START attempt_id=%d ==========\n  question_id=%d\n  audio=%s",
+        attempt_id,
+        question_id,
+        audio_path,
     )
     _t_start = time.perf_counter()
     _t_transcription: float = 0.0
@@ -141,9 +149,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
     async with AsyncSessionLocal() as session:
         try:
             # Fetch the question text and part
-            q_result = await session.execute(
-                select(Question).where(Question.id == question_id)
-            )
+            q_result = await session.execute(select(Question).where(Question.id == question_id))
             question = q_result.scalar_one_or_none()
             if question is None:
                 raise ValueError(f"Question {question_id} not found")
@@ -205,7 +211,9 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                 file_size = os.path.getsize(audio_path) if os.path.exists(audio_path) else -1
                 logger.warning(
                     "Pipeline %d: empty transcript - audio=%s (%.1f KB)",
-                    attempt_id, audio_path, file_size / 1024,
+                    attempt_id,
+                    audio_path,
+                    file_size / 1024,
                 )
                 t2 = await session.execute(select(Attempt).where(Attempt.id == attempt_id))
                 a = t2.scalar_one_or_none()
@@ -234,11 +242,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             for i in range(1, len(words)):
                 cur_start = words[i].get("start")
                 prev_end = words[i - 1].get("end")
-                if (
-                    cur_start is not None
-                    and prev_end is not None
-                    and cur_start - prev_end >= settings.gap_threshold
-                ):
+                if cur_start is not None and prev_end is not None and cur_start - prev_end >= settings.gap_threshold:
                     gap_count += 1
                     disfluent.add(words[i]["word"].lower())
             total_words = len(words)
@@ -248,14 +252,16 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             # Part 3 requires extended answers (~50-120 words); <40 is notably short.
             # Part 1 short answers are naturally brief; no length flag applied.
             if question.part == "2" and total_words < 80:
-                short_flag = f" ⚠ SHORT RESPONSE: only {total_words} words, fails Part 2 long-turn criterion (expected 150-250)"
+                short_flag = (
+                    f" ⚠ SHORT RESPONSE: only {total_words} words, fails Part 2 long-turn criterion (expected 150-250)"
+                )
             elif question.part == "3" and total_words < 40:
-                short_flag = f" ⚠ SHORT RESPONSE: only {total_words} words, notably brief for a Part 3 discussion answer"
+                short_flag = (
+                    f" ⚠ SHORT RESPONSE: only {total_words} words, notably brief for a Part 3 discussion answer"
+                )
             else:
                 short_flag = ""
-            fluency_context = (
-                f"{gap_count} long pause(s) in {total_words} words ({gaps_per_100}/100 words){short_flag}"
-            )
+            fluency_context = f"{gap_count} long pause(s) in {total_words} words ({gaps_per_100}/100 words){short_flag}"
             _t0 = time.perf_counter()
 
             # Signal 2: CEFR vocabulary distribution + lexical diversity (MTLD)
@@ -286,12 +292,10 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                     )
                     if lt_source is not None:
                         filtered_matches = [
-                            m for m in matches
+                            m
+                            for m in matches
                             if m.rule_id not in _LT_FILTERED_RULE_IDS
-                            and (
-                                m.rule_id in _LT_WHITELISTED_RULE_IDS
-                                or m.category not in _LT_FILTERED_CATEGORIES
-                            )
+                            and (m.rule_id in _LT_WHITELISTED_RULE_IDS or m.category not in _LT_FILTERED_CATEGORIES)
                         ]
                         logger.info(
                             "\n\n========== LT_RAW_MATCHES attempt_id=%d ==========\n"
@@ -306,7 +310,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                                 {
                                     "rule": m.rule_id,
                                     "category": m.category,
-                                    "word": transcript[m.offset:m.offset + m.error_length],
+                                    "word": transcript[m.offset : m.offset + m.error_length],
                                     "offset": m.offset,
                                     "suggestions": list(m.replacements[:3]),
                                     "message": m.message,
@@ -325,22 +329,17 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                             return None  # unmatched offset - caller must skip
 
                         # Stats computed over ALL filtered matches (not just cap)
-                        error_sentence_set = {
-                            idx
-                            for m in filtered_matches
-                            if (idx := _sent_idx(m.offset)) is not None
-                        }
+                        error_sentence_set = {idx for m in filtered_matches if (idx := _sent_idx(m.offset)) is not None}
                         n_error_sents = len(error_sentence_set)
-                        clean_pct = round(
-                            100 * (n_sentences - n_error_sents) / n_sentences
-                        ) if n_sentences else 100
+                        clean_pct = round(100 * (n_sentences - n_error_sents) / n_sentences) if n_sentences else 100
 
                         # Warn about small samples only for Part 2/3 where more sentences
                         # are expected; Part 1 answers are naturally 1-3 sentences.
                         small_sample_note = (
                             f" ⚠ tiny sample ({n_sentences} sentences) — "
                             "error-free rate does not imply high grammar range"
-                            if n_sentences <= 3 and question.part != "1" else ""
+                            if n_sentences <= 3 and question.part != "1"
+                            else ""
                         )
                         if not filtered_matches:
                             grammar_context = (
@@ -369,35 +368,33 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                             for rule_id, grp in rule_groups.items():
                                 cat = grp[0].category
                                 examples = " | ".join(
-                                    f"'{transcript[m.offset:m.offset + m.error_length]}'"
+                                    f"'{transcript[m.offset : m.offset + m.error_length]}'"
                                     f" -> {list(m.replacements[:2])}"
                                     for m in grp
                                 )
-                                by_rule_lines.append(
-                                    f"  [{cat}] {rule_id} ×{len(grp)}: {examples}"
-                                )
+                                by_rule_lines.append(f"  [{cat}] {rule_id} ×{len(grp)}: {examples}")
 
                             # Per-sentence attribution
                             by_sent_lines = []
                             for m in displayed:
                                 _sidx = _sent_idx(m.offset)
                                 s_num = (_sidx + 1) if _sidx is not None else "?"
-                                span = transcript[m.offset:m.offset + m.error_length]
+                                span = transcript[m.offset : m.offset + m.error_length]
                                 by_sent_lines.append(
-                                    f"  S{s_num}: '{span}'"
-                                    f" -> {list(m.replacements[:2])}"
-                                    f" ({m.message})"
+                                    f"  S{s_num}: '{span}' -> {list(m.replacements[:2])} ({m.message})"
                                 )
 
-                            grammar_context = "\n".join([
-                                header,
-                                "",
-                                "By rule:",
-                                *by_rule_lines,
-                                "",
-                                "By sentence:",
-                                *by_sent_lines,
-                            ])
+                            grammar_context = "\n".join(
+                                [
+                                    header,
+                                    "",
+                                    "By rule:",
+                                    *by_rule_lines,
+                                    "",
+                                    "By sentence:",
+                                    *by_sent_lines,
+                                ]
+                            )
                 except Exception as exc:
                     logger.warning("Grammar check failed: %s", exc)
 
@@ -409,8 +406,11 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                 loop = asyncio.get_running_loop()
                 grammar_result = await asyncio.wait_for(
                     loop.run_in_executor(
-                        None, compute_grammar_signals,
-                        transcript, _sentence_spans(transcript), filtered_matches,
+                        None,
+                        compute_grammar_signals,
+                        transcript,
+                        _sentence_spans(transcript),
+                        filtered_matches,
                     ),
                     timeout=30.0,
                 )
@@ -419,7 +419,9 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                 # Signal 7 (partial): turn length - anchors band 4 "overall turns are short"
                 n_sents = grammar_result["n_sentences"]
                 avg_words = round(total_words / n_sents, 1) if n_sents > 0 else 0.0
-                grammar_context += f"\nturn_length: {total_words} words, {n_sents} sentences, avg {avg_words} words/sentence"
+                grammar_context += (
+                    f"\nturn_length: {total_words} words, {n_sents} sentences, avg {avg_words} words/sentence"
+                )
             except Exception as exc:
                 logger.warning("Grammar signals (spaCy) failed: %s", exc)
 
@@ -427,7 +429,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             # 3. Pronunciation signal
             # ----------------------------------------------------------------
             pronunciation_signal = compute_pronunciation_signal(words)
-            disfluent_words = [w for w in words if w["word"].lower() in disfluent]
+            [w for w in words if w["word"].lower() in disfluent]
 
             logger.info(
                 "\n\n========== SCORING SIGNALS attempt_id=%d ==========\n"
@@ -436,7 +438,9 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                 "  grammar       : %s\n"
                 "  pronunciation : %s",
                 attempt_id,
-                gap_count, total_words, gaps_per_100,
+                gap_count,
+                total_words,
+                gaps_per_100,
                 vocab_signal,
                 grammar_context,
                 pronunciation_signal,
@@ -483,9 +487,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             feedback_text = scoring_result.get("feedback_text")
             _highlights_list = scoring_result.get("usage_errors", [])
             logger.info(
-                "\n\n========== LLM_ERROR_HIGHLIGHTS attempt_id=%d ==========\n"
-                "  count : %d\n"
-                "  items : %s",
+                "\n\n========== LLM_ERROR_HIGHLIGHTS attempt_id=%d ==========\n  count : %d\n  items : %s",
                 attempt_id,
                 len(_highlights_list),
                 _highlights_list,
@@ -503,25 +505,27 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                 "  feedback : %r",
                 attempt_id,
                 list(scoring_result.keys()),
-                fluency, vocabulary, grammar, pronunciation, score,
+                fluency,
+                vocabulary,
+                grammar,
+                pronunciation,
+                score,
                 (feedback_text or "")[:200],
             )
 
             # ----------------------------------------------------------------
             # 5. Update Attempt
             # ----------------------------------------------------------------
-            result = await session.execute(
-                select(Attempt).where(Attempt.id == attempt_id)
-            )
+            result = await session.execute(select(Attempt).where(Attempt.id == attempt_id))
             attempt = result.scalar_one_or_none()
             if attempt is None:
                 logger.error("Attempt %d not found during pipeline, aborting.", attempt_id)
                 return
             if score is None:
                 logger.error(
-                    "Pipeline %d: LLM returned no score - marking failed:scoring. "
-                    "scoring_result keys: %s",
-                    attempt_id, list(scoring_result.keys()),
+                    "Pipeline %d: LLM returned no score - marking failed:scoring. scoring_result keys: %s",
+                    attempt_id,
+                    list(scoring_result.keys()),
                 )
                 attempt.status = "failed:scoring"
                 await session.commit()
@@ -543,9 +547,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             # 6. Update DailyActivity
             # ----------------------------------------------------------------
             today = date.today()
-            da_result = await session.execute(
-                select(DailyActivity).where(DailyActivity.date == today)
-            )
+            da_result = await session.execute(select(DailyActivity).where(DailyActivity.date == today))
             daily = da_result.scalar_one_or_none()
             if daily is None:
                 daily = DailyActivity(date=today, attempts_count=1)
@@ -570,14 +572,10 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             # ----------------------------------------------------------------
             # 7. Update UserStats streak
             # ----------------------------------------------------------------
-            stats_result = await session.execute(
-                select(UserStats).where(UserStats.id == 1)
-            )
+            stats_result = await session.execute(select(UserStats).where(UserStats.id == 1))
             stats = stats_result.scalar_one_or_none()
             if stats is None:
-                stats = UserStats(
-                    id=1, current_streak=0, longest_streak=0, total_attempts=0
-                )
+                stats = UserStats(id=1, current_streak=0, longest_streak=0, total_attempts=0)
                 session.add(stats)
                 await session.flush()
 
@@ -585,9 +583,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
 
             # Recalculate streak: single bulk fetch, count consecutive days ending today
             recent = await session.execute(
-                select(DailyActivity.date, DailyActivity.attempts_count)
-                .order_by(DailyActivity.date.desc())
-                .limit(1000)
+                select(DailyActivity.date, DailyActivity.attempts_count).order_by(DailyActivity.date.desc()).limit(1000)
             )
             rows = recent.all()
             streak = 0
@@ -613,9 +609,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                 )
                 recent_scores = [r for r in recent_result.scalars().all()]
                 if recent_scores:
-                    stats.estimated_band = round(
-                        sum(recent_scores) / len(recent_scores) * 2
-                    ) / 2
+                    stats.estimated_band = round(sum(recent_scores) / len(recent_scores) * 2) / 2
 
             await session.commit()
             _t_total = time.perf_counter() - _t_start
@@ -625,24 +619,24 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                 "  signals       : %.2fs\n"
                 "  llm_scoring   : %.2fs\n"
                 "  total         : %.2fs",
-                attempt_id, _t_transcription, _t_signals, _t_scoring, _t_total,
+                attempt_id,
+                _t_transcription,
+                _t_signals,
+                _t_scoring,
+                _t_total,
             )
 
         except Exception as exc:
             logger.exception("Pipeline failed for attempt %d: %s", attempt_id, exc)
             try:
-                result = await session.execute(
-                    select(Attempt).where(Attempt.id == attempt_id)
-                )
+                result = await session.execute(select(Attempt).where(Attempt.id == attempt_id))
                 attempt = result.scalar_one_or_none()
                 if attempt is not None:
                     attempt.status = "failed"
                     await session.commit()
                     logger.info("Pipeline %d: failed (unknown)", attempt_id)
             except Exception:
-                logger.exception(
-                    "Failed to mark attempt %d as failed", attempt_id
-                )
+                logger.exception("Failed to mark attempt %d as failed", attempt_id)
 
 
 @router.post("/submit", response_model=AttemptStatusOut, status_code=202)
@@ -681,7 +675,11 @@ async def submit_attempt(
             "\n\n========== SUBMIT attempt_id=%d question_id=%d ==========\n"
             "  audio saved -> %s  (%.1f KB)\n"
             "  content_type=%s",
-            attempt.id, question_id, audio_path, file_size_kb, audio.content_type,
+            attempt.id,
+            question_id,
+            audio_path,
+            file_size_kb,
+            audio.content_type,
         )
     except Exception as exc:
         attempt.status = "failed"
@@ -747,9 +745,7 @@ async def get_attempt_history(
         raise HTTPException(status_code=404, detail="Question not found")
 
     result = await db.execute(
-        select(Attempt)
-        .where(Attempt.question_id == question_id)
-        .order_by(Attempt.created_at.desc())
+        select(Attempt).where(Attempt.question_id == question_id).order_by(Attempt.created_at.desc())
     )
     attempts = result.scalars().all()
 
@@ -790,9 +786,7 @@ async def improve_attempt(
         )
 
     # Fetch question text
-    q_result = await db.execute(
-        select(Question).where(Question.id == attempt.question_id)
-    )
+    q_result = await db.execute(select(Question).where(Question.id == attempt.question_id))
     question = q_result.scalar_one_or_none()
     if question is None:
         raise HTTPException(status_code=404, detail="Question not found")
@@ -850,9 +844,12 @@ async def get_pronunciation(
                 word=w.get("word", ""),
                 confidence=round(confidence, 3),
                 tier=(
-                    "clear" if confidence >= 0.9
-                    else "imprecise" if confidence >= 0.8
-                    else "unclear" if confidence >= 0.7
+                    "clear"
+                    if confidence >= 0.9
+                    else "imprecise"
+                    if confidence >= 0.8
+                    else "unclear"
+                    if confidence >= 0.7
                     else "poor"
                 ),
             )

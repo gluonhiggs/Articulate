@@ -47,6 +47,7 @@ def evict_tts_cache(cache_dir: str, max_size_mb: int) -> None:
             freed_bytes / (1024 * 1024),
         )
 
+
 _pipeline = None
 _lock = asyncio.Lock()
 

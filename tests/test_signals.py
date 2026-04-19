@@ -3,9 +3,8 @@
 These tests validate the inline logic for fluency gap rate and CEFR vocabulary
 distribution by running the same computation with known inputs.
 """
-from __future__ import annotations
 
-import pytest
+from __future__ import annotations
 
 from backend.data.oxford import WORD_TO_CEFR, WORD_TO_DATA
 from backend.services.vocab import compute_vocab_signal
@@ -29,11 +28,7 @@ def _compute_fluency(words: list[dict]) -> tuple[int, set[str], float]:
     for i in range(1, len(words)):
         cur_start = words[i].get("start")
         prev_end = words[i - 1].get("end")
-        if (
-            cur_start is not None
-            and prev_end is not None
-            and cur_start - prev_end >= GAP_THRESHOLD
-        ):
+        if cur_start is not None and prev_end is not None and cur_start - prev_end >= GAP_THRESHOLD:
             gap_count += 1
             disfluent.add(words[i]["word"].lower())
     total = len(words)
@@ -139,16 +134,19 @@ class TestIdiomSignal:
 
     def test_known_phrase_detected(self):
         from backend.services.vocab import _compute_idiom_signal
+
         signal = _compute_idiom_signal("On the other hand, I think this is important.", 10)
         assert "on the other hand" in signal
 
     def test_no_phrases_gives_none_label(self):
         from backend.services.vocab import _compute_idiom_signal
+
         signal = _compute_idiom_signal("house big car dog run", 5)
         assert "none detected" in signal
 
     def test_multiple_phrases_counted(self):
         from backend.services.vocab import _compute_idiom_signal
+
         text = "In my opinion, to some extent this is true. On the other hand, it depends on the situation."
         signal = _compute_idiom_signal(text, len(text.split()))
         # Should detect at least 3 phrases
@@ -156,6 +154,7 @@ class TestIdiomSignal:
 
     def test_empty_transcript(self):
         from backend.services.vocab import _compute_idiom_signal
+
         signal = _compute_idiom_signal("", 0)
         assert "insufficient" in signal
 
@@ -165,18 +164,21 @@ class TestCollocationSignal:
 
     def test_returns_string_always(self):
         from backend.services.vocab import _compute_collocation_signal
+
         result = _compute_collocation_signal("I went to school today.")
         assert isinstance(result, str)
         assert len(result) > 0
 
     def test_output_starts_with_prefix(self):
         from backend.services.vocab import _compute_collocation_signal
+
         signal = _compute_collocation_signal("She cooked a delicious meal.")
         assert signal.startswith("collocation pairs")
 
     def test_common_pair_skipped(self):
         # "make a decision" is in _COMMON_NATURAL_PAIRS - should not appear in inventory
         from backend.services.vocab import _compute_collocation_signal, _get_spacy
+
         signal = _compute_collocation_signal("She made a decision to leave.")
         if _get_spacy() is not None:
             assert "make->decision" not in signal
@@ -184,6 +186,7 @@ class TestCollocationSignal:
     def test_unusual_pair_reported_in_inventory(self):
         # "do a mistake" - verb->obj pair "do->mistake" should appear in inventory
         from backend.services.vocab import _compute_collocation_signal, _get_spacy
+
         signal = _compute_collocation_signal("He did a mistake in his work.")
         if _get_spacy() is not None:
             assert "do->mistake" in signal
@@ -191,6 +194,7 @@ class TestCollocationSignal:
     def test_adj_noun_pair_extracted(self):
         # "delicious meal" - adj->noun pair should appear
         from backend.services.vocab import _compute_collocation_signal, _get_spacy
+
         signal = _compute_collocation_signal("She cooked a delicious meal.")
         if _get_spacy() is not None:
             assert "delicious->meal" in signal
@@ -241,9 +245,9 @@ class TestFluencySignal:
     def test_multiple_gaps(self):
         words = [
             {"word": "I", "start": 0.0, "end": 0.2},
-            {"word": "um", "start": 1.0, "end": 1.2},   # gap 0.8s
+            {"word": "um", "start": 1.0, "end": 1.2},  # gap 0.8s
             {"word": "think", "start": 1.3, "end": 1.6},  # no gap
-            {"word": "uh", "start": 3.0, "end": 3.2},   # gap 1.4s
+            {"word": "uh", "start": 3.0, "end": 3.2},  # gap 1.4s
         ]
         gap_count, disfluent, _ = _compute_fluency(words)
         assert gap_count == 2
@@ -264,6 +268,7 @@ class TestFluencySignal:
 # Pronunciation signal (4-tier system)
 # ---------------------------------------------------------------------------
 
+
 def _build_disfluent_words(words: list[dict], disfluent: set[str]) -> list[dict]:
     """Replicate the disfluent_words list comprehension from _run_pipeline() in attempts.py."""
     return [w for w in words if w["word"].lower() in disfluent]
@@ -274,6 +279,7 @@ class TestPronunciationSignal:
 
     def _sig(self, words):
         from backend.services.vocab import compute_pronunciation_signal
+
         return compute_pronunciation_signal(words)
 
     def test_cloud_mode_all_ones(self):
@@ -303,10 +309,10 @@ class TestPronunciationSignal:
 
     def test_four_tier_bucketing(self):
         words = [
-            {"word": "good", "probability": 0.95},    # clear
-            {"word": "morning", "probability": 0.85}, # imprecise
-            {"word": "world", "probability": 0.75},   # unclear
-            {"word": "especial", "probability": 0.60}, # poor
+            {"word": "good", "probability": 0.95},  # clear
+            {"word": "morning", "probability": 0.85},  # imprecise
+            {"word": "world", "probability": 0.75},  # unclear
+            {"word": "especial", "probability": 0.60},  # poor
         ]
         result = self._sig(words)
         assert "clear: 25%" in result
@@ -314,10 +320,10 @@ class TestPronunciationSignal:
         assert "unclear: 25%" in result
         assert "poor: 25%" in result
         assert "total: 4 words" in result
-        assert "especial" in result   # poor tier listed
-        assert "world" in result      # unclear tier listed
-        assert "morning" in result    # imprecise tier listed
-        assert "good" not in result   # clear tier not listed
+        assert "especial" in result  # poor tier listed
+        assert "world" in result  # unclear tier listed
+        assert "morning" in result  # imprecise tier listed
+        assert "good" not in result  # clear tier not listed
 
     def test_boundary_values(self):
         # Exactly on boundary: 0.9 -> clear, 0.8 -> imprecise, 0.7 -> unclear
@@ -350,7 +356,7 @@ class TestPronunciationSignal:
             {"word": "especial", "probability": 0.45},
         ]
         result = self._sig(words)
-        poor_line = [l for l in result.split("\n") if "poorly pronounced" in l.lower()][0]
+        poor_line = [line for line in result.split("\n") if "poorly pronounced" in line.lower()][0]
         assert poor_line.index("especial") < poor_line.index("comfortable")
 
     def test_missing_probability_words_ignored(self):
