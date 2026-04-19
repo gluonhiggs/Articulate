@@ -58,3 +58,5 @@ frontend/node_modules/
 .superpowers/
 .vscode/
 .pytest_cache/
+.claude/
+electron/node_modules/
