@@ -52,6 +52,9 @@ dev = [
     # Icon generation for desktop app (scripts/create_icons.py)
     "pillow>=10.0",
     "icnsutil>=1.1.0",
+    # Linter + formatter. Also used by the pre-commit hook, which manages its
+    # own separate copy — this entry is for `make check` / `make format` / CI.
+    "ruff>=0.8",
 ]
 build = [
     "pyinstaller>=6.0",
@@ -76,3 +79,27 @@ local-transcription-gpu = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+
+# Ruff: Python linter + formatter. Run via pre-commit or `uv run ruff check .`
+# Conservative starter config; expand selected rules as the codebase absorbs
+# the auto-fixes.
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = [
+    "frontend",
+    "dist",
+    "build",
+    ".venv",
+]
+
+[tool.ruff.lint]
+# E = pycodestyle errors, F = pyflakes (real bugs), I = isort import order.
+# Add B (bugbear), UP (pyupgrade), SIM (simplify) later when ready.
+select = ["E", "F", "I"]
+# E501 (line too long) is enforced by the formatter, not the linter.
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

@@ -29,6 +29,13 @@ spacy_datas, spacy_binaries, spacy_hiddenimports = collect_all("spacy")
 en_core_datas, en_core_binaries, en_core_hiddenimports = collect_all("en_core_web_sm")
 misaki_datas, misaki_binaries, misaki_hiddenimports = collect_all("misaki")
 uvicorn_datas, uvicorn_binaries, uvicorn_hiddenimports = collect_all("uvicorn")
+# Kokoro -> misaki -> phonemizer -> segments -> csvw. PyInstaller static
+# analysis catches the top-level imports but misses submodules and data files
+# deeper in the chain (phonemizer backends, segments.tokenizer, csvw metadata
+# profiles). Collect each layer explicitly so the runtime import chain works.
+phonemizer_datas, phonemizer_binaries, phonemizer_hiddenimports = collect_all("phonemizer")
+segments_datas, segments_binaries, segments_hiddenimports = collect_all("segments")
+csvw_datas, csvw_binaries, csvw_hiddenimports = collect_all("csvw")
 # Local transcription stack — shipped in all three OS installers. macOS gets
 # CPU-only ctranslate2 (no GPU backend exists); Linux/Windows additionally
 # bundle the nvidia-* CUDA runtime so GPU owners work out-of-box.
@@ -55,6 +62,10 @@ datas = [
     *kokoro_datas,
     # Misaki phoneme data (Kokoro dependency)
     *misaki_datas,
+    # phonemizer / segments / csvw — transitive deps through misaki
+    *phonemizer_datas,
+    *segments_datas,
+    *csvw_datas,
     # uvicorn package data
     *uvicorn_datas,
     # faster-whisper + ctranslate2 (Whisper models download lazily to HF cache)
@@ -69,6 +80,9 @@ binaries = [
     *en_core_binaries,
     *kokoro_binaries,
     *misaki_binaries,
+    *phonemizer_binaries,
+    *segments_binaries,
+    *csvw_binaries,
     *uvicorn_binaries,
     *fw_binaries,
     *ct2_binaries,
@@ -114,9 +128,12 @@ hiddenimports = [
     # spaCy / NLP
     *spacy_hiddenimports,
     *en_core_hiddenimports,
-    # Kokoro TTS
+    # Kokoro TTS + transitive phonemizer/segments/csvw chain
     *kokoro_hiddenimports,
     *misaki_hiddenimports,
+    *phonemizer_hiddenimports,
+    *segments_hiddenimports,
+    *csvw_hiddenimports,
     # Local transcription
     *fw_hiddenimports,
     *ct2_hiddenimports,
@@ -143,6 +160,11 @@ excludes = [
     "wx",
     "PyQt5",
     "PyQt6",
+    # Chinese normalization path in misaki requires pypinyin which we do not
+    # install (English-only IELTS app). Excluding avoids a collect warning
+    # and keeps the bundle from trying to resolve the dep.
+    "misaki.zh_normalization",
+    "pypinyin",
 ]
 
 # ── Analysis ──────────────────────────────────────────────────────────────────

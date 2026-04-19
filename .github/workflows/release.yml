@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - "v*.*.*"
+  # Manual trigger: fire the full 5-leg matrix from the Actions UI on any
+  # branch without cutting a tag. Lets us test bundle shape and smoke on
+  # Linux/macOS (we can do Windows locally) before spending a version number.
+  # The release-upload step below is gated on push+tag so manual runs don't
+  # publish anything — they build + verify and stop.
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -109,104 +115,12 @@ jobs:
       - name: Verify bundle integrity
         shell: bash
         env:
-          ARTICULATE_NO_INTERACTIVE: "1"
-          ARTICULATE_PORT: "8765"
-          # Pin smoke test to groq so the 10s window doesn't trigger a ~486 MB
-          # Whisper model download. CI verifies "bundle starts"; exercising local
-          # mode end-to-end is out of scope for smoke.
-          TRANSCRIPTION_MODE: "groq"
           MATRIX_VARIANT: ${{ matrix.variant }}
-        run: |
-          set -uo pipefail
-          BUNDLE="dist/articulate_backend/_internal"
-
-          echo "=== Presence check (variant=${MATRIX_VARIANT}) ==="
-          # Shipped in every variant, every OS:
-          PACKAGES="uvicorn spacy kokoro torch pydantic_core faster_whisper ctranslate2"
-          for pkg in $PACKAGES; do
-            if [ ! -d "$BUNDLE/$pkg" ]; then
-              echo "FAIL: $BUNDLE/$pkg is missing — bundle is incomplete"
-              exit 1
-            fi
-            echo "OK: $pkg"
-          done
-
-          if [ "${MATRIX_VARIANT}" = "gpu" ]; then
-            # PyInstaller can flatten nvidia.* (PEP 420 namespace package) into
-            # _internal/ root OR keep _internal/nvidia/*/bin/ hierarchy. Don't
-            # rely on directory existence — grep for the actual DLL/SO filenames.
-            echo "=== GPU check: CUDA runtime libs ==="
-            FOUND=$(find "$BUNDLE" \
-              -iname "cublas64*.dll" -o -iname "libcublas*.so*" \
-              -o -iname "cudart64*.dll" -o -iname "libcudart*.so*" \
-              -o -iname "cudnn*.dll" -o -iname "libcudnn*.so*" \
-              2>/dev/null | wc -l)
-            if [ "$FOUND" -lt 3 ]; then
-              echo "FAIL: GPU variant bundled only ${FOUND} CUDA libs; expected >= 3 (cuBLAS, cuDNN, cudart)"
-              find "$BUNDLE" -iname "*cuda*" -o -iname "*cublas*" -o -iname "*cudnn*" 2>/dev/null | head -20 || true
-              exit 1
-            fi
-            echo "OK: ${FOUND} CUDA runtime files present"
-          else
-            # CPU variant must NOT ship nvidia libs — check for absence.
-            echo "=== CPU check: no CUDA runtime ==="
-            NVIDIA_LIBS=$(find "$BUNDLE" \
-              -iname "cublas64*.dll" -o -iname "libcublas*.so*" \
-              -o -iname "cudnn*.dll" -o -iname "libcudnn*.so*" \
-              2>/dev/null | wc -l)
-            if [ "$NVIDIA_LIBS" -gt 0 ]; then
-              echo "FAIL: CPU variant bundle contains ${NVIDIA_LIBS} CUDA libs — should be 0"
-              exit 1
-            fi
-            echo "OK: CPU variant has no CUDA libs"
-          fi
-
-          echo "=== Size check ==="
-          SIZE_MB=$(du -sm dist/articulate_backend | cut -f1)
-          echo "Bundle size: ${SIZE_MB} MB"
-          # Size floors per variant/OS:
-          #   macOS (cpu only): ~510 MB → floor 400
-          #   Win/Linux CPU:    ~510 MB → floor 450
-          #   Win/Linux GPU:    ~1.7 GB → floor 1000
-          if [ "${MATRIX_VARIANT}" = "gpu" ]; then
-            MIN_MB=1000
-          elif [ "${RUNNER_OS}" = "macOS" ]; then
-            MIN_MB=400
-          else
-            MIN_MB=450
-          fi
-          if [ "$SIZE_MB" -lt "$MIN_MB" ]; then
-            echo "FAIL: bundle is ${SIZE_MB} MB, expected >= ${MIN_MB} MB for ${RUNNER_OS}/${MATRIX_VARIANT}"
-            exit 1
-          fi
-
-          echo "=== Smoke test ==="
-          EXE="dist/articulate_backend/articulate_backend"
-          [ -f "${EXE}.exe" ] && EXE="${EXE}.exe"
-          ls -la "$EXE" || true
-          # Windows windowed exes (console=False) have no usable stdout, so shell
-          # redirection captures nothing. backend_launcher.py honours ARTICULATE_LOG_PATH
-          # and writes sys.stdout/stderr to the file itself — works on all three OSes.
-          ARTICULATE_LOG_PATH=smoke.log "$EXE" &
-          PID=$!
-          sleep 10
-          EXIT=0
-          if kill -0 "$PID" 2>/dev/null; then
-            kill "$PID" 2>/dev/null || true
-            wait "$PID" 2>/dev/null || true
-            EXIT=124
-          else
-            # Process exited before 10s; capture its code without tripping `set -e`.
-            wait "$PID" || EXIT=$?
-          fi
-          echo "--- smoke.log (first 80 lines) ---"
-          head -80 smoke.log || true
-          echo "--- end log ---"
-          if [ "$EXIT" -ne 124 ]; then
-            echo "FAIL: backend exited with code $EXIT (expected it to still be running after 10s)"
-            exit 1
-          fi
-          echo "Smoke test passed"
+        # Delegated to scripts/verify-bundle.sh so CI and local pre-push hooks
+        # run the exact same checks. See the Makefile's `release-cpu` /
+        # `release-gpu` targets for the local wrapper that chains install-build
+        # + frontend + bundle + verify + electron-package.
+        run: bash scripts/verify-bundle.sh
 
       - name: Upload backend bundle
         uses: actions/upload-artifact@v4
@@ -284,6 +198,9 @@ jobs:
         run: bun run package
 
       - name: Create GitHub Release and upload installer
+        # Gate on push+tag so workflow_dispatch runs exercise the full build
+        # and verify path without publishing. Manual runs stop after Package.
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash

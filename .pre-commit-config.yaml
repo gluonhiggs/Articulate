@@ -1,0 +1,46 @@
+# pre-commit: https://pre-commit.com
+#
+# One-time setup (per clone):
+#   uv tool install pre-commit            # or: pip install pre-commit
+#   pre-commit install --hook-type pre-commit --hook-type pre-push
+#
+# Manually run everything:
+#   pre-commit run --all-files
+#
+# The pre-push hook runs the full PyInstaller bundle + verify ONLY when a
+# tag matching v*.*.* is being pushed (branch pushes are untouched). This
+# is the line of defense against push-fail cycles on tag releases. See
+# scripts/ci-local-prepush.sh.
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=2000"]
+
+  # Ruff: linter + formatter. Config lives in pyproject.toml under [tool.ruff].
+  # Run `pre-commit autoupdate` to refresh the pinned rev.
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.0
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: local
+    hooks:
+      # Local (system) hook: fires on pre-push, skips itself unless a tag
+      # matching v*.*.* is being pushed. See script for the gating logic.
+      - id: ci-local-bundle
+        name: "Local CI: PyInstaller bundle + verify (tag pushes only)"
+        entry: bash scripts/ci-local-prepush.sh
+        language: system
+        stages: [pre-push]
+        pass_filenames: false
+        always_run: true

@@ -47,18 +47,13 @@ jobs:
         run: pip install uv
 
       - name: Install dependencies
-        # Skip local-transcription group (faster-whisper + CUDA): too heavy for CI.
-        # Skip torch: it's in main deps but ~800MB; tests needing it are marked
-        # requires_models and excluded below. Also skip kokoro and spacy for the
-        # same reason (they depend on torch or are large model packages).
-        run: >
-          uv sync --locked --group dev --no-group local-transcription
-          --no-install-package torch
-          --no-install-package kokoro
-          --no-install-package spacy
-          --no-install-package en-core-web-sm
+        # Flag list (skip local-transcription, torch, kokoro, spacy,
+        # en-core-web-sm) lives in the Makefile's install-backend target so
+        # contributors running `make install-backend` get byte-identical behavior
+        # to this CI step. Change the flags there, not here.
+        run: make install-backend
 
       - name: Run tests
-        # Skip tests that require heavy ML models (torch/kokoro/whisper).
-        # Mark those tests with @pytest.mark.requires_models.
-        run: uv run pytest tests/ -x --tb=short -m "not requires_models"
+        # Mirrors `make test-backend`. Skips @pytest.mark.requires_models tests
+        # (heavy ML: torch/kokoro/whisper).
+        run: make test-backend
