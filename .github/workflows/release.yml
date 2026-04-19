@@ -116,11 +116,10 @@ jobs:
         shell: bash
         env:
           MATRIX_VARIANT: ${{ matrix.variant }}
-        # Delegated to scripts/verify-bundle.sh so CI and local pre-push hooks
-        # run the exact same checks. See the Makefile's `release-cpu` /
-        # `release-gpu` targets for the local wrapper that chains install-build
-        # + frontend + bundle + verify + electron-package.
-        run: bash scripts/verify-bundle.sh
+        # Delegated to scripts/verify-bundle.py so CI and local Makefile targets
+        # run the exact same checks on all OSes (bash not required). See the
+        # Makefile's `release-cpu` / `release-gpu` targets for the local wrapper.
+        run: uv run --no-sync python scripts/verify-bundle.py
 
       - name: Upload backend bundle
         uses: actions/upload-artifact@v4

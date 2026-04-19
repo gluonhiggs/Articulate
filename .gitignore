@@ -51,6 +51,16 @@ data/mode
 frontend/dist/
 frontend/node_modules/
 
+# Release build artifacts (PyInstaller + electron-builder output)
+dist/
+build/
+electron/dist/
+electron/dist-installer/
+
+# Crash logs
+hs_err_pid*.log
+smoke.log
+
 # Environment files - .env (your secrets) is gitignored; .env.example is tracked
 .env.*
 !.env.example

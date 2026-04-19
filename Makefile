@@ -136,25 +136,32 @@ ci: check test
 frontend:
 	cd frontend && bun install --frozen-lockfile && bun run build
 
+bundle-cpu: export ARTICULATE_BUILD_GPU := 0
 bundle-cpu:
-	ARTICULATE_BUILD_GPU=0 uv run --no-sync pyinstaller backend.spec --noconfirm --clean
+	uv run --no-sync pyinstaller backend.spec --noconfirm --clean
 
+bundle-gpu: export ARTICULATE_BUILD_GPU := 1
 bundle-gpu:
-	ARTICULATE_BUILD_GPU=1 uv run --no-sync pyinstaller backend.spec --noconfirm --clean
+	uv run --no-sync pyinstaller backend.spec --noconfirm --clean
 
+verify-cpu: export MATRIX_VARIANT := cpu
 verify-cpu:
-	MATRIX_VARIANT=cpu bash scripts/verify-bundle.sh
+	uv run --no-sync python scripts/verify-bundle.py
 
+verify-gpu: export MATRIX_VARIANT := gpu
 verify-gpu:
-	MATRIX_VARIANT=gpu bash scripts/verify-bundle.sh
+	uv run --no-sync python scripts/verify-bundle.py
 
 electron-package:
+	uv run --no-sync python scripts/ensure-wincosign-cache.py
 	cd electron && bun install --frozen-lockfile && bun run build && bun run package
 
+release-cpu: export ARTICULATE_VARIANT := cpu
 release-cpu: install-build frontend bundle-cpu verify-cpu electron-package
 	@echo ""
 	@echo "CPU release artifacts built and verified."
 
+release-gpu: export ARTICULATE_VARIANT := gpu
 release-gpu: install-build-gpu frontend bundle-gpu verify-gpu electron-package
 	@echo ""
 	@echo "GPU release artifacts built and verified."

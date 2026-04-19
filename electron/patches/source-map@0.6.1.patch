@@ -1,0 +1,14 @@
+diff --git a/lib/source-map-consumer.js b/lib/source-map-consumer.js
+index 7b99d1da7feac7c5345af8945ed047c7c054c0ba..6e11087ac03d41875d30949648208fe3939e014a 100644
+--- a/lib/source-map-consumer.js
++++ b/lib/source-map-consumer.js
+@@ -585,8 +585,7 @@ BasicSourceMapConsumer.prototype._findMapping =
+                           + aNeedle[aLineName]);
+     }
+     if (aNeedle[aColumnName] < 0) {
+-      throw new TypeError('Column must be greater than or equal to 0, got '
+-                          + aNeedle[aColumnName]);
++      aNeedle[aColumnName] = 0;
+     }
+ 
+     return binarySearch.search(aNeedle, aMappings, aComparator, aBias);
