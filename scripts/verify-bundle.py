@@ -38,8 +38,13 @@ def fail(msg: str) -> None:
 
 print(f"=== Presence check (variant={VARIANT}) ===")
 PACKAGES = [
-    "uvicorn", "spacy", "kokoro", "torch",
-    "pydantic_core", "faster_whisper", "ctranslate2",
+    "uvicorn",
+    "spacy",
+    "kokoro",
+    "torch",
+    "pydantic_core",
+    "faster_whisper",
+    "ctranslate2",
 ]
 for pkg in PACKAGES:
     pkg_dir = BUNDLE / pkg
@@ -51,9 +56,12 @@ for pkg in PACKAGES:
 # ── 2. Variant shape check ───────────────────────────────────────────────────
 
 CUDA_PATTERNS = (
-    "cublas64*.dll", "libcublas*.so*",
-    "cudart64*.dll", "libcudart*.so*",
-    "cudnn*.dll",    "libcudnn*.so*",
+    "cublas64*.dll",
+    "libcublas*.so*",
+    "cudart64*.dll",
+    "libcudart*.so*",
+    "cudnn*.dll",
+    "libcudnn*.so*",
 )
 
 
@@ -73,10 +81,7 @@ if VARIANT == "gpu":
     print("=== GPU check: CUDA runtime libs ===")
     found = find_files(BUNDLE, *CUDA_PATTERNS)
     if len(found) < 3:
-        fail(
-            f"GPU variant bundled only {len(found)} CUDA libs; "
-            "expected >= 3 (cuBLAS, cuDNN, cudart)"
-        )
+        fail(f"GPU variant bundled only {len(found)} CUDA libs; expected >= 3 (cuBLAS, cuDNN, cudart)")
     print(f"OK: {len(found)} CUDA runtime files present")
 else:
     print("=== CPU check: no nvidia-* wheel runtime ===")
@@ -84,8 +89,7 @@ else:
     nvidia_libs = find_files(nvidia_dir, *CUDA_PATTERNS) if nvidia_dir.is_dir() else []
     if nvidia_libs:
         fail(
-            f"CPU variant bundle contains {len(nvidia_libs)} nvidia-* wheel libs "
-            "under _internal/nvidia/ — should be 0"
+            f"CPU variant bundle contains {len(nvidia_libs)} nvidia-* wheel libs under _internal/nvidia/ — should be 0"
         )
     print("OK: CPU variant has no nvidia-* wheel runtime")
 
@@ -106,10 +110,7 @@ else:
     MIN_MB = 450
 
 if SIZE_MB < MIN_MB:
-    fail(
-        f"bundle is {SIZE_MB} MB, "
-        f"expected >= {MIN_MB} MB for {RUNNER_OS_VAL}/{VARIANT}"
-    )
+    fail(f"bundle is {SIZE_MB} MB, expected >= {MIN_MB} MB for {RUNNER_OS_VAL}/{VARIANT}")
 
 
 # ── 4. Smoke test ────────────────────────────────────────────────────────────
@@ -159,9 +160,6 @@ if smoke_log.exists():
     print("--- end log ---")
 
 if exit_code != 124:
-    fail(
-        f"backend exited with code {exit_code} "
-        "(expected it to still be running after 10s)"
-    )
+    fail(f"backend exited with code {exit_code} (expected it to still be running after 10s)")
 
 print("Smoke test passed")

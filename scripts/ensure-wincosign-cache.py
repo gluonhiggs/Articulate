@@ -30,27 +30,15 @@ REQUIRED_FILES = ["rcedit-x64.exe", "rcedit-ia32.exe"]
 
 
 def electron_builder_cache() -> Path:
-    local_app_data = os.environ.get("LOCALAPPDATA") or str(
-        Path.home() / "AppData" / "Local"
-    )
+    local_app_data = os.environ.get("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")
     return Path(local_app_data) / "electron-builder" / "Cache" / "winCodeSign"
 
 
 def find_7za(script_dir: Path) -> Path:
-    candidate = (
-        script_dir.parent
-        / "electron"
-        / "node_modules"
-        / "7zip-bin"
-        / "win"
-        / "x64"
-        / "7za.exe"
-    )
+    candidate = script_dir.parent / "electron" / "node_modules" / "7zip-bin" / "win" / "x64" / "7za.exe"
     if candidate.exists():
         return candidate
-    raise FileNotFoundError(
-        "7za.exe not found in electron/node_modules — run `bun install` first"
-    )
+    raise FileNotFoundError("7za.exe not found in electron/node_modules — run `bun install` first")
 
 
 def main() -> None:
