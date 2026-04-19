@@ -1,0 +1,19 @@
+diff --git a/dist/client.mjs b/dist/client.mjs
+index 8f2bc623dba855f95bc728f60aa08b82d1d0e167..780bc3d522cff541b3055ab6cc725244b0901360 100644
+--- a/dist/client.mjs
++++ b/dist/client.mjs
+@@ -276,8 +276,12 @@ class ViteNodeRunner {
+ 		const { Object, Reflect, Symbol } = this.getContextPrimitives();
+ 		const modulePath = cleanUrl(moduleId);
+ 		// disambiguate the `<UNIT>:/` on windows: see nodejs/node#31710
+-		const href = pathToFileURL(modulePath).href;
+-		const __filename = fileURLToPath(href);
++		// bun on Windows: fileURLToPath rejects virtual module IDs (e.g. /@vite/env)
++		// because pathToFileURL produces file:// URLs without a drive letter.
++		// For virtual module IDs (starts with / but no drive letter), use as-is.
++		const isVirtualId = process.platform === 'win32' && modulePath.startsWith('/') && !/^\/[A-Za-z]:/.test(modulePath);
++		const href = isVirtualId ? modulePath : pathToFileURL(modulePath).href;
++		const __filename = isVirtualId ? modulePath : fileURLToPath(href);
+ 		const __dirname = dirname(__filename);
+ 		const meta = {
+ 			url: href,

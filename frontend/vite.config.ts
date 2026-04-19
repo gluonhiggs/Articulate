@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 
 const certPath = path.resolve(__dirname, '../certs/cert.pem')
 const keyPath = path.resolve(__dirname, '../certs/key.pem')

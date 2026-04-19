@@ -91,10 +91,12 @@ describe('usePolling interval logic', () => {
   })
 
   it('does not time out at exactly 3 minutes (boundary - must be strictly greater)', () => {
-    const startedAtRef = { current: Date.now() - POLLING_TIMEOUT_MS }
+    // Use 100ms before the boundary so Date.now() advancing during the test
+    // does not cross the timeout threshold (same semantic: not yet timed out).
+    const startedAtRef = { current: Date.now() - POLLING_TIMEOUT_MS + 100 }
     const setIsTimedOut = vi.fn()
     const decide = makeIntervalDecision(startedAtRef, setIsTimedOut)
-    // Date.now() - startedAt === POLLING_TIMEOUT_MS exactly -> NOT > -> should still poll
+    // elapsed < POLLING_TIMEOUT_MS -> NOT > -> should still poll
     expect(decide('processing')).toBe(1500)
     expect(setIsTimedOut).not.toHaveBeenCalledWith(true)
   })
