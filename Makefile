@@ -21,6 +21,7 @@ SHELL := /bin/bash
         ci \
         frontend bundle-cpu bundle-gpu verify-cpu verify-gpu electron-package \
         release-cpu release-gpu \
+        tag \
         clean
 
 # ── Help ──────────────────────────────────────────────────────────────────────
@@ -36,6 +37,7 @@ help:
 	@echo "    make ci              check + test. Run before you push."
 	@echo "    make release-cpu     Full PyInstaller + electron installer, CPU variant (~10 min)"
 	@echo "    make release-gpu     Full PyInstaller + electron installer, GPU variant (~15 min)"
+	@echo "    make tag VERSION=x.y.z  Bump all version strings, commit, and tag"
 	@echo ""
 	@echo "  Sub-targets (for composition / debugging):"
 	@echo "    install-backend / install-frontend / install-electron / install-hooks"
@@ -165,6 +167,38 @@ release-gpu: export ARTICULATE_VARIANT := gpu
 release-gpu: install-build-gpu frontend bundle-gpu verify-gpu electron-package
 	@echo ""
 	@echo "GPU release artifacts built and verified."
+
+# ── Tagging a release ─────────────────────────────────────────────────────────
+#
+# Usage: make tag VERSION=0.2.0
+#
+# What it does:
+#   1. Validates VERSION is set, working tree is clean, you're on main, and the
+#      tag doesn't already exist.
+#   2. Calls scripts/bump-version.py to update all version strings in the repo
+#      (electron/package.json, pyproject.toml, frontend/package.json,
+#       frontend/package-lock.json, backend/main.py).
+#   3. Commits the version bump and creates the annotated tag.
+#   4. Prints the two push commands — you decide when to run them.
+#
+# To publish after tagging:
+#   git push && git push origin vVERSION
+
+tag:
+	@test -n "$(VERSION)" || (echo "Usage: make tag VERSION=x.y.z" >&2 && exit 1)
+	@test -z "$$(git status --porcelain)" || \
+	    (echo "ERROR: working tree is not clean — commit or stash changes first" >&2 && exit 1)
+	@test "$$(git branch --show-current)" = "main" || \
+	    (echo "ERROR: not on main (currently on $$(git branch --show-current))" >&2 && exit 1)
+	@git rev-parse --verify "refs/tags/v$(VERSION)" > /dev/null 2>&1 && \
+	    (echo "ERROR: tag v$(VERSION) already exists" >&2 && exit 1) || true
+	uv run --no-sync python scripts/bump-version.py $(VERSION)
+	git add electron/package.json pyproject.toml frontend/package.json frontend/package-lock.json backend/main.py
+	git commit -m "chore: bump version to $(VERSION)"
+	git tag "v$(VERSION)"
+	@echo ""
+	@echo "Tagged v$(VERSION). To publish:"
+	@echo "  git push && git push origin v$(VERSION)"
 
 # ── Housekeeping ──────────────────────────────────────────────────────────────
 

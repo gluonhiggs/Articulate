@@ -89,15 +89,35 @@ This mirrors `.github/workflows/ci.yml`. If `make ci` passes locally, branch CI 
 
 ### Before tagging a release
 
-Tagging is the expensive event: `release.yml` runs a 5-leg OS × variant matrix (~20 min) and publishes installers to GitHub Releases on success. Validate locally first:
+Tagging is the expensive event: `release.yml` runs a 5-leg OS × variant matrix (~20 min) and publishes installers to GitHub Releases on success. The full release flow is:
+
+**Step 1 — validate the build locally:**
 
 ```bash
 make release-cpu   # ~10 min: PyInstaller bundle + verify + electron installer (CPU variant)
 ```
 
-The pre-push hook runs `make release-cpu` automatically when you push a tag matching `v*.*.*`. If it fails, the push is aborted and no version number is burned.
+The pre-push hook runs `make release-cpu` automatically when you push a tag matching `v*.*.*`. If it fails, the push is aborted and no version number is burned. `release-gpu` also exists but is optional locally — the CPU path catches the same class of bundle-shape bugs.
 
-`release-gpu` exists for the CUDA variant but is optional locally — the CPU path catches the same class of bundle-shape bugs.
+**Step 2 — bump versions and tag:**
+
+```bash
+make tag VERSION=0.2.0
+```
+
+This single command:
+1. Checks the working tree is clean, you're on `main`, and the tag doesn't already exist.
+2. Updates every version string in the repo (`electron/package.json`, `pyproject.toml`, `frontend/package.json`, `frontend/package-lock.json`, `backend/main.py`) via `scripts/bump-version.py`.
+3. Commits the version bump as `chore: bump version to 0.2.0`.
+4. Creates the git tag `v0.2.0`.
+
+**Step 3 — publish:**
+
+```bash
+git push && git push origin v0.2.0
+```
+
+The first push sends the commit; the second sends the tag that triggers `release.yml`.
 
 ## Target reference
 
@@ -110,6 +130,7 @@ The pre-push hook runs `make release-cpu` automatically when you push a tag matc
 | `ci` | `check` + `test`. Run before every push. |
 | `release-cpu` | Full CPU release artifacts (PyInstaller + electron installer) |
 | `release-gpu` | Full GPU release artifacts (adds CUDA runtime) |
+| `tag VERSION=x.y.z` | Bump all version strings, commit, and tag — see "Before tagging" above |
 | `clean` | Remove `dist/`, `build/`, `frontend/dist/`, `electron/dist*` |
 
 Run `make help` anytime to see the full list including sub-targets.
