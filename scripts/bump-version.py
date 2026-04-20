@@ -11,8 +11,9 @@ Files updated:
 Preconditions checked here:
   - VERSION matches x.y.z
   - VERSION > current version in electron/package.json
-
-Git preconditions (clean tree, on main, tag absent) are checked by `make tag`.
+  - Working tree is clean (no uncommitted changes)
+  - Current branch is main
+  - Tag vVERSION does not already exist
 
 Usage:
   python scripts/bump-version.py 0.2.0
@@ -20,6 +21,7 @@ Usage:
 
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -84,6 +86,26 @@ def bump_backend_main(repo: Path, new_version: str) -> None:
     )
 
 
+def check_git_preconditions(repo: Path, new_version: str) -> None:
+    def run(cmd: list[str]) -> subprocess.CompletedProcess:
+        return subprocess.run(cmd, capture_output=True, text=True, cwd=repo)
+
+    dirty = run(["git", "status", "--porcelain"]).stdout.strip()
+    if dirty:
+        print("ERROR: working tree is not clean -- commit or stash changes first", file=sys.stderr)
+        sys.exit(1)
+
+    branch = run(["git", "branch", "--show-current"]).stdout.strip()
+    if branch != "main":
+        print(f"ERROR: not on main branch (currently on {branch!r})", file=sys.stderr)
+        sys.exit(1)
+
+    tag_exists = run(["git", "rev-parse", "--verify", f"refs/tags/v{new_version}"]).returncode == 0
+    if tag_exists:
+        print(f"ERROR: tag v{new_version} already exists", file=sys.stderr)
+        sys.exit(1)
+
+
 def main() -> None:
     if len(sys.argv) != 2:
         print("Usage: python scripts/bump-version.py <VERSION>", file=sys.stderr)
@@ -112,6 +134,8 @@ def main() -> None:
             file=sys.stderr,
         )
         sys.exit(1)
+
+    check_git_preconditions(repo, new_version)
 
     # Read current frontend/package-lock.json version before updating anything
     lock_path = repo / "frontend" / "package-lock.json"
