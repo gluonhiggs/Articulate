@@ -29,13 +29,24 @@ spacy_datas, spacy_binaries, spacy_hiddenimports = collect_all("spacy")
 en_core_datas, en_core_binaries, en_core_hiddenimports = collect_all("en_core_web_sm")
 misaki_datas, misaki_binaries, misaki_hiddenimports = collect_all("misaki")
 uvicorn_datas, uvicorn_binaries, uvicorn_hiddenimports = collect_all("uvicorn")
-# Kokoro -> misaki -> phonemizer -> segments -> csvw. PyInstaller static
-# analysis catches the top-level imports but misses submodules and data files
-# deeper in the chain (phonemizer backends, segments.tokenizer, csvw metadata
-# profiles). Collect each layer explicitly so the runtime import chain works.
+# Kokoro -> misaki -> phonemizer -> segments -> csvw -> language_tags.
+# PyInstaller static analysis catches the top-level imports but misses
+# submodules and data files deeper in the chain (phonemizer backends,
+# segments.tokenizer, csvw metadata profiles, language_tags/data/json/*.json
+# which csvw reads at module import time). Collect each layer explicitly so
+# the runtime import chain works.
 phonemizer_datas, phonemizer_binaries, phonemizer_hiddenimports = collect_all("phonemizer")
 segments_datas, segments_binaries, segments_hiddenimports = collect_all("segments")
 csvw_datas, csvw_binaries, csvw_hiddenimports = collect_all("csvw")
+language_tags_datas, language_tags_binaries, language_tags_hiddenimports = collect_all(
+    "language_tags"
+)
+# espeakng_loader ships espeak-ng-data/ and espeak-ng.dll; misaki/espeak.py
+# line 10 calls espeakng_loader.get_data_path() at import time and raises
+# RuntimeError("data path not exists") if the dir is missing from the bundle.
+espeakng_loader_datas, espeakng_loader_binaries, espeakng_loader_hiddenimports = collect_all(
+    "espeakng_loader"
+)
 # Local transcription stack — shipped in all three OS installers. macOS gets
 # CPU-only ctranslate2 (no GPU backend exists); Linux/Windows additionally
 # bundle the nvidia-* CUDA runtime so GPU owners work out-of-box.
@@ -62,10 +73,12 @@ datas = [
     *kokoro_datas,
     # Misaki phoneme data (Kokoro dependency)
     *misaki_datas,
-    # phonemizer / segments / csvw — transitive deps through misaki
+    # phonemizer / segments / csvw / language_tags / espeakng_loader — transitive deps through misaki
     *phonemizer_datas,
     *segments_datas,
     *csvw_datas,
+    *language_tags_datas,
+    *espeakng_loader_datas,
     # uvicorn package data
     *uvicorn_datas,
     # faster-whisper + ctranslate2 (Whisper models download lazily to HF cache)
@@ -83,6 +96,8 @@ binaries = [
     *phonemizer_binaries,
     *segments_binaries,
     *csvw_binaries,
+    *language_tags_binaries,
+    *espeakng_loader_binaries,
     *uvicorn_binaries,
     *fw_binaries,
     *ct2_binaries,
@@ -134,6 +149,8 @@ hiddenimports = [
     *phonemizer_hiddenimports,
     *segments_hiddenimports,
     *csvw_hiddenimports,
+    *language_tags_hiddenimports,
+    *espeakng_loader_hiddenimports,
     # Local transcription
     *fw_hiddenimports,
     *ct2_hiddenimports,

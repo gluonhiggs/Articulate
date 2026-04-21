@@ -6,7 +6,9 @@ Checks:
   1. Presence  -- every package the backend imports is in the bundle
   2. Variant   -- CPU: no nvidia-* wheel DLLs; GPU: >=3 CUDA runtime libs
   3. Size      -- bundle is big enough to contain the expected payload
-  4. Smoke     -- backend starts and stays running for 10 s
+  4. Smoke     -- backend completes lifespan startup (TTS, LanguageTool,
+                 Oxford, etc.) within SMOKE_TIMEOUT_S seconds. Pass signal =
+                 "Application startup complete." in the log.
 
 Usage:
   MATRIX_VARIANT=cpu  uv run --no-sync python scripts/verify-bundle.py
@@ -21,6 +23,7 @@ import os
 import platform
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -45,6 +48,16 @@ PACKAGES = [
     "pydantic_core",
     "faster_whisper",
     "ctranslate2",
+    # Transitive chain through kokoro -> misaki. Each layer ships data files
+    # PyInstaller doesn't auto-collect; missing any of them produces a
+    # FileNotFoundError at lifespan startup (observed on Linux CI 2026-04-20
+    # when language_tags/data/json/index.json was missing).
+    "misaki",
+    "phonemizer",
+    "segments",
+    "csvw",
+    "language_tags",
+    "espeakng_loader",
 ]
 for pkg in PACKAGES:
     pkg_dir = BUNDLE / pkg
@@ -129,27 +142,62 @@ except OSError as e:
     fail(str(e))
 
 smoke_log = Path("smoke.log")
+if smoke_log.exists():
+    smoke_log.unlink()  # fresh log per run so readiness poll can't match stale lines
+
+# Hermetic runtime env. Two reasons:
+#   1. A gitignored `./data/mode` on a dev machine (saved from prior runs)
+#      would otherwise override TRANSCRIPTION_MODE back to "local" inside the
+#      backend's lifespan, routing startup into the ~minute-long Whisper load
+#      path and skipping the Kokoro TTS path where bundle bugs usually hide.
+#      CI checkouts don't have that file -- this makes the smoke match CI.
+#   2. Force TRANSCRIPTION_MODE=groq at the env level (not setdefault) so
+#      nothing downstream can re-route into faster-whisper.
+smoke_data_dir = Path(tempfile.mkdtemp(prefix="articulate-smoke-"))
 env = os.environ.copy()
+# pydantic-settings (backend/config.py Settings) has no env_prefix, so the
+# env var it actually reads for `data_dir` is DATA_DIR, not ARTICULATE_DATA_DIR.
+# Set both: DATA_DIR wins at Settings load; ARTICULATE_DATA_DIR is what
+# Electron's spawnBackend sets in production, so we mirror it for parity.
+env["DATA_DIR"] = str(smoke_data_dir)
+env["ARTICULATE_DATA_DIR"] = str(smoke_data_dir)
+env["TRANSCRIPTION_MODE"] = "groq"
 env.setdefault("ARTICULATE_NO_INTERACTIVE", "1")
 env.setdefault("ARTICULATE_PORT", "8765")
-# Pin smoke test to groq so the 10s window doesn't trigger a ~486 MB
-# Whisper model download. CI verifies "bundle starts"; local mode is out of scope.
-env.setdefault("TRANSCRIPTION_MODE", "groq")
 env["ARTICULATE_LOG_PATH"] = str(smoke_log)
 
-proc = subprocess.Popen([str(exe)], env=env)
-time.sleep(10)
+# uvicorn prints "Application startup complete." only after the FastAPI
+# lifespan exits successfully -- i.e. Kokoro TTS loaded, LanguageTool inited,
+# Oxford 5000 loaded, DB ready. This is the real "bundle works" signal.
+# A weaker "still running after N seconds" check would false-green if the
+# backend was blocked mid-startup on e.g. a missing data file.
+READY_MARKER = "Application startup complete."
+SMOKE_TIMEOUT_S = int(os.environ.get("SMOKE_TIMEOUT_S", "60"))
 
-still_running = proc.poll() is None
-if still_running:
+print(f"Launching backend; waiting up to {SMOKE_TIMEOUT_S}s for {READY_MARKER!r}...")
+proc = subprocess.Popen([str(exe)], env=env)
+
+deadline = time.monotonic() + SMOKE_TIMEOUT_S
+ready = False
+exit_code: int | None = None
+while time.monotonic() < deadline:
+    exit_code = proc.poll()
+    if exit_code is not None:
+        break  # backend died before reaching ready marker
+    if smoke_log.exists():
+        log_text = smoke_log.read_text(encoding="utf-8", errors="replace")
+        if READY_MARKER in log_text:
+            ready = True
+            break
+    time.sleep(0.5)
+
+# Stop the backend (whether ready or timed out).
+if proc.poll() is None:
     proc.terminate()
     try:
         proc.wait(timeout=5)
     except subprocess.TimeoutExpired:
         proc.kill()
-    exit_code = 124  # sentinel: still running after 10s = pass
-else:
-    exit_code = proc.returncode
 
 if smoke_log.exists():
     lines = smoke_log.read_text(encoding="utf-8", errors="replace").splitlines()
@@ -159,7 +207,9 @@ if smoke_log.exists():
     print("\n".join(lines[-40:]))
     print("--- end log ---")
 
-if exit_code != 124:
-    fail(f"backend exited with code {exit_code} (expected it to still be running after 10s)")
+if not ready:
+    if exit_code is not None:
+        fail(f"backend exited with code {exit_code} before reaching {READY_MARKER!r}")
+    fail(f"{READY_MARKER!r} not observed within {SMOKE_TIMEOUT_S}s")
 
 print("Smoke test passed")
