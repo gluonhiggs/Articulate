@@ -11,7 +11,11 @@ from fastapi import APIRouter, HTTPException
 
 from backend.config import get_active_model, get_settings, set_runtime_model, write_mode_file
 from backend.schemas import SetModelRequest, SetTranscriptionModeRequest, SystemInfoOut
-from backend.services.transcription import is_faster_whisper_installed
+from backend.services.transcription import (
+    has_nvidia_cuda_wheels,
+    has_nvidia_gpu_driver,
+    is_faster_whisper_installed,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/system", tags=["system"])
@@ -97,28 +101,32 @@ async def update_model(body: SetModelRequest) -> SystemInfoOut:
 # ── Transcription mode switch ─────────────────────────────────────────────────
 
 
-async def _install_faster_whisper() -> None:
-    """Run `uv sync --group local-transcription` in a thread; update op_status."""
+async def _install_local_runtime() -> None:
+    """Install local-transcription (+ GPU wheels when an NVIDIA driver is present).
+
+    The GPU group moved out of local-transcription in commit b685055 (v0.1.5
+    pre-tag cleanup) to keep CPU installers at ~510 MB. This entry point is the
+    sync path the UI toggle uses, so it must pull both groups on GPU hosts or
+    ctranslate2 can't find cublas64_12.dll at model load time.
+    """
     try:
+        use_gpu = has_nvidia_gpu_driver()
         loop = asyncio.get_running_loop()
-        await loop.run_in_executor(None, _run_uv_sync)
-        logger.info("faster-whisper installed successfully.")
+        await loop.run_in_executor(None, _run_uv_sync, use_gpu)
+        logger.info("Local transcription runtime installed (gpu=%s).", use_gpu)
         _set_op_status("")
     except Exception as exc:
-        logger.error("faster-whisper install failed: %s", exc)
+        logger.error("Local transcription install failed: %s", exc)
         _set_op_status("failed")
 
 
-def _run_uv_sync() -> None:
-    import sys
-
+def _run_uv_sync(use_gpu: bool) -> None:
     if getattr(sys, "frozen", False):
         raise RuntimeError("Local transcription install is not available in the desktop app.")
-    result = subprocess.run(
-        ["uv", "sync", "--group", "local-transcription"],
-        capture_output=True,
-        text=True,
-    )
+    cmd = ["uv", "sync", "--group", "local-transcription"]
+    if use_gpu:
+        cmd.extend(["--group", "local-transcription-gpu"])
+    result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
         raise RuntimeError(result.stderr or "uv sync failed")
 
@@ -189,15 +197,21 @@ async def update_transcription_mode(body: SetTranscriptionModeRequest) -> System
         # Already in progress -- return current state, do not double-launch
         return await system_info()
 
-    if not is_faster_whisper_installed():
+    # Install path also catches the "fw installed but CUDA wheels missing" case.
+    # That state happens when a user installed local-transcription before the
+    # GPU group was split out, then gained a GPU-equipped machine. Without this
+    # heal, toggling to local succeeds but transcription silently runs on CPU.
+    needs_install = not is_faster_whisper_installed() or (
+        has_nvidia_gpu_driver() and not has_nvidia_cuda_wheels()
+    )
+
+    if needs_install:
         _set_op_status("installing")
-        _task = asyncio.create_task(_install_faster_whisper())
-        _background_tasks.add(_task)
-        _task.add_done_callback(_background_tasks.discard)
+        _task = asyncio.create_task(_install_local_runtime())
     else:
         _set_op_status("loading")
         _task = asyncio.create_task(_load_model_and_switch())
-        _background_tasks.add(_task)
-        _task.add_done_callback(_background_tasks.discard)
+    _background_tasks.add(_task)
+    _task.add_done_callback(_background_tasks.discard)
 
     return await system_info()

@@ -111,4 +111,8 @@ Write-Host "Starting frontend dev server (port 5173) in new window..." -Foregrou
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$frontendDir'; bun run dev"
 
 Write-Host "Starting Articulate..." -ForegroundColor Green
-uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 1 --reload --reload-include "*.json" --reload-include "*.txt"
+# --reload-dir scopes the watcher to backend/ only. Without it, uvicorn watches
+# CWD, which includes .venv/ — so when the UI mode switcher runs `uv sync` to
+# install faster-whisper, hundreds of site-packages writes trigger a restart
+# loop mid-install.
+uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 1 --reload --reload-dir backend --reload-include "*.json" --reload-include "*.txt"

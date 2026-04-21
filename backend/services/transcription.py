@@ -66,6 +66,34 @@ def detect_gpu() -> bool:
         return False
 
 
+def has_nvidia_gpu_driver() -> bool:
+    """Install-time probe: does an NVIDIA driver exist on this machine?
+
+    Used before `uv sync` to decide whether to pull the local-transcription-gpu
+    group. Can't use detect_gpu() here because that needs ctranslate2, which is
+    what the sync is about to install (chicken-and-egg).
+    """
+    import shutil
+
+    return shutil.which("nvidia-smi") is not None
+
+
+def has_nvidia_cuda_wheels() -> bool:
+    """Are the CUDA runtime wheels (nvidia-cublas, nvidia-cudnn, …) installed?
+
+    Paired with has_nvidia_gpu_driver() to detect the "driver present, wheels
+    missing" case — a venv that installed only the CPU half of local-transcription
+    before the groups were split.
+    """
+    import site
+
+    for site_dir in site.getsitepackages():
+        nvidia_dir = os.path.join(site_dir, "nvidia")
+        if os.path.isdir(nvidia_dir) and os.listdir(nvidia_dir):
+            return True
+    return False
+
+
 def _resolve_device_and_model() -> Tuple[str, str, str]:
     """Return (device, compute_type, model_size) for local mode.
 

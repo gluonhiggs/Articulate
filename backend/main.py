@@ -174,17 +174,22 @@ async def lifespan(app: FastAPI):
     _prompt_mode_selection()
     settings = get_settings()  # re-read after potential mode change
 
-    # Capability gate: the shipped desktop bundle excludes faster-whisper (~3 GB
-    # of CUDA weights). If the user's saved preference is "local" but the
-    # runtime lacks faster-whisper, fall back to groq *in-memory only*. We do
-    # not overwrite data/mode — the preference survives for environments where
-    # local is supported (e.g. a source install with `uv sync --group local-transcription`).
+    # Capability gate: saved mode=local but faster-whisper isn't importable.
+    # Fall back to groq *in-memory only* — never overwrite data/mode, so the
+    # preference survives into environments where local is supported.
     if _should_downgrade_to_groq(settings.transcription_mode, is_faster_whisper_installed()):
-        logger.warning(
-            "TRANSCRIPTION_MODE=local requested but faster-whisper is not available "
-            "in this runtime (likely a packaged desktop build). Falling back to groq "
-            "for this session. Saved preference is preserved."
-        )
+        if getattr(sys, "frozen", False):
+            logger.warning(
+                "Local transcription not available in this desktop build. "
+                "Running as groq for this session; saved preference is preserved."
+            )
+        else:
+            logger.warning(
+                "Local transcription not installed for this source checkout. "
+                "Switch modes in the UI to auto-install, or run "
+                "`uv sync --group local-transcription` (add `--group local-transcription-gpu` "
+                "on NVIDIA hosts). Running as groq for this session; saved preference is preserved."
+            )
         os.environ["TRANSCRIPTION_MODE"] = "groq"
         get_settings.cache_clear()
         settings = get_settings()
