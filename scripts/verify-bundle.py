@@ -27,6 +27,17 @@ import tempfile
 import time
 from pathlib import Path
 
+# Windows GitHub Actions runners default stdout/stderr to cp1252. When we echo
+# smoke.log contents back (which can contain tqdm progress-bar characters like
+# U+258F from huggingface_hub model downloads on a fresh runner with no cache),
+# `print()` crashes with UnicodeEncodeError before we ever reach the ready/fail
+# check. Force UTF-8 with errors="replace" so diagnostic echo is bulletproof.
+# Local Windows runs don't hit this because the user's HuggingFace cache
+# already has the weights — no download, no progress bar in the log.
+for _stream in (sys.stdout, sys.stderr):
+    if getattr(_stream, "reconfigure", None):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+
 BUNDLE = Path(os.environ.get("BUNDLE", "dist/articulate_backend/_internal"))
 VARIANT = os.environ.get("MATRIX_VARIANT", "cpu")
 RUNNER_OS_VAL = os.environ.get("RUNNER_OS", platform.system())
