@@ -77,6 +77,13 @@ install: install-backend install-frontend install-electron install-hooks
 	@echo "Dev env ready. Try 'make ci' to verify."
 
 # Heavier install profiles used by release-cpu / release-gpu.
+#
+# `--no-group dev` matches the CI release workflow (.github/workflows/release.yml)
+# byte-for-byte. Do NOT remove it — the local bundle must be built from the same
+# venv shape CI ships, so a dev-dep accidentally leaking into the bundle fails
+# locally the same way it would on CI. The release-cpu / release-gpu targets
+# re-run `install-backend` as their last step so the contributor is left in the
+# dev env shape after a release build, not the stripped release shape.
 install-build:
 	uv sync --group build --group local-transcription --no-group dev
 
@@ -160,13 +167,15 @@ electron-package:
 
 release-cpu: export ARTICULATE_VARIANT := cpu
 release-cpu: install-build frontend bundle-cpu verify-cpu electron-package
+	$(MAKE) install-backend
 	@echo ""
-	@echo "CPU release artifacts built and verified."
+	@echo "CPU release artifacts built and verified. Dev env restored."
 
 release-gpu: export ARTICULATE_VARIANT := gpu
 release-gpu: install-build-gpu frontend bundle-gpu verify-gpu electron-package
+	$(MAKE) install-backend
 	@echo ""
-	@echo "GPU release artifacts built and verified."
+	@echo "GPU release artifacts built and verified. Dev env restored."
 
 # ── Tagging a release ─────────────────────────────────────────────────────────
 #
