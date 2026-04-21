@@ -21,6 +21,7 @@ by .github/workflows/release.yml (which can also keep calling the .sh there).
 import fnmatch
 import os
 import platform
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -156,7 +157,7 @@ smoke_log = Path("smoke.log")
 if smoke_log.exists():
     smoke_log.unlink()  # fresh log per run so readiness poll can't match stale lines
 
-# Hermetic runtime env. Two reasons:
+# Hermetic runtime env. Four reasons:
 #   1. A gitignored `./data/mode` on a dev machine (saved from prior runs)
 #      would otherwise override TRANSCRIPTION_MODE back to "local" inside the
 #      backend's lifespan, routing startup into the ~minute-long Whisper load
@@ -164,7 +165,23 @@ if smoke_log.exists():
 #      CI checkouts don't have that file -- this makes the smoke match CI.
 #   2. Force TRANSCRIPTION_MODE=groq at the env level (not setdefault) so
 #      nothing downstream can re-route into faster-whisper.
-smoke_data_dir = Path(tempfile.mkdtemp(prefix="articulate-smoke-"))
+#   3. Isolate every external model/jar cache under a fresh tmpdir. A dev box
+#      has ~/.cache/huggingface/ (Kokoro weights, ~330MB) and
+#      ~/.cache/language_tool_python/ (LT JAR, ~250MB) populated from prior
+#      runs, so network-gated first-init code paths (tqdm progress bars,
+#      download retry logic, URL changes) never execute. A fresh CI runner
+#      has empty caches and does run them -- that's how v0.1.7 Windows hit
+#      the U+258F tqdm character in smoke.log while local was green. Point
+#      each cache at the tmpdir and every release-cpu run exercises the
+#      cold-cache paths CI sees. Cost: ~60-90s per run for the downloads.
+#   4. Force PYTHONUTF8=1 so the backend subprocess emits UTF-8 to stdout/
+#      stderr regardless of the host's code page. backend_launcher.py already
+#      reassigns sys.stdout/stderr to an utf-8 file, but native C stderr paths
+#      that slip past that reassignment still land as UTF-8 with this flag.
+#      Defense-in-depth on the encoding side of the `feedback_windows_console_
+#      encoding.md` class of bug.
+smoke_data_dir = Path(tempfile.mkdtemp(prefix="articulate-smoke-data-"))
+smoke_cache_dir = Path(tempfile.mkdtemp(prefix="articulate-smoke-cache-"))
 env = os.environ.copy()
 # pydantic-settings (backend/config.py Settings) has no env_prefix, so the
 # env var it actually reads for `data_dir` is DATA_DIR, not ARTICULATE_DATA_DIR.
@@ -176,6 +193,15 @@ env["TRANSCRIPTION_MODE"] = "groq"
 env.setdefault("ARTICULATE_NO_INTERACTIVE", "1")
 env.setdefault("ARTICULATE_PORT", "8765")
 env["ARTICULATE_LOG_PATH"] = str(smoke_log)
+# Cache isolation (see reason 3 above). XDG_CACHE_HOME catches LanguageTool's
+# JAR cache and anything else that follows the XDG Base Directory spec.
+env["HF_HOME"] = str(smoke_cache_dir / "hf")
+env["HUGGINGFACE_HUB_CACHE"] = str(smoke_cache_dir / "hf" / "hub")
+env["TRANSFORMERS_CACHE"] = str(smoke_cache_dir / "hf" / "transformers")
+env["TORCH_HOME"] = str(smoke_cache_dir / "torch")
+env["XDG_CACHE_HOME"] = str(smoke_cache_dir / "xdg")
+# Force UTF-8 stdio in the backend subprocess (see reason 4 above).
+env["PYTHONUTF8"] = "1"
 
 # uvicorn prints "Application startup complete." only after the FastAPI
 # lifespan exits successfully -- i.e. Kokoro TTS loaded, LanguageTool inited,
@@ -183,44 +209,59 @@ env["ARTICULATE_LOG_PATH"] = str(smoke_log)
 # A weaker "still running after N seconds" check would false-green if the
 # backend was blocked mid-startup on e.g. a missing data file.
 READY_MARKER = "Application startup complete."
-SMOKE_TIMEOUT_S = int(os.environ.get("SMOKE_TIMEOUT_S", "60"))
+# Cold first-run budget: Kokoro weights (~330MB, ~30-60s on fast link) +
+# LanguageTool JAR (~250MB, ~20-40s) + backend init. 60s was fine when the
+# HF cache was warm but fails on a fresh CI runner; 180s has slack for
+# slow-network matrix legs while still failing fast on real hangs.
+SMOKE_TIMEOUT_S = int(os.environ.get("SMOKE_TIMEOUT_S", "180"))
 
 print(f"Launching backend; waiting up to {SMOKE_TIMEOUT_S}s for {READY_MARKER!r}...")
-proc = subprocess.Popen([str(exe)], env=env)
+print(f"Data dir:  {smoke_data_dir}")
+print(f"Cache dir: {smoke_cache_dir}")
 
-deadline = time.monotonic() + SMOKE_TIMEOUT_S
-ready = False
-exit_code: int | None = None
-while time.monotonic() < deadline:
-    exit_code = proc.poll()
-    if exit_code is not None:
-        break  # backend died before reaching ready marker
+try:
+    proc = subprocess.Popen([str(exe)], env=env)
+
+    deadline = time.monotonic() + SMOKE_TIMEOUT_S
+    ready = False
+    exit_code: int | None = None
+    while time.monotonic() < deadline:
+        exit_code = proc.poll()
+        if exit_code is not None:
+            break  # backend died before reaching ready marker
+        if smoke_log.exists():
+            log_text = smoke_log.read_text(encoding="utf-8", errors="replace")
+            if READY_MARKER in log_text:
+                ready = True
+                break
+        time.sleep(0.5)
+
+    # Stop the backend (whether ready or timed out).
+    if proc.poll() is None:
+        proc.terminate()
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+
     if smoke_log.exists():
-        log_text = smoke_log.read_text(encoding="utf-8", errors="replace")
-        if READY_MARKER in log_text:
-            ready = True
-            break
-    time.sleep(0.5)
+        lines = smoke_log.read_text(encoding="utf-8", errors="replace").splitlines()
+        print("--- smoke.log head (60 lines) ---")
+        print("\n".join(lines[:60]))
+        print("--- smoke.log tail (40 lines) ---")
+        print("\n".join(lines[-40:]))
+        print("--- end log ---")
 
-# Stop the backend (whether ready or timed out).
-if proc.poll() is None:
-    proc.terminate()
-    try:
-        proc.wait(timeout=5)
-    except subprocess.TimeoutExpired:
-        proc.kill()
+    if not ready:
+        if exit_code is not None:
+            fail(f"backend exited with code {exit_code} before reaching {READY_MARKER!r}")
+        fail(f"{READY_MARKER!r} not observed within {SMOKE_TIMEOUT_S}s")
 
-if smoke_log.exists():
-    lines = smoke_log.read_text(encoding="utf-8", errors="replace").splitlines()
-    print("--- smoke.log head (60 lines) ---")
-    print("\n".join(lines[:60]))
-    print("--- smoke.log tail (40 lines) ---")
-    print("\n".join(lines[-40:]))
-    print("--- end log ---")
-
-if not ready:
-    if exit_code is not None:
-        fail(f"backend exited with code {exit_code} before reaching {READY_MARKER!r}")
-    fail(f"{READY_MARKER!r} not observed within {SMOKE_TIMEOUT_S}s")
-
-print("Smoke test passed")
+    print("Smoke test passed")
+finally:
+    # Clean up ~400MB of downloaded models + the data sqlite. ignore_errors
+    # because on Windows a stuck-terminated backend subprocess may still hold
+    # file handles inside the cache dir for a moment; a leaked tmpdir is a
+    # smaller problem than a failed smoke test.
+    for _dir in (smoke_data_dir, smoke_cache_dir):
+        shutil.rmtree(_dir, ignore_errors=True)
