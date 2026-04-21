@@ -1,6 +1,6 @@
 [project]
 name = "articulate"
-version = "0.1.7"
+version = "0.1.8"
 description = "IELTS speaking practice app backend"
 requires-python = ">=3.11"
 dependencies = [

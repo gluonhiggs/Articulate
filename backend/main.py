@@ -265,7 +265,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Articulate - IELTS Speaking Practice",
-    version="0.1.7",
+    version="0.1.8",
     lifespan=lifespan,
 )
 
