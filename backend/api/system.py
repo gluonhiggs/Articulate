@@ -102,22 +102,28 @@ async def update_model(body: SetModelRequest) -> SystemInfoOut:
 
 
 async def _install_local_runtime() -> None:
-    """Install local-transcription (+ GPU wheels when an NVIDIA driver is present).
+    """Install local-transcription (+ GPU wheels when NVIDIA driver present), then load.
 
     The GPU group moved out of local-transcription in commit b685055 (v0.1.5
     pre-tag cleanup) to keep CPU installers at ~510 MB. This entry point is the
     sync path the UI toggle uses, so it must pull both groups on GPU hosts or
     ctranslate2 can't find cublas64_12.dll at model load time.
+
+    Chains into _load_model_and_switch on success so a single UI click takes the
+    user from cold to mode=local. Previously the install finished and cleared
+    op_status but never loaded the model — requiring a second click.
     """
     try:
         use_gpu = has_nvidia_gpu_driver()
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(None, _run_uv_sync, use_gpu)
         logger.info("Local transcription runtime installed (gpu=%s).", use_gpu)
-        _set_op_status("")
     except Exception as exc:
         logger.error("Local transcription install failed: %s", exc)
         _set_op_status("failed")
+        return
+    _set_op_status("loading")
+    await _load_model_and_switch()
 
 
 def _run_uv_sync(use_gpu: bool) -> None:

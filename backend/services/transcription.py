@@ -17,7 +17,14 @@ logger = logging.getLogger(__name__)
 # ctranslate2 on Windows loads cublas64_12.dll / cudart64_12.dll via the OS
 # DLL search path (PATH), not via Python's import machinery.  The nvidia-*
 # packages install those DLLs into site-packages/nvidia/*/bin/ which is NOT
-# on PATH by default.  Prepend those dirs here, before ctranslate2 is loaded.
+# on PATH by default.
+#
+# Called from _get_model() just before the WhisperModel import — not at module
+# top. Source installs run the nvidia-* uv sync after this module is already
+# imported (UI toggle path); a module-top call would see an empty nvidia dir
+# and leave PATH untouched, then the later model load fails even though the
+# wheels are on disk. Lazy call reads current venv state every time.
+# Idempotent: the `bin_dir not in PATH` guard makes repeated calls a no-op.
 
 
 def _patch_cuda_dll_path() -> None:
@@ -35,9 +42,6 @@ def _patch_cuda_dll_path() -> None:
             bin_dir = os.path.join(nvidia_dir, pkg, "bin")
             if os.path.isdir(bin_dir) and bin_dir not in os.environ.get("PATH", ""):
                 os.environ["PATH"] = bin_dir + os.pathsep + os.environ["PATH"]
-
-
-_patch_cuda_dll_path()
 
 # ── Thread pools ─────────────────────────────────────────────────────────────
 # Local whisper is CPU-bound -> single thread to avoid contention.
@@ -136,6 +140,7 @@ def _get_model():
         if _whisper_model is not None:
             return _whisper_model
 
+        _patch_cuda_dll_path()
         from faster_whisper import WhisperModel  # type: ignore[import]
 
         device, compute_type, model_size = _resolve_device_and_model()
@@ -348,6 +353,12 @@ def _warmup_probe() -> None:
         return
 
     model = _get_model()
+    # _get_model may have hit a CUDA load error and silently fallen back to CPU
+    # (see the except clause inside _get_model). Don't log "CUDA OK" against a
+    # model that's actually on CPU — the user reads that as GPU success.
+    if _force_cpu_fallback:
+        logger.info("Whisper warmup probe: load fell back to CPU, skipping CUDA check.")
+        return
 
     n_samples = 8_000  # 0.5s @ 16kHz
     buf = io.BytesIO()
