@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Articulate — Starting…</title>
+  <title>Articulate - Starting...</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -40,7 +40,7 @@
 <body>
   <div class="spinner"></div>
   <h1>Articulate</h1>
-  <p id="status-msg">Starting backend…</p>
+  <p id="status-msg">Starting backend...</p>
   <p class="note" id="slow-note">
     First launch may take a few minutes while the AI voice model downloads (~330 MB).
     Subsequent launches will be much faster.
@@ -49,7 +49,7 @@
     // Show the slow-note after 10 seconds (first-run Kokoro download).
     setTimeout(() => {
       document.getElementById('slow-note').style.display = 'block';
-      document.getElementById('status-msg').textContent = 'Downloading AI models (first launch only)…';
+      document.getElementById('status-msg').textContent = 'Downloading AI models (first launch only)...';
     }, 10000);
   </script>
 </body>

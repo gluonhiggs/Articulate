@@ -33,7 +33,7 @@ def _load_prompt(name: str) -> str:
 
 
 def _parse_json_response(raw: str, required_field: str) -> Dict[str, Any]:
-    """Extract JSON from LLM response, raising on failure."""
+    """Extract JSON from LLM response; raises ValueError if empty, invalid, or missing required_field."""
     if not raw or not raw.strip():
         raise ValueError("LLM returned empty response")
 
@@ -104,7 +104,6 @@ async def generate_sample_answer(
     try:
         data = _parse_json_response(raw, "sample_answer")
     except ValueError:
-        # Fallback: use raw text as the answer
         logger.warning("Sample answer JSON parse failed, using raw text")
         data = {"sample_answer": raw.strip(), "key_phrases": []}
     return data
@@ -138,7 +137,6 @@ async def generate_topic_vocab(
         timeout=120.0,
     )
 
-    # Try standard parse first
     start = raw.find('{"vocabulary"')
     if start == -1:
         start = raw.find("{")
@@ -150,7 +148,6 @@ async def generate_topic_vocab(
         except json.JSONDecodeError:
             pass  # Fall through to repair
 
-    # Repair truncated JSON
     try:
         repaired = _repair_vocab_json(raw)
         data = json.loads(repaired)

@@ -1,7 +1,7 @@
 {
   "name": "articulate",
   "version": "0.1.8",
-  "description": "IELTS Speaking Practice — desktop app",
+  "description": "IELTS Speaking Practice - desktop app",
   "main": "dist/main.js",
   "private": true,
   "scripts": {
@@ -22,7 +22,7 @@
   "build": {
     "appId": "com.articulate.app",
     "productName": "Articulate",
-    "copyright": "Copyright © 2025",
+    "copyright": "Copyright (c) 2025",
     "directories": {
       "output": "dist-installer",
       "buildResources": "../build-resources"

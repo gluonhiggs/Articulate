@@ -28,7 +28,6 @@ export function useRecorder(maxSeconds: number): UseRecorderReturn {
   }, [])
 
   const startRecording = useCallback(async () => {
-    // Reset previous state
     chunksRef.current = []
     setAudioBlob(null)
 
@@ -77,7 +76,6 @@ export function useRecorder(maxSeconds: number): UseRecorderReturn {
     recorder.start(100) // collect data every 100ms
     setIsRecording(true)
 
-    // Auto-stop after maxSeconds
     autoStopTimerRef.current = setTimeout(() => {
       if (recorder.state !== 'inactive') {
         recorder.stop()

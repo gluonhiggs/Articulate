@@ -72,7 +72,6 @@ export function PronunciationRightPanel({
       .finally(() => setLoading(false))
   }, [attempt.id])
 
-  // Cleanup audio on unmount
   useEffect(() => {
     return () => {
       if (audioRef.current) {
@@ -113,21 +112,17 @@ export function PronunciationRightPanel({
     setSelectedWord(word === selectedWord ? null : word)
   }
 
-  // Build pronunciation tier map
   const tierMap = new Map(
     words?.filter((w) => w.tier !== 'clear').map((w) => [w.word.toLowerCase(), w.tier as Tier]) ?? []
   )
 
-  // Get the tier of the currently selected word
   const selectedTier = selectedWord ? tierMap.get(selectedWord) : undefined
   const selectedTierConfig = selectedTier ? TIER_CONFIG[selectedTier] : undefined
 
-  // Split the transcript to render with pronunciation highlights
   const transcriptWords = attempt.transcript?.split(/(\s+)/) ?? []
 
   return (
     <div className="flex flex-col h-full">
-      {/* Panel header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 shrink-0">
         <span className="text-sm font-medium text-teal-400">Pronunciation</span>
         <button
@@ -141,7 +136,6 @@ export function PronunciationRightPanel({
         </button>
       </div>
 
-      {/* Transcript with pronunciation highlights */}
       <div className="flex-1 overflow-y-auto p-4">
         {loading ? (
           <div className="flex items-center gap-2">
@@ -226,9 +220,9 @@ export function PronunciationRightPanel({
       {/* Bottom: legend + score */}
       <div className="p-4 border-t border-white/5 shrink-0 space-y-2">
         <div className="flex items-center justify-center gap-4 text-xs">
-          <span className="text-yellow-400">● Imprecise</span>
-          <span className="text-orange-400">● Unclear</span>
-          <span className="text-red-400">● Poor</span>
+          <span className="text-yellow-400">{'\u25CF'} Imprecise</span>
+          <span className="text-orange-400">{'\u25CF'} Unclear</span>
+          <span className="text-red-400">{'\u25CF'} Poor</span>
         </div>
         <p className="text-center text-sm text-gray-400 line-clamp-1">
           Pronunciation score: {attempt.pronunciation?.toFixed(1) ?? '-'}

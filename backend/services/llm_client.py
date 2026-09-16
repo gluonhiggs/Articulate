@@ -1,32 +1,8 @@
 """
 LLM HTTP client - any OpenAI-compatible cloud API (Gemini, Groq, OpenAI, etc.).
 
-  ┌─────────────────────────────────────────────────────────────┐
-  │  LLM client (module-level singleton)                        │
-  │  ──────────────────────────────────────────────────────     │
-  │  Unified interface: POST /v1/chat/completions               │
-  │  Works with:                                                │
-  │    • Gemini   -> base_url=https://generativelanguage...      │
-  │    • Groq     -> base_url=https://api.groq.com/openai/v1    │
-  │    • OpenAI   -> base_url=https://api.openai.com/v1         │
-  │                                                             │
-  │  generate(base_url, model, prompt, *, api_key, ...)-> str   │
-  │    ├─ POST {base_url}/chat/completions     (versioned base) │
-  │    ├─ POST {base_url}/v1/chat/completions  (bare base)      │
-  │    ├─ on ConnectError -> retry once                         │
-  │    └─ logs model, prompt_len, resp_len, latency_ms         │
-  │                                                             │
-  │  close_if_initialized()  ← lifespan shutdown               │
-  └─────────────────────────────────────────────────────────────┘
-
-URL construction rules
-─────────────────────
-Cloud APIs expose a base that already includes a version segment, e.g.
-.../v1beta/openai or .../openai/v1. Appending another /v1 would break
-the path. Bare base URLs get /v1/chat/completions appended.
-
-Rule: if base_url already ends with /v1, /openai, or a similar versioned
-segment, append only /chat/completions. Otherwise append /v1/chat/completions.
+Uses one lazily created module-level httpx.AsyncClient; close_if_initialized()
+closes it at lifespan shutdown.
 """
 
 from __future__ import annotations
@@ -51,11 +27,14 @@ def _get_client() -> httpx.AsyncClient:
 
 def _chat_completions_url(base_url: str) -> str:
     """
-    Build the correct chat completions endpoint from a base URL.
+    Build the chat completions endpoint from a base URL.
 
-    - OpenAI   https://api.openai.com/v1       -> .../chat/completions
-    - Groq     https://api.groq.com/openai/v1  -> .../chat/completions
-    - Gemini   https://.../v1beta/openai        -> .../chat/completions
+    Cloud APIs expose a base that already includes a version segment, so
+    appending another /v1 would break the path:
+    - OpenAI   https://api.openai.com/v1                   -> .../chat/completions
+    - Groq     https://api.groq.com/openai/v1              -> .../chat/completions
+    - Gemini   https://generativelanguage.../v1beta/openai -> .../chat/completions
+    Bare base URLs get /v1/chat/completions appended.
     """
     base = base_url.rstrip("/")
     versioned_suffixes = ("/v1", "/openai", "/v1beta/openai")
@@ -80,9 +59,8 @@ async def generate(
     Call an OpenAI-compatible /chat/completions endpoint and return the
     assistant response text.
 
-    Calls any OpenAI-compatible /chat/completions endpoint.
-    Retries once on ConnectError.
-    Raises RuntimeError on persistent failure.
+    Retries once on ConnectError. Raises RuntimeError if the endpoint stays
+    unreachable, returns an HTTP error, or the response has no content.
     """
     client = _get_client()
     url = _chat_completions_url(base_url)

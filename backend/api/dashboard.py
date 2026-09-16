@@ -18,7 +18,6 @@ HEATMAP_DAYS = 180
 
 @router.get("", response_model=DashboardOut)
 async def get_dashboard(db: AsyncSession = Depends(get_db)) -> DashboardOut:
-    # Fetch UserStats
     stats_result = await db.execute(select(UserStats).where(UserStats.id == 1))
     stats = stats_result.scalar_one_or_none()
 
@@ -33,11 +32,10 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)) -> DashboardOut:
         total_attempts = stats.total_attempts
         estimated_band = stats.estimated_band
 
-    # Build heatmap for the last HEATMAP_DAYS days
+    # One entry per day for the last HEATMAP_DAYS days (today included); days without activity are zero-filled.
     today = date.today()
     start_date = today - timedelta(days=HEATMAP_DAYS - 1)
 
-    # Fetch all DailyActivity entries in the date range
     activity_result = await db.execute(
         select(DailyActivity).where(
             DailyActivity.date >= start_date,

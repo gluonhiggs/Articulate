@@ -33,14 +33,17 @@ def _build_prompt(
 
 
 def _parse_response(raw: str) -> Dict[str, Any]:
-    """Extract improved_text and explanation from LLM JSON response."""
+    """Extract improved_text and explanation from LLM JSON response.
+
+    Missing or invalid JSON falls back to the raw text as improved_text; raises
+    ValueError on an empty response or JSON without improved_text.
+    """
     if not raw or not raw.strip():
         raise ValueError("LLM returned empty response for improve request")
 
     start = raw.find("{")
     end = raw.rfind("}") + 1
     if start == -1 or end <= start:
-        # No JSON found - treat the whole text as the improved version
         logger.warning("LLM response contained no JSON, using raw text as improved_text.")
         return {"improved_text": raw.strip(), "explanation": ""}
 
@@ -48,7 +51,6 @@ def _parse_response(raw: str) -> Dict[str, Any]:
     try:
         data = json.loads(json_str)
     except json.JSONDecodeError:
-        # JSON parse failed - treat as raw text
         logger.warning("LLM returned invalid JSON for improve, using raw text.")
         return {"improved_text": raw.strip(), "explanation": ""}
 

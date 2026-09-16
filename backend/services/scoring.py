@@ -11,14 +11,13 @@ from backend.services import llm_client
 # Load at module level so a missing file raises FileNotFoundError at startup, not per-request
 _BAND_DESCRIPTORS = (PROJECT_ROOT / "BAND-SCORES.md").read_text(encoding="utf-8")
 
-# Cache prompt templates so disk reads don't happen on every request
 _prompt_cache: dict[str, str] = {}
 
 logger = logging.getLogger(__name__)
 
 
 def _load_prompt(part: str) -> str:
-    """Load the appropriate prompt template based on IELTS part (cached after first read)."""
+    """Load the scoring prompt template for an IELTS part (cached so disk isn't read per request)."""
     if part in _prompt_cache:
         return _prompt_cache[part]
 
@@ -48,7 +47,7 @@ def _build_prompt(
     vocab_signal: str = "",
     grammar_context: str = "",
 ) -> str:
-    """Render the prompt template with actual values."""
+    """Fill the part's prompt template; empty signals render as "not available"."""
     template = _load_prompt(part)
     return (
         template.replace("{band_descriptors}", _BAND_DESCRIPTORS)
@@ -62,7 +61,7 @@ def _build_prompt(
 
 
 def _clamp_band(value: Any) -> Optional[float]:
-    """Clamp a band score to the valid 0-9 range in 0.5 steps."""
+    """Clamp a band score to the valid 0-9 range in 0.5 steps; None if not numeric."""
     try:
         v = float(value)
         v = max(0.0, min(9.0, v))
@@ -74,9 +73,10 @@ def _clamp_band(value: Any) -> Optional[float]:
 def _parse_llm_response(raw: str) -> Dict[str, Any]:
     """
     Parse the LLM's raw text response into a structured scoring dict.
-    Falls back gracefully if JSON is malformed.
+
+    Attempts to repair truncated JSON; if nothing parses, all scores are None and
+    feedback_text/usage_errors are empty.
     """
-    # Try to extract a JSON object from the response
     start = raw.find("{")
     end = raw.rfind("}") + 1
     data = {}
@@ -115,7 +115,6 @@ def _parse_llm_response(raw: str) -> Dict[str, Any]:
     if not isinstance(usage_errors, list):
         usage_errors = []
 
-    # Validate each error highlight has required fields
     cleaned_highlights = []
     for highlight in usage_errors:
         if isinstance(highlight, dict) and "word" in highlight:
@@ -136,7 +135,7 @@ def _parse_llm_response(raw: str) -> Dict[str, Any]:
                 }
             )
 
-    # Compute overall band score as mean of four criteria
+    # Overall band: mean of the criteria that parsed, rounded to the nearest 0.5
     scores = [s for s in [fluency, vocabulary, grammar, pronunciation] if s is not None]
     if scores:
         mean_score = sum(scores) / len(scores)

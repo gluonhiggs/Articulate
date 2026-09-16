@@ -25,9 +25,8 @@ export function ActiveAttemptCard({
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const objectUrlRef = useRef<string | null>(null)
 
-  // Check audio availability and stop on unmount
   useEffect(() => {
-    // Show button if audio_path is set; hide on play error (handled in handlePlayPause)
+    // Optimistically show the play button; handlePlayPause hides it if the audio request is not OK.
     setAudioAvailable(!!attempt.audio_path)
 
     return () => {
@@ -45,7 +44,6 @@ export function ActiveAttemptCard({
 
   function handlePlayPause() {
     if (playing) {
-      // Pause
       if (audioRef.current) {
         audioRef.current.pause()
       }
@@ -53,7 +51,6 @@ export function ActiveAttemptCard({
       return
     }
 
-    // Play
     if (audioRef.current) {
       audioRef.current.pause()
       audioRef.current = null
@@ -114,7 +111,6 @@ export function ActiveAttemptCard({
   return (
     <div className={`rounded-xl p-5 glow-border-active bg-card relative ${isNew ? 'slide-in-top' : ''}`}>
       <div className="flex gap-4">
-        {/* Play button - only shown when audio is available */}
         {attempt.audio_path && audioAvailable !== false && (
           <button
             onClick={handlePlayPause}
@@ -135,7 +131,6 @@ export function ActiveAttemptCard({
           </button>
         )}
 
-        {/* Transcript with inline corrections */}
         <div className="flex-1 text-[15px] leading-relaxed text-gray-200">
           {attempt.transcript ? (
             <InlineCorrectedText
@@ -147,13 +142,11 @@ export function ActiveAttemptCard({
           )}
         </div>
 
-        {/* Score circle */}
         <div className="shrink-0 flex flex-col items-center gap-1">
           <ScoreCircle score={attempt.score} size="lg" />
         </div>
       </div>
 
-      {/* Score tags */}
       <div className="mt-4 ml-12">
         <ScoreTags
           attempt={attempt}
@@ -164,21 +157,18 @@ export function ActiveAttemptCard({
 
       {expanded && (
         <>
-          {/* Feedback */}
           {attempt.feedback_text && (
             <div className="mt-4 ml-12 bg-background/50 rounded-lg p-3">
               <p className="text-gray-400 text-sm leading-relaxed">{attempt.feedback_text}</p>
             </div>
           )}
 
-          {/* Improve section */}
           <div className="ml-12">
             <ImproveSection attemptId={attempt.id} />
           </div>
         </>
       )}
 
-      {/* Collapse toggle */}
       <button
         onClick={() => setExpanded((v) => !v)}
         className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-card border border-cardBorder flex items-center justify-center cursor-pointer hover:bg-white/5 z-10"

@@ -26,8 +26,8 @@ async def pronounce_word(
 
     settings = get_settings()
     text_hash = hashlib.sha256(text.lower().encode("utf-8")).hexdigest()[:16]
-    # Use a stable fake question_id derived from text hash to reuse the TTS cache logic
-    # We prefix with "pronounce_" to avoid collisions with real question IDs
+    # Reuse the per-question TTS cache with a fake question_id; the "pronounce_" prefix
+    # keeps these files from colliding with real question IDs.
     cache_key = f"pronounce_{text_hash}"
 
     wav_path = await get_or_generate_tts(

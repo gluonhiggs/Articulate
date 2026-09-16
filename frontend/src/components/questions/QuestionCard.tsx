@@ -42,7 +42,7 @@ export function QuestionCard({ question, onClick }: QuestionCardProps) {
         <ul className="mt-3 space-y-1">
           {question.bullet_points.slice(0, 3).map((bp, i) => (
             <li key={i} className="text-xs text-textSecondary flex items-start gap-1.5">
-              <span className="text-accent mt-0.5">•</span>
+              <span className="text-accent mt-0.5">{'\u2022'}</span>
               <span className="line-clamp-1">{bp}</span>
             </li>
           ))}

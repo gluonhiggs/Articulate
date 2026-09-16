@@ -5,7 +5,7 @@ PyInstaller spec for the Articulate backend.
 Build command (run from project root):
     pyinstaller backend.spec --noconfirm --clean
 
-Output: dist/articulate_backend/   (one-dir mode — faster startup than onefile)
+Output: dist/articulate_backend/   (one-dir mode: faster startup than onefile)
 
 Electron-builder bundles this directory into the installer via extraResources.
 """
@@ -22,7 +22,7 @@ from PyInstaller.utils.hooks import (
 
 ROOT = Path(SPECPATH)
 
-# ── Collect packages with complex dynamic imports ────────────────────────────
+# --- Collect packages with complex dynamic imports ---
 
 kokoro_datas, kokoro_binaries, kokoro_hiddenimports = collect_all("kokoro")
 spacy_datas, spacy_binaries, spacy_hiddenimports = collect_all("spacy")
@@ -47,13 +47,11 @@ language_tags_datas, language_tags_binaries, language_tags_hiddenimports = colle
 espeakng_loader_datas, espeakng_loader_binaries, espeakng_loader_hiddenimports = collect_all(
     "espeakng_loader"
 )
-# Local transcription stack — shipped in all three OS installers. macOS gets
+# Local transcription stack: shipped in all three OS installers. macOS gets
 # CPU-only ctranslate2 (no GPU backend exists); Linux/Windows additionally
 # bundle the nvidia-* CUDA runtime so GPU owners work out-of-box.
 fw_datas, fw_binaries, fw_hiddenimports = collect_all("faster_whisper")
 ct2_datas, ct2_binaries, ct2_hiddenimports = collect_all("ctranslate2")
-
-# ── Data files ────────────────────────────────────────────────────────────────
 
 datas = [
     # Built React frontend (served by FastAPI as static files)
@@ -73,7 +71,7 @@ datas = [
     *kokoro_datas,
     # Misaki phoneme data (Kokoro dependency)
     *misaki_datas,
-    # phonemizer / segments / csvw / language_tags / espeakng_loader — transitive deps through misaki
+    # phonemizer / segments / csvw / language_tags / espeakng_loader: transitive deps through misaki
     *phonemizer_datas,
     *segments_datas,
     *csvw_datas,
@@ -85,8 +83,6 @@ datas = [
     *fw_datas,
     *ct2_datas,
 ]
-
-# ── Binaries ──────────────────────────────────────────────────────────────────
 
 binaries = [
     *spacy_binaries,
@@ -103,10 +99,10 @@ binaries = [
     *ct2_binaries,
 ]
 
-# ── NVIDIA CUDA runtime (GPU variant only; Linux/Windows) ────────────────────
+# --- NVIDIA CUDA runtime (GPU variant only; Linux/Windows) ---
 # Gated on ARTICULATE_BUILD_GPU=1 so CPU variants skip the ~1.2 GB of nvidia-*
 # wheels entirely. CI sets this env var only on GPU matrix legs.
-# macOS is always excluded — ctranslate2 has no CUDA backend on macOS.
+# macOS is always excluded: ctranslate2 has no CUDA backend on macOS.
 # collect_dynamic_libs picks up cublas64_*.dll, cudart64_*.dll, cudnn_*.dll
 # from site-packages/nvidia/*/bin (Windows) or .../lib (Linux). These paths
 # are added to PATH at runtime by backend/services/transcription.py:_patch_cuda_dll_path.
@@ -122,10 +118,8 @@ if os.environ.get("ARTICULATE_BUILD_GPU") == "1" and sys.platform != "darwin":
             print(f"[backend.spec] GPU collect failed for {_pkg}: {_e}", file=sys.stderr)
             raise
 
-# ── Hidden imports ────────────────────────────────────────────────────────────
-
 hiddenimports = [
-    # uvicorn — fully collected to avoid static-analysis misses
+    # uvicorn: fully collected to avoid static-analysis misses
     *uvicorn_hiddenimports,
     # Database
     "aiosqlite",
@@ -162,7 +156,7 @@ hiddenimports = [
     "language_tool_python",
 ]
 
-# ── Excludes (not needed in desktop build) ───────────────────────────────────
+# --- Excludes (not needed in desktop build) ---
 
 excludes = [
     # Test / dev tools
@@ -183,8 +177,6 @@ excludes = [
     "misaki.zh_normalization",
     "pypinyin",
 ]
-
-# ── Analysis ──────────────────────────────────────────────────────────────────
 
 a = Analysis(
     [str(ROOT / "backend_launcher.py")],

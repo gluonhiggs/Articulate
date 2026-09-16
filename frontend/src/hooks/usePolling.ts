@@ -3,15 +3,14 @@ import { useEffect, useRef, useState } from 'react'
 import { fetchAttemptStatus } from '../api/client'
 import type { Attempt } from '../types'
 
-const POLLING_TIMEOUT_MS = 6 * 60 * 1000 // 6 minutes - Part 2: transcription (120s) + signals (30s) + LLM (120s) = ~270s max
+const POLLING_TIMEOUT_MS = 6 * 60 * 1000 // Part 2 worst case ~270s: transcription (120s) + signals (30s) + LLM (120s)
 
 export function usePolling(attemptId: number | null): { data: Attempt | null; isTimedOut: boolean } {
   const startedAtRef = useRef<number | null>(null)
   const [isTimedOut, setIsTimedOut] = useState(false)
 
-  // Reset timer and timeout flag whenever a new attempt starts.
-  // Without this, a timed-out attempt leaves startedAtRef holding a stale
-  // timestamp, causing the very next attempt's polling to time out immediately.
+  // Reset on every new attempt: otherwise a timed-out attempt leaves a stale
+  // startedAtRef and the next attempt's polling times out immediately.
   useEffect(() => {
     startedAtRef.current = null
     setIsTimedOut(false)

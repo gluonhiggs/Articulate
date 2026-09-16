@@ -13,17 +13,17 @@ from backend.config import get_settings
 logger = logging.getLogger(__name__)
 
 
-# ── Windows CUDA DLL path fix ─────────────────────────────────────────────────
+# --- Windows CUDA DLL path fix ---
 # ctranslate2 on Windows loads cublas64_12.dll / cudart64_12.dll via the OS
-# DLL search path (PATH), not via Python's import machinery.  The nvidia-*
-# packages install those DLLs into site-packages/nvidia/*/bin/ which is NOT
+# DLL search path (PATH), not via Python's import machinery. The nvidia-*
+# packages install those DLLs into site-packages/nvidia/*/bin/, which is NOT
 # on PATH by default.
 #
-# Called from _get_model() just before the WhisperModel import — not at module
-# top. Source installs run the nvidia-* uv sync after this module is already
-# imported (UI toggle path); a module-top call would see an empty nvidia dir
-# and leave PATH untouched, then the later model load fails even though the
-# wheels are on disk. Lazy call reads current venv state every time.
+# Called from _get_model() just before the WhisperModel import, not at module
+# top: source installs run the nvidia-* uv sync after this module is already
+# imported (UI toggle path), so a module-top call would see an empty nvidia dir
+# and leave PATH untouched, and the later model load would fail even though the
+# wheels are on disk.
 # Idempotent: the `bin_dir not in PATH` guard makes repeated calls a no-op.
 
 
@@ -43,20 +43,20 @@ def _patch_cuda_dll_path() -> None:
             if os.path.isdir(bin_dir) and bin_dir not in os.environ.get("PATH", ""):
                 os.environ["PATH"] = bin_dir + os.pathsep + os.environ["PATH"]
 
-# ── Thread pools ─────────────────────────────────────────────────────────────
+# --- Thread pools ---
 # Local whisper is CPU-bound -> single thread to avoid contention.
 # Groq is network I/O -> multiple threads fine.
 _local_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix="whisper-local")
 _groq_executor = concurrent.futures.ThreadPoolExecutor(max_workers=4, thread_name_prefix="whisper-groq")
 
-# ── Local model singleton ─────────────────────────────────────────────────────
+# --- Local model singleton ---
 _whisper_model = None
 _whisper_lock = threading.Lock()
 # Set True when a CUDA inference error occurs so _get_model() reloads on CPU.
 _force_cpu_fallback: bool = False
 
 
-# ── GPU detection ─────────────────────────────────────────────────────────────
+# --- GPU detection ---
 
 
 def detect_gpu() -> bool:
@@ -83,10 +83,10 @@ def has_nvidia_gpu_driver() -> bool:
 
 
 def has_nvidia_cuda_wheels() -> bool:
-    """Are the CUDA runtime wheels (nvidia-cublas, nvidia-cudnn, …) installed?
+    """Are the CUDA runtime wheels (nvidia-cublas, nvidia-cudnn, ...) installed?
 
     Paired with has_nvidia_gpu_driver() to detect the "driver present, wheels
-    missing" case — a venv that installed only the CPU half of local-transcription
+    missing" case: a venv that installed only the CPU half of local-transcription
     before the groups were split.
     """
     import site
@@ -124,7 +124,7 @@ def _resolve_device_and_model() -> Tuple[str, str, str]:
     return device, compute_type, model_size
 
 
-# ── Local model loading ───────────────────────────────────────────────────────
+# --- Local model loading ---
 
 
 def _get_model():
@@ -172,7 +172,7 @@ def _get_model():
         return _whisper_model
 
 
-# ── Model lifecycle helpers ───────────────────────────────────────────────────
+# --- Model lifecycle helpers ---
 
 
 def is_faster_whisper_installed() -> bool:
@@ -216,7 +216,7 @@ def unload_model() -> None:
     logger.info("faster-whisper model unloaded.")
 
 
-# ── Local transcription helpers ───────────────────────────────────────────────
+# --- Local transcription helpers ---
 
 
 def _collect_segments(segments) -> Dict[str, Any]:
@@ -243,7 +243,7 @@ def _run_transcribe_local(model, audio_path: str) -> Dict[str, Any]:
     segments, info = model.transcribe(
         audio_path,
         language="en",
-        beam_size=1,  # greedy: 2-4× faster, ~1% WER trade-off
+        beam_size=1,  # greedy: 2-4x faster, ~1% WER trade-off
         word_timestamps=True,
         vad_filter=True,
         condition_on_previous_text=False,  # prevents hallucination loops on disfluent speech
@@ -329,7 +329,7 @@ def _sync_transcribe_local(audio_path: str) -> Dict[str, Any]:
         raise
 
 
-# ── Warmup probe (local mode only) ───────────────────────────────────────────
+# --- Warmup probe (local mode only) ---
 
 
 def _warmup_probe() -> None:
@@ -355,7 +355,7 @@ def _warmup_probe() -> None:
     model = _get_model()
     # _get_model may have hit a CUDA load error and silently fallen back to CPU
     # (see the except clause inside _get_model). Don't log "CUDA OK" against a
-    # model that's actually on CPU — the user reads that as GPU success.
+    # model that's actually on CPU; the user reads that as GPU success.
     if _force_cpu_fallback:
         logger.info("Whisper warmup probe: load fell back to CPU, skipping CUDA check.")
         return
@@ -395,7 +395,7 @@ async def warmup_probe() -> None:
     await loop.run_in_executor(_local_executor, _warmup_probe)
 
 
-# ── Groq transcription ────────────────────────────────────────────────────────
+# --- Groq transcription ---
 
 
 def _sync_transcribe_groq(audio_path: str) -> Dict[str, Any]:
@@ -458,7 +458,7 @@ def _sync_transcribe_groq(audio_path: str) -> Dict[str, Any]:
     return {"transcript": transcript, "words": word_list}
 
 
-# ── Dispatcher ────────────────────────────────────────────────────────────────
+# --- Dispatcher ---
 
 
 async def transcribe(audio_path: str) -> Dict[str, Any]:

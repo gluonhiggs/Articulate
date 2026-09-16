@@ -14,7 +14,6 @@
     min-height: 100vh;
   }
 
-  /* Custom scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -35,7 +34,7 @@
   }
 }
 
-/* ── Inline corrections (matching code.html mockup) ───────────────────────── */
+/* --- Inline corrections (matching code.html mockup) --- */
 
 .correction-wrong {
   color: #fca5a5;
@@ -58,7 +57,7 @@
 .correction-word { color: #6ee7b7; font-weight: 600; }
 .uncertain-word { color: #fbbf24; }
 
-/* ── Neon glow effects ────────────────────────────────────────────────────── */
+/* --- Neon glow effects --- */
 
 .glow-border-active {
   box-shadow: 0 0 10px rgba(45, 212, 191, 0.3), inset 0 0 10px rgba(45, 212, 191, 0.1);
@@ -79,13 +78,13 @@
   box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
 }
 
-/* ── Score tags ───────────────────────────────────────────────────────────── */
+/* --- Score tags --- */
 
 .tag-high  { background-color: rgba(45, 212, 191, 0.15); color: #2dd4bf; border: 1px solid rgba(45, 212, 191, 0.3); }
 .tag-mid   { background-color: rgba(251, 146, 60, 0.15); color: #fb923c; border: 1px solid rgba(251, 146, 60, 0.3); }
 .tag-low   { background-color: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
 
-/* ── Right panel ──────────────────────────────────────────────────────────── */
+/* --- Right panel --- */
 
 .right-panel {
   background-color: #13151f;
@@ -121,14 +120,13 @@
   cursor: pointer;
 }
 
-/* IPA display */
 .ipa-display {
   font-family: 'Noto Sans', 'Inter', sans-serif;
   color: #a78bfa;
   font-size: 0.875rem;
 }
 
-/* ── Animations ───────────────────────────────────────────────────────────── */
+/* --- Animations --- */
 
 @keyframes pulse-record {
   0%, 100% { opacity: 1; transform: scale(1); }

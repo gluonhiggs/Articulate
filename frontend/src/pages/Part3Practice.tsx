@@ -9,10 +9,10 @@ import { PartTabSwitcher } from './PartTabSwitcher'
 type Category = 'person' | 'object' | 'activity' | 'place'
 
 const CATEGORIES: { id: Category; label: string; emoji: string }[] = [
-  { id: 'person', label: 'Person', emoji: '👤' },
-  { id: 'object', label: 'Object', emoji: '📦' },
-  { id: 'activity', label: 'Activity', emoji: '🏃' },
-  { id: 'place', label: 'Place', emoji: '📍' },
+  { id: 'person', label: 'Person', emoji: '\u{1F464}' },
+  { id: 'object', label: 'Object', emoji: '\u{1F4E6}' },
+  { id: 'activity', label: 'Activity', emoji: '\u{1F3C3}' },
+  { id: 'place', label: 'Place', emoji: '\u{1F4CD}' },
 ]
 
 export function Part3Practice() {
@@ -31,7 +31,6 @@ export function Part3Practice() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Header */}
       <div className="bg-sidebar border-b border-cardBorder px-6 py-4 sticky top-0 z-10">
         <PartTabSwitcher activePart="part3" />
       </div>
@@ -40,7 +39,6 @@ export function Part3Practice() {
         {/* Left panel - category + topic list */}
         <div className="w-72 border-r border-cardBorder bg-sidebar flex-shrink-0 sticky top-[65px] h-[calc(100vh-65px)] overflow-y-auto">
           <div className="p-4">
-            {/* Category filter */}
             <div className="flex items-center justify-between mb-3">
               <p className="text-textSecondary text-xs font-semibold uppercase tracking-wider">
                 Category
@@ -87,7 +85,6 @@ export function Part3Practice() {
               ))}
             </div>
 
-            {/* Topic list */}
             <p className="text-textSecondary text-xs font-semibold uppercase tracking-wider mb-2">
               Topics
             </p>
@@ -157,7 +154,7 @@ export function Part3Practice() {
                   <ul className="mt-3 space-y-1">
                     {selectedGroup.parent.bullet_points.map((bp, i) => (
                       <li key={i} className="text-xs text-textSecondary flex items-start gap-2">
-                        <span className="text-accent mt-0.5">•</span>
+                        <span className="text-accent mt-0.5">{'\u2022'}</span>
                         <span>{bp}</span>
                       </li>
                     ))}
@@ -165,7 +162,6 @@ export function Part3Practice() {
                 )}
               </div>
 
-              {/* Part 3 questions */}
               <p className="text-textSecondary text-xs font-semibold uppercase tracking-wider mb-3">
                 Related Part 3 Questions
               </p>

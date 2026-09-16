@@ -1,12 +1,12 @@
 /**
  * Tests for the usePolling timeout logic.
  *
- * The hook polls /attempts/:id every 1500ms while status='processing'.
- * After POLLING_TIMEOUT_MS (3 minutes), it stops polling and surfaces
- * isTimedOut=true to the caller so the UI can show an error.
+ * The hook polls /attempts/:id every 1500ms while the attempt is processing.
+ * After POLLING_TIMEOUT_MS, it stops polling and surfaces isTimedOut=true
+ * to the caller so the UI can show an error.
  *
  * Rather than rendering the full hook with TanStack Query infrastructure,
- * we test the refetchInterval decision function directly - same pattern
+ * we test a copy of the refetchInterval decision function - same pattern
  * as the rest of the __tests__ suite.
  */
 
@@ -96,7 +96,6 @@ describe('usePolling interval logic', () => {
     const startedAtRef = { current: Date.now() - POLLING_TIMEOUT_MS + 100 }
     const setIsTimedOut = vi.fn()
     const decide = makeIntervalDecision(startedAtRef, setIsTimedOut)
-    // elapsed < POLLING_TIMEOUT_MS -> NOT > -> should still poll
     expect(decide('processing')).toBe(1500)
     expect(setIsTimedOut).not.toHaveBeenCalledWith(true)
   })

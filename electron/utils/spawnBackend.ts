@@ -21,7 +21,6 @@ export interface BackendOptions {
 export function spawnBackend(opts: BackendOptions): child_process.ChildProcess {
   const { port, dataDir, configEnvPath } = opts;
 
-  // Build the environment for the child process.
   const env: Record<string, string> = {
     ...process.env as Record<string, string>,
     ARTICULATE_PORT: String(port),
@@ -47,7 +46,6 @@ export function spawnBackend(opts: BackendOptions): child_process.ChildProcess {
     }
   }
 
-  // Ensure data directory exists.
   fs.mkdirSync(dataDir, { recursive: true });
   fs.mkdirSync(path.join(dataDir, "logs"), { recursive: true });
 
@@ -57,7 +55,6 @@ export function spawnBackend(opts: BackendOptions): child_process.ChildProcess {
   let proc: child_process.ChildProcess;
 
   if (isPackaged()) {
-    // Packaged: run the PyInstaller binary.
     const binaryName = process.platform === "win32"
       ? "articulate_backend.exe"
       : "articulate_backend";
@@ -68,7 +65,6 @@ export function spawnBackend(opts: BackendOptions): child_process.ChildProcess {
     );
     proc = child_process.spawn(binaryPath, [], { env, stdio: ["ignore", "pipe", "pipe"] });
   } else {
-    // Development: use uv from the repo root.
     const repoRoot = path.resolve(__dirname, "..", "..");
     proc = child_process.spawn(
       "uv",
@@ -84,7 +80,7 @@ export function spawnBackend(opts: BackendOptions): child_process.ChildProcess {
     );
   }
 
-  // Pipe stdout/stderr to the log file.
+  // end: false - both streams share logStream, so neither may close it.
   proc.stdout?.pipe(logStream, { end: false });
   proc.stderr?.pipe(logStream, { end: false });
 

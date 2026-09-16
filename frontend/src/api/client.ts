@@ -22,7 +22,7 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   return response.json() as Promise<T>
 }
 
-// ─── Question endpoints ──────────────────────────────────────────────────────
+// --- Question endpoints ---
 
 export function fetchPart1Questions(hideAnswered: boolean): Promise<Question[]> {
   const params = new URLSearchParams()
@@ -57,7 +57,7 @@ export function fetchQuestion(id: number): Promise<Question> {
   return apiFetch<Question>(`/questions/${id}`)
 }
 
-// ─── Attempt endpoints ───────────────────────────────────────────────────────
+// --- Attempt endpoints ---
 
 export async function submitAttempt(
   questionId: number,
@@ -97,7 +97,7 @@ export function getAttemptAudioUrl(attemptId: number): string {
   return `${BASE}/attempts/${attemptId}/audio`
 }
 
-// ─── AI Assist ──────────────────────────────────────────────────────────────
+// --- AI Assist ---
 
 export function fetchSampleAnswer(questionId: number): Promise<SampleAnswerResponse> {
   return apiFetch<SampleAnswerResponse>(`/questions/${questionId}/sample-answer`, {
@@ -115,13 +115,13 @@ export function fetchTopicVocab(questionId: number, excludeTerms: string[] = [])
   })
 }
 
-// ─── Dashboard ───────────────────────────────────────────────────────────────
+// --- Dashboard ---
 
 export function fetchDashboard(): Promise<DashboardData> {
   return apiFetch<DashboardData>('/dashboard')
 }
 
-// ─── System ──────────────────────────────────────────────────────────────────
+// --- System ---
 
 export function fetchSystemInfo(): Promise<SystemInfo> {
   return apiFetch<SystemInfo>('/system/info')
@@ -143,7 +143,7 @@ export function patchTranscriptionMode(mode: string): Promise<SystemInfo> {
   })
 }
 
-// ─── Forecast ────────────────────────────────────────────────────────────────
+// --- Forecast ---
 
 export function fetchForecast(): Promise<ForecastEntry[]> {
   return apiFetch<ForecastEntry[]>('/questions/forecast')

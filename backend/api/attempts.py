@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/attempts", tags=["attempts"])
 
-# ── LanguageTool singleton (optional - requires Java) ────────────────────────
+# --- LanguageTool singleton (optional - requires Java) ---
 
 _lt_tool = None
 _lt_tool_init_attempted = False
@@ -66,7 +66,7 @@ def _get_lt_tool():
     return _lt_tool
 
 
-# ── LanguageTool artifact filter ─────────────────────────────────────────────
+# --- LanguageTool artifact filter ---
 # Whisper (Groq API) may capitalise the first word of segments separated by
 # pauses. LanguageTool flags these as UPPERCASE_SENTENCE_START and related
 # casing/punctuation rules - transcription artefacts, not speaker errors.
@@ -148,13 +148,11 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
 
     async with AsyncSessionLocal() as session:
         try:
-            # Fetch the question text and part
             q_result = await session.execute(select(Question).where(Question.id == question_id))
             question = q_result.scalar_one_or_none()
             if question is None:
                 raise ValueError(f"Question {question_id} not found")
 
-            # Emit 'transcribing' status
             t_result = await session.execute(select(Attempt).where(Attempt.id == attempt_id))
             attempt_pre = t_result.scalar_one_or_none()
             if attempt_pre is not None:
@@ -224,7 +222,6 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                 return
             word_timestamps_json = json.dumps(words)
 
-            # Compute duration from last word end time if available
             duration_seconds: int | None = None
             if words:
                 last_word = words[-1]
@@ -253,11 +250,12 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             # Part 1 short answers are naturally brief; no length flag applied.
             if question.part == "2" and total_words < 80:
                 short_flag = (
-                    f" ⚠ SHORT RESPONSE: only {total_words} words, fails Part 2 long-turn criterion (expected 150-250)"
+                    f" WARNING: SHORT RESPONSE: only {total_words} words, "
+                    "fails Part 2 long-turn criterion (expected 150-250)"
                 )
             elif question.part == "3" and total_words < 40:
                 short_flag = (
-                    f" ⚠ SHORT RESPONSE: only {total_words} words, notably brief for a Part 3 discussion answer"
+                    f" WARNING: SHORT RESPONSE: only {total_words} words, notably brief for a Part 3 discussion answer"
                 )
             else:
                 short_flag = ""
@@ -318,7 +316,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                                 for m in filtered_matches[:10]
                             ],
                         )
-                        # ── Sentence segmentation & error attribution ─────────
+                        # --- Sentence segmentation & error attribution ---
                         sent_spans = _sentence_spans(transcript)
                         n_sentences = len(sent_spans)
 
@@ -328,7 +326,6 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                                     return i
                             return None  # unmatched offset - caller must skip
 
-                        # Stats computed over ALL filtered matches (not just cap)
                         error_sentence_set = {idx for m in filtered_matches if (idx := _sent_idx(m.offset)) is not None}
                         n_error_sents = len(error_sentence_set)
                         clean_pct = round(100 * (n_sentences - n_error_sents) / n_sentences) if n_sentences else 100
@@ -336,7 +333,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                         # Warn about small samples only for Part 2/3 where more sentences
                         # are expected; Part 1 answers are naturally 1-3 sentences.
                         small_sample_note = (
-                            f" ⚠ tiny sample ({n_sentences} sentences) — "
+                            f" WARNING: tiny sample ({n_sentences} sentences) - "
                             "error-free rate does not imply high grammar range"
                             if n_sentences <= 3 and question.part != "1"
                             else ""
@@ -372,9 +369,8 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                                     f" -> {list(m.replacements[:2])}"
                                     for m in grp
                                 )
-                                by_rule_lines.append(f"  [{cat}] {rule_id} ×{len(grp)}: {examples}")
+                                by_rule_lines.append(f"  [{cat}] {rule_id} x{len(grp)}: {examples}")
 
-                            # Per-sentence attribution
                             by_sent_lines = []
                             for m in displayed:
                                 _sidx = _sent_idx(m.offset)
@@ -449,7 +445,6 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             # ----------------------------------------------------------------
             # 4. Score
             # ----------------------------------------------------------------
-            # Emit 'scoring' status before calling LLM
             s_result = await session.execute(select(Attempt).where(Attempt.id == attempt_id))
             attempt_scoring = s_result.scalar_one_or_none()
             if attempt_scoring is not None:
@@ -556,7 +551,6 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             else:
                 daily.attempts_count += 1
 
-            # Compute intensity bucket (0-4)
             count = daily.attempts_count
             if count == 0:
                 daily.intensity = 0
@@ -648,19 +642,17 @@ async def submit_attempt(
 ) -> AttemptStatusOut:
     settings = get_settings()
 
-    # Validate question exists
     q_result = await db.execute(select(Question).where(Question.id == question_id))
     question = q_result.scalar_one_or_none()
     if question is None:
         raise HTTPException(status_code=404, detail="Question not found")
 
-    # Create Attempt row (status=processing, no audio path yet)
+    # Commit first: save_audio names the file after attempt.id.
     attempt = Attempt(question_id=question_id, status="processing")
     db.add(attempt)
     await db.commit()
     await db.refresh(attempt)
 
-    # Save audio file
     try:
         audio_path = await audio_service.save_audio(
             upload_file=audio,
@@ -686,7 +678,6 @@ async def submit_attempt(
         await db.commit()
         raise HTTPException(status_code=500, detail=f"Failed to save audio: {exc}") from exc
 
-    # Launch pipeline in background
     background_tasks.add_task(
         _run_pipeline,
         attempt_id=attempt.id,
@@ -739,7 +730,6 @@ async def get_attempt_history(
     question_id: int,
     db: AsyncSession = Depends(get_db),
 ) -> List[AttemptOut]:
-    # Verify question exists
     q_result = await db.execute(select(Question).where(Question.id == question_id))
     if q_result.scalar_one_or_none() is None:
         raise HTTPException(status_code=404, detail="Question not found")
@@ -785,7 +775,6 @@ async def improve_attempt(
             detail="Attempt is not ready or has no transcript/score",
         )
 
-    # Fetch question text
     q_result = await db.execute(select(Question).where(Question.id == attempt.question_id))
     question = q_result.scalar_one_or_none()
     if question is None:

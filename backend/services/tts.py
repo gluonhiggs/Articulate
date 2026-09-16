@@ -65,7 +65,7 @@ async def _ensure_pipeline() -> None:
     async with _lock:
         if _pipeline is not None:
             return
-        logger.info("Loading Kokoro TTS model (first request)…")
+        logger.info("Loading Kokoro TTS model (first request)...")
         loop = asyncio.get_running_loop()
         _pipeline = await loop.run_in_executor(None, _init_kokoro)
         logger.info("Kokoro TTS model loaded.")

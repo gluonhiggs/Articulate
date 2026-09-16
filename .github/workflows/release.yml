@@ -8,14 +8,14 @@ on:
   # branch without cutting a tag. Lets us test bundle shape and smoke on
   # Linux/macOS (we can do Windows locally) before spending a version number.
   # The release-upload step below is gated on push+tag so manual runs don't
-  # publish anything — they build + verify and stop.
+  # publish anything; they build + verify and stop.
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  # ── Phase 1: Build the React frontend once ──────────────────────────────────
+  # --- Phase 1: Build the React frontend once ---
   build-frontend:
     name: Build frontend
     runs-on: ubuntu-latest
@@ -42,7 +42,7 @@ jobs:
           path: frontend/dist/
           retention-days: 1
 
-  # ── Phase 2: Bundle Python backend per platform × variant ────────────────────
+  # --- Phase 2: Bundle Python backend per platform x variant ---
   # 5-leg matrix: 2x Windows (cpu/gpu), 2x Linux (cpu/gpu), 1x macOS (cpu only).
   # macOS has no CUDA backend in ctranslate2, so GPU variant is excluded.
   build-backend:
@@ -128,7 +128,7 @@ jobs:
           path: dist/articulate_backend/
           retention-days: 1
 
-  # ── Phase 3: Package Electron app per platform × variant ─────────────────────
+  # --- Phase 3: Package Electron app per platform x variant ---
   # Same 5-leg matrix as Phase 2. ARTICULATE_VARIANT flows into electron-builder's
   # artifactName template so each installer is distinctly named on the release page.
   build-electron:
@@ -187,7 +187,7 @@ jobs:
           # ARTICULATE_VARIANT is interpolated into electron/package.json's
           # artifactName template so we produce e.g. Articulate-windows-gpu-0.1.4.exe.
           ARTICULATE_VARIANT: ${{ matrix.variant }}
-          # macOS notarization (optional — set secrets in GitHub repo settings)
+          # macOS notarization (optional; set secrets in GitHub repo settings)
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -209,7 +209,6 @@ jobs:
             --title "Articulate ${{ github.ref_name }}" \
             --generate-notes \
             2>/dev/null || true
-          # Upload the installer
           for f in ${{ matrix.installer-glob }}; do
             gh release upload "${{ github.ref_name }}" "$f" --clobber
           done

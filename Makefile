@@ -1,4 +1,4 @@
-# Articulate — contributor workflow targets.
+# Articulate - contributor workflow targets.
 #
 # The primary verbs (see `make help`) mirror what CI runs so a local pass
 # gives you confidence CI won't fail. Sub-targets (install-backend,
@@ -24,10 +24,10 @@ SHELL := /bin/bash
         tag \
         clean
 
-# ── Help ──────────────────────────────────────────────────────────────────────
+# --- Help ---
 
 help:
-	@echo "Articulate — contributor targets"
+	@echo "Articulate - contributor targets"
 	@echo ""
 	@echo "  Primary verbs:"
 	@echo "    make install         One-time dev env setup (backend + frontend + electron + hooks)"
@@ -50,7 +50,7 @@ help:
 	@echo "    electron-package                         electron-builder only"
 	@echo "    clean                                    Remove dist/ build/ frontend/dist/"
 
-# ── Install ───────────────────────────────────────────────────────────────────
+# --- Install ---
 
 # Source of truth for ci.yml's backend-checks install step. dev group only,
 # no heavy ML packages. ci.yml calls `make install-backend` directly so the
@@ -79,7 +79,7 @@ install: install-backend install-frontend install-electron install-hooks
 # Heavier install profiles used by release-cpu / release-gpu.
 #
 # `--no-group dev` matches the CI release workflow (.github/workflows/release.yml)
-# byte-for-byte. Do NOT remove it — the local bundle must be built from the same
+# byte-for-byte. Do NOT remove it: the local bundle must be built from the same
 # venv shape CI ships, so a dev-dep accidentally leaking into the bundle fails
 # locally the same way it would on CI. The release-cpu / release-gpu targets
 # re-run `install-backend` as their last step so the contributor is left in the
@@ -91,10 +91,10 @@ install-build-gpu:
 	uv sync --group build --group local-transcription --group local-transcription-gpu --no-group dev
 	uv run --no-sync python -c "import nvidia.cublas, nvidia.cudnn, nvidia.cuda_runtime"
 
-# ── Checks (lint + typecheck) ─────────────────────────────────────────────────
+# --- Checks (lint + typecheck) ---
 
-# Backend lint via ruff. Matches .pre-commit-config.yaml's ruff hooks so a
-# passing `make check-backend` means the pre-commit stage won't touch anything.
+# Matches .pre-commit-config.yaml's ruff hooks, so a passing
+# `make check-backend` means the pre-commit stage won't touch anything.
 check-backend:
 	uv run --no-sync ruff check .
 	uv run --no-sync ruff format --check .
@@ -112,13 +112,13 @@ check: check-backend typecheck-frontend typecheck-electron
 	@echo ""
 	@echo "All checks passed."
 
-# ── Format (auto-fix) ─────────────────────────────────────────────────────────
+# --- Format (auto-fix) ---
 
 format:
 	uv run --no-sync ruff check --fix .
 	uv run --no-sync ruff format .
 
-# ── Tests ─────────────────────────────────────────────────────────────────────
+# --- Tests ---
 
 # Source of truth for ci.yml's backend-checks pytest invocation. ci.yml
 # calls `make test-backend` directly.
@@ -133,14 +133,13 @@ test: test-backend test-frontend
 	@echo ""
 	@echo "All tests passed."
 
-# ── CI equivalent ─────────────────────────────────────────────────────────────
+# --- CI equivalent ---
 
-# This is the one target contributors should run before every push.
 ci: check test
 	@echo ""
 	@echo "Local CI equivalent passed. Safe to push."
 
-# ── Release artifacts (tag-push flow) ─────────────────────────────────────────
+# --- Release artifacts (tag-push flow) ---
 
 frontend:
 	cd frontend && bun install --frozen-lockfile && bun run build
@@ -177,21 +176,17 @@ release-gpu: install-build-gpu frontend bundle-gpu verify-gpu electron-package
 	@echo ""
 	@echo "GPU release artifacts built and verified. Dev env restored."
 
-# ── Tagging a release ─────────────────────────────────────────────────────────
+# --- Tagging a release ---
 #
 # Usage: make tag VERSION=0.2.0
 #
-# What it does:
-#   1. Validates VERSION is set (Make-level check, no shell required).
-#   2. Calls scripts/bump-version.py — validates semver format, new > current,
-#      clean working tree, on main branch, tag absent — then bumps all version
-#      strings (electron/package.json, pyproject.toml, frontend/package.json,
-#      frontend/package-lock.json, backend/main.py).
-#   3. Runs `uv lock` to sync uv.lock with the new pyproject.toml version.
-#   4. Commits all 6 files and creates the git tag.
-#   4. Prints the two push commands — you decide when to run them.
+# scripts/bump-version.py refuses unless VERSION is valid semver, newer than the
+# current version, the working tree is clean, you are on main and the tag does
+# not exist yet. It then bumps electron/package.json, pyproject.toml,
+# frontend/package.json, frontend/package-lock.json and backend/main.py;
+# `uv lock` syncs uv.lock to the new pyproject.toml version.
 #
-# To publish after tagging:
+# Nothing is pushed. To publish after tagging:
 #   git push && git push origin vVERSION
 
 tag:
@@ -205,7 +200,7 @@ tag:
 	@echo "Tagged v$(VERSION). To publish:"
 	@echo "  git push && git push origin v$(VERSION)"
 
-# ── Housekeeping ──────────────────────────────────────────────────────────────
+# --- Housekeeping ---
 
 clean:
 	rm -rf dist build frontend/dist electron/dist-installer electron/dist

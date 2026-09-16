@@ -69,7 +69,6 @@ export function Home() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
-      {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-textPrimary">Dashboard</h1>
         <p className="text-textSecondary text-sm mt-1">Your IELTS Speaking practice progress</p>
@@ -85,7 +84,6 @@ export function Home() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
-        {/* Streak Card */}
         <div className="md:col-span-1">
           {isLoading ? (
             <SkeletonBlock className="h-40" />
@@ -98,7 +96,6 @@ export function Home() {
           ) : null}
         </div>
 
-        {/* Band Display */}
         <div className="md:col-span-1">
           {isLoading ? (
             <SkeletonBlock className="h-40" />
@@ -107,7 +104,6 @@ export function Home() {
           ) : null}
         </div>
 
-        {/* Quick Stats */}
         <div className="md:col-span-1">
           <div className="bg-card border border-cardBorder rounded-xl p-5 h-full">
             <p className="text-textSecondary text-xs font-semibold uppercase tracking-wider mb-3">
@@ -139,7 +135,6 @@ export function Home() {
         </div>
       </div>
 
-      {/* Activity Heatmap */}
       <div className="bg-card border border-cardBorder rounded-xl p-5 mb-6">
         <div className="flex items-center justify-between mb-4">
           <p className="text-textPrimary font-semibold text-sm">Practice Activity</p>
@@ -152,7 +147,6 @@ export function Home() {
         )}
       </div>
 
-      {/* Quick Launch */}
       <div>
         <p className="text-textPrimary font-semibold text-sm mb-3">Start Practicing</p>
         <div className="grid grid-cols-3 gap-4">

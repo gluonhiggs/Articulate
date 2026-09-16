@@ -25,10 +25,9 @@ export function RightPanel({
   const feedBottomRef = useRef<HTMLDivElement>(null)
   // Tracks which attempt IDs have already been appended to the feed
   const addedPronunIdsRef = useRef<Set<number>>(new Set())
-  // Tracks vocab terms already shown this session - passed to backend to avoid repetition
+  // Tracks vocab terms already shown for the current question - passed to backend to avoid repetition
   const shownVocabTermsRef = useRef<string[]>([])
 
-  // Navigation
   const currentIndex = question ? allQuestions.findIndex((q) => q.id === question.id) : -1
   const prevId = currentIndex > 0 ? allQuestions[currentIndex - 1].id : null
   const nextId =
@@ -36,7 +35,6 @@ export function RightPanel({
       ? allQuestions[currentIndex + 1].id
       : null
 
-  // Clear feed when question changes
   useEffect(() => {
     setFeedItems([])
     addedPronunIdsRef.current = new Set()
@@ -207,7 +205,6 @@ export function RightPanel({
         </div>
       </div>
 
-      {/* Feed scroll area */}
       <div className="flex-1 overflow-y-auto p-4">
         {feedItems.length === 0 ? (
           <div className="flex items-center justify-center h-full">
@@ -273,7 +270,6 @@ export function RightPanel({
           </button>
         </div>
 
-        {/* Pronunciation practice input */}
         <div className="relative flex items-center">
           <input
             type="text"

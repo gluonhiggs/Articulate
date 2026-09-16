@@ -173,7 +173,6 @@ async def list_part3(
     children_result = await db.execute(children_stmt)
     children_rows = children_result.all()
 
-    # Group children by parent_question_id in Python
     children_by_parent: dict[int, list] = defaultdict(list)
     for row in children_rows:
         children_by_parent[row.Question.parent_question_id].append(row)
@@ -200,7 +199,7 @@ async def list_part3(
 async def get_forecast(
     db: AsyncSession = Depends(get_db),
 ) -> List[ForecastEntry]:
-    """Return topic groups sorted by last_seen_date desc, then by question count."""
+    """Return topic groups sorted by last_seen_date desc (nulls last, reported as YYYY-MM), then by question count."""
     result = await db.execute(
         select(
             Question.topic_tag,

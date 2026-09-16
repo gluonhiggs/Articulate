@@ -11,7 +11,7 @@ export function StreakCard({ currentStreak, longestStreak, totalAttempts }: Stre
         <div>
           <div className="flex items-baseline gap-2">
             <span className="text-5xl font-bold text-textPrimary">{currentStreak}</span>
-            <span className="text-2xl">🔥</span>
+            <span className="text-2xl">{'\u{1F525}'}</span>
           </div>
           <p className="text-textSecondary text-sm mt-1">Day streak</p>
         </div>

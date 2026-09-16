@@ -30,13 +30,10 @@ async def save_audio(
     audio_dir: str,
 ) -> str:
     """
-    Save an uploaded audio file to disk.
+    Save an uploaded audio file as {audio_dir}/{attempt_id}{ext} and return that path.
 
-    The file is stored as {audio_dir}/{attempt_id}{ext}, where ext is derived
-    from the upload's content_type (e.g. .mp4 for audio/mp4 from Android).
-
-    Returns:
-        The absolute file path as a string.
+    ext is derived from the upload's content_type (e.g. .mp4 for audio/mp4 from
+    Android), defaulting to .webm for unknown types.
     """
     audio_path = Path(audio_dir)
     audio_path.mkdir(parents=True, exist_ok=True)
@@ -78,7 +75,6 @@ async def cleanup_old_audio(
 
     cutoff = datetime.now() - timedelta(days=retention_days)
 
-    # Collect all audio files with their metadata
     files = []
     for f in audio_path.iterdir():
         if f.suffix not in AUDIO_EXTENSIONS:
@@ -89,7 +85,7 @@ async def cleanup_old_audio(
         except OSError:
             continue
 
-    # Phase 1: Remove files older than retention period
+    # Phase 1: age limit
     remaining = []
     for f, mtime, size in files:
         if datetime.fromtimestamp(mtime) < cutoff:
@@ -101,12 +97,12 @@ async def cleanup_old_audio(
         else:
             remaining.append((f, mtime, size))
 
-    # Phase 2: Enforce total size limit
+    # Phase 2: size limit
     total_bytes = sum(size for _, _, size in remaining)
     max_bytes = max_size_mb * 1024 * 1024
 
     if total_bytes > max_bytes:
-        # Sort oldest first
+        # Oldest first (x[1] is mtime)
         remaining.sort(key=lambda x: x[1])
         for f, mtime, size in remaining:
             if total_bytes <= max_bytes:

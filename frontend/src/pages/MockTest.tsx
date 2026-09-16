@@ -15,7 +15,6 @@ export function MockTest() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-textPrimary">Mock Test</h1>
         <p className="text-textSecondary text-sm mt-1">
@@ -23,7 +22,6 @@ export function MockTest() {
         </p>
       </div>
 
-      {/* Filter tabs */}
       <div className="flex items-center gap-2 mb-8 flex-wrap">
         {FILTERS.map((f) => (
           <button
@@ -70,18 +68,18 @@ export function MockTest() {
           {[
             {
               title: 'Part 1',
-              desc: '4–5 min, short questions about yourself',
-              icon: '💬',
+              desc: '4-5 min, short questions about yourself',
+              icon: '\u{1F4AC}',
             },
             {
               title: 'Part 2',
-              desc: '3–4 min, speak about a cue card',
-              icon: '📋',
+              desc: '3-4 min, speak about a cue card',
+              icon: '\u{1F4CB}',
             },
             {
               title: 'Part 3',
-              desc: '4–5 min, topic discussion',
-              icon: '🗣️',
+              desc: '4-5 min, topic discussion',
+              icon: '\u{1F5E3}\uFE0F',
             },
           ].map((part) => (
             <div

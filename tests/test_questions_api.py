@@ -198,7 +198,6 @@ class TestListPart1:
         await db_session.commit()
 
         resp = await api_client.get("/api/v1/questions/part1")
-        # Most recent ready attempt (created_at=now) has score=8.0
         assert resp.json()[0]["latest_score"] == 8.0
 
     async def test_hide_answered_excludes_questions_with_ready_attempt(

@@ -43,11 +43,6 @@ async def attempts_client(attempts_db: AsyncSession):
         yield client
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
 async def _make_question(session: AsyncSession) -> Question:
     q = Question(part="1", text="Test question?")
     session.add(q)
@@ -82,7 +77,6 @@ class TestAttemptHistory:
 
         await attempts_client.get(f"/api/v1/attempts/history/{q.id}")
 
-        # Verify the DB row was updated
         await attempts_db.refresh(attempt)
         assert attempt.status == "failed"
 

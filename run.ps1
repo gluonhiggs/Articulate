@@ -1,7 +1,7 @@
 # run.ps1 - Start Articulate on Windows
 # Usage: .\run.ps1
 
-# ── Load config ───────────────────────────────────────────────────────────────
+# --- Load config ---
 if (-not (Test-Path ".env")) {
     Write-Error ".env not found. Copy .env.example to .env and fill in your API keys."
     exit 1
@@ -13,7 +13,7 @@ Get-Content ".env" | Where-Object { $_ -notmatch '^\s*#' -and $_ -match '=' } | 
 }
 
 
-# ── Java check (required for LanguageTool grammar checker) ───────────────────
+# --- Java check (required for LanguageTool grammar checker) ---
 # Refresh PATH from registry first - picks up Java installed in a prior session
 # before we decide whether to call winget at all.
 $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" +
@@ -62,7 +62,7 @@ if (-not (Get-Command java -ErrorAction SilentlyContinue)) {
     }
 }
 
-# ── Frontend: staleness check + build if needed ───────────────────────────────
+# --- Frontend: staleness check + build if needed ---
 $distIndex = "frontend\dist\index.html"
 $mustBuild = $false
 
@@ -105,14 +105,14 @@ if ($mustBuild) {
     Write-Host "Frontend built successfully." -ForegroundColor Green
 }
 
-# ── Frontend dev server in a new terminal window ──────────────────────────────
+# --- Frontend dev server in a new terminal window ---
 $frontendDir = Join-Path $PSScriptRoot "frontend"
 Write-Host "Starting frontend dev server (port 5173) in new window..." -ForegroundColor Cyan
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$frontendDir'; bun run dev"
 
 Write-Host "Starting Articulate..." -ForegroundColor Green
 # --reload-dir scopes the watcher to backend/ only. Without it, uvicorn watches
-# CWD, which includes .venv/ — so when the UI mode switcher runs `uv sync` to
+# CWD (which includes .venv/), so when the UI mode switcher runs `uv sync` to
 # install faster-whisper, hundreds of site-packages writes trigger a restart
 # loop mid-install.
 uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 1 --reload --reload-dir backend --reload-include "*.json" --reload-include "*.txt"

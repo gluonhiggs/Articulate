@@ -18,8 +18,8 @@ class Settings(BaseSettings):
     profile: str = ""
     groq_api_key: str = ""
     groq_whisper_model: str = "whisper-large-v3-turbo"
-    # ── Transcription mode ──────────────────────────────────────────────────
-    # "" = interactive terminal prompt at first startup (result saved to .env)
+    # --- Transcription mode ---
+    # "" = interactive terminal prompt at first startup (result saved to data/mode)
     # "groq"  = Mode 2: Groq API, fast, no per-word pronunciation signal
     # "local" = Mode 1: faster-whisper, real word probabilities, full pronunciation scoring
     transcription_mode: str = ""
@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     low_confidence_threshold: float = 0.6
     gap_threshold: float = 0.5
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
-    # ── Desktop / packaged app overrides ────────────────────────────────────
+    # --- Desktop / packaged app overrides ---
     # Set ARTICULATE_DATA_DIR to relocate db/audio/tts paths to OS user-data dir.
     data_dir: str = ""
     # Set ARTICULATE_PORT to override the uvicorn port (Electron picks a free port).
@@ -87,7 +87,7 @@ def set_runtime_model(model: str) -> None:
     _runtime_model = model
 
 
-# ── Transcription mode persistence ───────────────────────────────────────────
+# --- Transcription mode persistence ---
 
 
 def get_mode_file() -> _Path:

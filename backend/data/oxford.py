@@ -1,17 +1,15 @@
 """
-Oxford 5000 vocabulary data - loaded once at module level.
+Oxford 5000 vocabulary data.
 Source: backend/data/oxford_5000.csv (scraped from Oxford Learner's Dictionaries)
 
 Three dicts built at import time:
-  WORD_TO_CEFR    - word -> CEFR level str ("A1"…"C1")
+  WORD_TO_CEFR    - word -> CEFR level str ("A1"..."C1")
   WORD_TO_DATA    - word -> {type, phon_n_am, definition, example}
   CEFR_TO_WORDS   - level -> [words]  (for future word-suggestion features)
 
 US spelling aliases are applied at load time so American spellings
-(color, favorite, organize…) resolve to the same entry as their
+(color, favorite, organize...) resolve to the same entry as their
 British headword.
-
-Do NOT import this per-request - it is loaded once at module import time.
 """
 
 from __future__ import annotations
@@ -25,8 +23,8 @@ logger = logging.getLogger(__name__)
 
 _CSV = Path(__file__).parent / "oxford_5000.csv"
 
-# Common US->UK spelling aliases so American-spelled words hit the dict.
-# Only entries whose UK form is actually in the Oxford 5000 take effect.
+# US -> UK aliases. Only entries whose UK form is in the Oxford 5000 take effect;
+# a US form that is itself a headword keeps its own entry.
 _US_TO_UK: Dict[str, str] = {
     # -our / -or
     "color": "colour",
@@ -117,7 +115,7 @@ try:
     with open(_CSV, newline="", encoding="utf-8") as _f:
         for _row in csv.DictReader(_f):
             _word = _row["word"].strip().lower()
-            _level = _row["cefr"].strip().upper()  # normalise to "A1"…"C1"
+            _level = _row["cefr"].strip().upper()
             if not _word or _level not in _VALID_LEVELS:
                 continue
             # When the same word appears multiple times (different POS),
@@ -125,7 +123,6 @@ try:
             if _word in WORD_TO_CEFR:
                 if _LEVEL_RANK[_level] >= _LEVEL_RANK[WORD_TO_CEFR[_word]]:
                     continue
-                # Remove old entry from CEFR_TO_WORDS before overwriting
                 _old_level = WORD_TO_CEFR[_word]
                 try:
                     CEFR_TO_WORDS[_old_level].remove(_word)
@@ -140,7 +137,6 @@ try:
             }
             CEFR_TO_WORDS[_level].append(_word)
 
-    # Apply US spelling aliases
     for _us, _uk in _US_TO_UK.items():
         if _uk in WORD_TO_CEFR and _us not in WORD_TO_CEFR:
             WORD_TO_CEFR[_us] = WORD_TO_CEFR[_uk]

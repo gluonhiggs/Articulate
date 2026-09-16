@@ -19,8 +19,6 @@ import { usePolling } from '../hooks/usePolling'
 import { useRecordingStore } from '../store/recordingStore'
 import type { Attempt, Part3Group, Question } from '../types'
 
-// ── Constants ────────────────────────────────────────────────────────────────
-
 const PROCESSING_STATUSES = ['processing', 'transcribing', 'scoring']
 const COMPANION_MAX_AGE_MS = 5 * 60 * 1000 // ignore attempts older than 5 min
 const ERROR_MESSAGES: Record<string, string> = {
@@ -29,14 +27,11 @@ const ERROR_MESSAGES: Record<string, string> = {
   'failed:scoring':       'AI scoring unavailable - check your LLM API key',
 }
 
-// ── Main page ───────────────────────────────────────────────────────────────
-
 export function QuestionDetail() {
   const { questionId: questionIdStr } = useParams<{ questionId: string }>()
   const questionId = Number(questionIdStr)
   const queryClient = useQueryClient()
 
-  // Recording store
   const {
     status,
     elapsedSeconds,
@@ -58,14 +53,12 @@ export function QuestionDetail() {
   // Pending-stop ref: set when Stop is clicked before MediaRecorder has started
   const pendingStopRef = useRef(false)
 
-  // Fetch question
   const { data: question, isLoading: questionLoading, isError: questionError } = useQuery<Question>({
     queryKey: ['question', questionId],
     queryFn: () => fetchQuestion(questionId),
     enabled: !isNaN(questionId),
   })
 
-  // Fetch attempt history
   const { data: attempts, refetch: refetchAttempts } = useQuery<Attempt[]>({
     queryKey: ['attempts', 'history', questionId],
     queryFn: () => fetchAttemptHistory(questionId),
@@ -97,7 +90,6 @@ export function QuestionDetail() {
     staleTime: 60 * 1000,
   })
 
-  // Flatten Part 3 groups into a flat question list for navigation
   const part3Questions = useMemo<Question[]>(() => {
     if (!part3Groups) return []
     return part3Groups.flatMap((g) => g.questions)
@@ -110,7 +102,6 @@ export function QuestionDetail() {
     return []
   }, [part, part1Questions, part2Questions, part3Questions])
 
-  // TTS playback for the question
   const ttsAudioRef = useRef<HTMLAudioElement | null>(null)
   const [ttsPlaying, setTtsPlaying] = useState(false)
 
@@ -160,11 +151,11 @@ export function QuestionDetail() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [question?.id])
 
-  // Recorder hook
   const maxSec = question ? partMaxSeconds(question.part) : 45
   const { isRecording, startRecording: startMediaRecorder, stopRecording, audioBlob, resetAudioBlob } = useRecorder(maxSec)
 
-  // Reset store when questionId changes
+  // Reset per-question state when questionId changes: the page stays mounted across
+  // :questionId navigations and the recording store is global
   const prevQuestionIdRef = useRef(questionId)
   useEffect(() => {
     if (prevQuestionIdRef.current !== questionId) {
@@ -178,7 +169,6 @@ export function QuestionDetail() {
     }
   }, [questionId, reset, resetAudioBlob])
 
-  // Polling
   const { data: polledAttempt, isTimedOut: pollingTimedOut } = usePolling(attemptId)
   const [newestAttemptId, setNewestAttemptId] = useState<number | null>(null)
 
@@ -189,10 +179,8 @@ export function QuestionDetail() {
   // Mobile: toggle AI panel
   const [showPanel, setShowPanel] = useState(false)
 
-  // Selected (expanded) attempt - defaults to latest ready
   const [selectedAttemptId, setSelectedAttemptId] = useState<number | null>(null)
 
-  // Timer tick
   useEffect(() => {
     if (status !== 'recording' && status !== 'preparing') return
     const interval = setInterval(() => tickElapsed(), 1000)
@@ -208,7 +196,6 @@ export function QuestionDetail() {
     }
   }, [isRecording, stopRecording])
 
-  // Upload effect
   useEffect(() => {
     if (!audioBlob || isRecording || status !== 'recording') return
     if (hasUploadedRef.current) return
@@ -305,9 +292,8 @@ export function QuestionDetail() {
       if (isRecording) {
         stopRecording()
       } else {
-        // MediaRecorder is still initialising (getUserMedia pending).
-        // Defer the stop — the effect above will call stopRecording() the
-        // moment isRecording transitions to true.
+        // getUserMedia is still pending: defer the stop until the effect above
+        // sees isRecording become true.
         pendingStopRef.current = true
       }
     } else if (status === 'preparing') {
@@ -320,21 +306,20 @@ export function QuestionDetail() {
 
   function handleRetry() { reset() }
 
-  // Sort attempts: chronological (oldest first)
+  // Oldest first
   const sortedAttempts = attempts
     ? [...attempts].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
     : []
 
-  // Determine which attempt is "active" (expanded): explicit selection, or default to latest ready
+  // Expanded attempt: explicit selection, else the latest ready one
   const activeAttemptId = selectedAttemptId
     ?? [...sortedAttempts].reverse().find((a: Attempt) => a.status === 'ready')?.id
     ?? null
 
   return (
     <div className="flex flex-col lg:flex-row h-screen overflow-hidden gap-0">
-      {/* ── Left column: practice area ── */}
+      {/* --- Left column: practice area --- */}
       <div className="w-full lg:flex-1 flex flex-col h-full relative overflow-hidden">
-        {/* Header / breadcrumb */}
         <header className="h-14 flex items-center px-6 border-b border-white/5 text-sm text-gray-400 gap-2 shrink-0">
           <Link to="/" className="hover:text-gray-200 transition-colors">Home</Link>
           <span className="text-[10px]">/</span>
@@ -351,7 +336,6 @@ export function QuestionDetail() {
           </span>
         </header>
 
-        {/* Scrollable content */}
         <main className="flex-1 overflow-y-auto p-6 pb-24 space-y-4">
           {/* Question card */}
           {questionLoading ? (
@@ -400,7 +384,7 @@ export function QuestionDetail() {
                 <ul className="mt-4 space-y-2">
                   {question.bullet_points.map((bp, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm text-gray-400">
-                      <span className="text-teal-400 mt-0.5">•</span>
+                      <span className="text-teal-400 mt-0.5">{'\u2022'}</span>
                       <span>{bp}</span>
                     </li>
                   ))}
@@ -450,7 +434,6 @@ export function QuestionDetail() {
             </div>
           )}
 
-          {/* Mobile: Show AI Panel toggle */}
           <div className="lg:hidden">
             <button
               type="button"
@@ -473,7 +456,6 @@ export function QuestionDetail() {
           )}
         </main>
 
-        {/* Recording bar */}
         <RecordingBar
           status={status}
           elapsed={elapsedSeconds}
@@ -486,7 +468,7 @@ export function QuestionDetail() {
         />
       </div>
 
-      {/* ── Right column: always visible on lg+ ── */}
+      {/* --- Right column: always visible on lg+ --- */}
       <div className="hidden lg:block lg:w-[40%] h-full shrink-0">
         <RightPanel
           question={question ?? null}

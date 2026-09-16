@@ -14,8 +14,8 @@ Usage:
   MATRIX_VARIANT=cpu  uv run --no-sync python scripts/verify-bundle.py
   MATRIX_VARIANT=gpu  uv run --no-sync python scripts/verify-bundle.py
 
-Called by Makefile's verify-cpu / verify-gpu targets AND (on Linux/macOS)
-by .github/workflows/release.yml (which can also keep calling the .sh there).
+Called by the Makefile's verify-cpu / verify-gpu targets and by
+.github/workflows/release.yml on every OS.
 """
 
 import fnmatch
@@ -34,7 +34,7 @@ from pathlib import Path
 # `print()` crashes with UnicodeEncodeError before we ever reach the ready/fail
 # check. Force UTF-8 with errors="replace" so diagnostic echo is bulletproof.
 # Local Windows runs don't hit this because the user's HuggingFace cache
-# already has the weights — no download, no progress bar in the log.
+# already has the weights (no download, no progress bar in the log).
 for _stream in (sys.stdout, sys.stderr):
     if getattr(_stream, "reconfigure", None):
         _stream.reconfigure(encoding="utf-8", errors="replace")
@@ -49,7 +49,7 @@ def fail(msg: str) -> None:
     sys.exit(1)
 
 
-# ── 1. Presence check ────────────────────────────────────────────────────────
+# --- 1. Presence check ---
 
 print(f"=== Presence check (variant={VARIANT}) ===")
 PACKAGES = [
@@ -74,11 +74,11 @@ PACKAGES = [
 for pkg in PACKAGES:
     pkg_dir = BUNDLE / pkg
     if not pkg_dir.is_dir():
-        fail(f"{pkg_dir} is missing — bundle is incomplete")
+        fail(f"{pkg_dir} is missing - bundle is incomplete")
     print(f"OK: {pkg}")
 
 
-# ── 2. Variant shape check ───────────────────────────────────────────────────
+# --- 2. Variant shape check ---
 
 CUDA_PATTERNS = (
     "cublas64*.dll",
@@ -114,12 +114,12 @@ else:
     nvidia_libs = find_files(nvidia_dir, *CUDA_PATTERNS) if nvidia_dir.is_dir() else []
     if nvidia_libs:
         fail(
-            f"CPU variant bundle contains {len(nvidia_libs)} nvidia-* wheel libs under _internal/nvidia/ — should be 0"
+            f"CPU variant bundle contains {len(nvidia_libs)} nvidia-* wheel libs under _internal/nvidia/ - should be 0"
         )
     print("OK: CPU variant has no nvidia-* wheel runtime")
 
 
-# ── 3. Size check ────────────────────────────────────────────────────────────
+# --- 3. Size check ---
 
 print("=== Size check ===")
 bundle_root = Path("dist/articulate_backend")
@@ -138,7 +138,7 @@ if SIZE_MB < MIN_MB:
     fail(f"bundle is {SIZE_MB} MB, expected >= {MIN_MB} MB for {RUNNER_OS_VAL}/{VARIANT}")
 
 
-# ── 4. Smoke test ────────────────────────────────────────────────────────────
+# --- 4. Smoke test ---
 
 print("=== Smoke test ===")
 exe = Path("dist/articulate_backend/articulate_backend")
@@ -178,8 +178,7 @@ if smoke_log.exists():
 #      stderr regardless of the host's code page. backend_launcher.py already
 #      reassigns sys.stdout/stderr to an utf-8 file, but native C stderr paths
 #      that slip past that reassignment still land as UTF-8 with this flag.
-#      Defense-in-depth on the encoding side of the `feedback_windows_console_
-#      encoding.md` class of bug.
+#      Defense-in-depth against Windows console-encoding (cp1252) crashes.
 smoke_data_dir = Path(tempfile.mkdtemp(prefix="articulate-smoke-data-"))
 smoke_cache_dir = Path(tempfile.mkdtemp(prefix="articulate-smoke-cache-"))
 env = os.environ.copy()
@@ -236,7 +235,6 @@ try:
                 break
         time.sleep(0.5)
 
-    # Stop the backend (whether ready or timed out).
     if proc.poll() is None:
         proc.terminate()
         try:

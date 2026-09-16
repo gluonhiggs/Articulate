@@ -20,14 +20,12 @@ export function RightPanelPlaceholder({
   const pronunAudioRef = useRef<HTMLAudioElement | null>(null)
   const [pronunPlaying, setPronunPlaying] = useState(false)
 
-  // Compute prev/next question IDs
   const currentIndex = question ? allQuestions.findIndex((q) => q.id === question.id) : -1
   const prevId = currentIndex > 0 ? allQuestions[currentIndex - 1].id : null
   const nextId = currentIndex < allQuestions.length - 1 && currentIndex >= 0
     ? allQuestions[currentIndex + 1].id
     : null
 
-  // Reset content when question changes
   useEffect(() => {
     setSampleAnswer(null)
     setTopicVocab(null)
@@ -96,7 +94,6 @@ export function RightPanelPlaceholder({
         </div>
       </div>
 
-      {/* Content area */}
       <div className="flex-1 overflow-y-auto p-4">
         {loading && (
           <div className="flex items-center justify-center gap-2 py-8">
@@ -121,7 +118,6 @@ export function RightPanelPlaceholder({
           </div>
         )}
 
-        {/* Sample answer display */}
         {sampleAnswer && !loading && (
           <div className="mb-4">
             <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Sample Answer (Band 7)</p>
@@ -143,7 +139,6 @@ export function RightPanelPlaceholder({
           </div>
         )}
 
-        {/* Topic vocabulary display */}
         {topicVocab && !loading && (
           <div className="mb-4">
             <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Topic Vocabulary (Band 8-9)</p>
@@ -187,7 +182,6 @@ export function RightPanelPlaceholder({
           </button>
         </div>
 
-        {/* Pronunciation input */}
         <div className="relative flex items-center">
           <input
             type="text"

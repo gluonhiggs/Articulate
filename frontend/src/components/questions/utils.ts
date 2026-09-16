@@ -1,5 +1,3 @@
-// ── Shared helper functions for question components ──────────────────────────
-
 export function partMaxSeconds(part: string): number {
   return part === '2' ? 120 : part === '3' ? 60 : 45
 }

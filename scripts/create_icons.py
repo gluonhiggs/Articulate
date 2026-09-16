@@ -2,9 +2,9 @@
 Generate app icons for Articulate desktop app.
 
 Outputs:
-  build-resources/icon.png   — 1024x1024 source PNG
-  build-resources/icon.ico   — multi-resolution Windows icon
-  build-resources/icon.icns  — macOS icon set
+  build-resources/icon.png   - 1024x1024 source PNG
+  build-resources/icon.ico   - multi-resolution Windows icon
+  build-resources/icon.icns  - macOS icon set
 
 Run from project root:
   python scripts/create_icons.py
@@ -37,12 +37,9 @@ OUT_DIR.mkdir(exist_ok=True)
 SIZE = 1024
 BG_COLOR = (79, 70, 229)  # indigo-600  #4F46E5
 BUBBLE_COLOR = (255, 255, 255)  # white
-TEXT_COLOR = (79, 70, 229)  # indigo — matches bg so "A" pops from bubble
+TEXT_COLOR = (79, 70, 229)  # indigo, matches bg so "A" pops from bubble
 
 
-# ---------------------------------------------------------------------------
-# Draw the 1024x1024 source image
-# ---------------------------------------------------------------------------
 def draw_icon(size: int) -> Image.Image:
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
@@ -100,7 +97,7 @@ def draw_icon(size: int) -> Image.Image:
         ty = bubble_cy - th // 2 - bbox[1] - int(size * 0.02)
         draw.text((tx, ty), letter, font=font, fill=TEXT_COLOR)
     else:
-        # Pillow default font — tiny but better than nothing
+        # Pillow default font: tiny but better than nothing
         draw.text((bubble_cx, bubble_cy), letter, fill=TEXT_COLOR, anchor="mm")
 
     return img
@@ -165,7 +162,7 @@ print(f"  icon.ico  -> {ico_path}")
 # ---------------------------------------------------------------------------
 # Save ICNS
 # ---------------------------------------------------------------------------
-# icnsutil expects a dict of {size_label: PIL.Image or bytes}
+# ICNS type code -> pixel size; icnsutil.add_media() takes PNG bytes per code.
 # Standard macOS sizes: 16, 32, 64, 128, 256, 512, 1024
 icns_sizes = {
     "ic04": 16,

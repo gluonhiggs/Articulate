@@ -51,7 +51,7 @@ async def run_eval():
             passed += 1
         status = "PASS" if ok else "FAIL"
         print(
-            f"  {status}  score={score} (expected {lo}–{hi})  "
+            f"  {status}  score={score} (expected {lo}-{hi})  "
             f"errors={[h['word'] for h in result.get('usage_errors', [])]}"
         )
 

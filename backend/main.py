@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 def _should_downgrade_to_groq(mode: str | None, fw_installed: bool) -> bool:
-    """Capability gate: saved mode=local + missing fw → run as groq this session.
+    """Capability gate: saved mode=local + missing fw -> run as groq this session.
 
     Pure predicate so the invariant can be unit-tested without booting the app.
     """
@@ -41,17 +41,15 @@ def _should_downgrade_to_groq(mode: str | None, fw_installed: bool) -> bool:
 def _prompt_mode_selection() -> None:
     """Interactive terminal prompt for transcription mode.
 
-    Only runs when TRANSCRIPTION_MODE is unset in .env.
+    Only runs when TRANSCRIPTION_MODE is unset. Lifespan restores a saved
+    data/mode into os.environ before calling this, so users are asked once.
     For Mode 1 with no GPU, asks the user to confirm CPU slowness.
     Writes the chosen mode to data/mode and updates os.environ so
     get_settings() returns the new value after cache_clear().
-
-    NOTE: Persistence (saved to data/mode) persists across server restarts.
-    The chosen mode is restored during lifespan startup before the prompt runs.
     """
     settings = get_settings()
     if settings.transcription_mode in ("groq", "local"):
-        return  # already configured - skip prompt
+        return
 
     # Non-interactive mode (Electron desktop app): skip terminal prompt.
     # Default to local when faster-whisper is bundled (the installer case) so
@@ -97,7 +95,6 @@ def _prompt_mode_selection() -> None:
 
     mode = "local" if choice == "1" else "groq"
 
-    # Warn and confirm if local mode selected but no GPU available
     if mode == "local" and not has_gpu:
         print()
         print("! No GPU detected. Expect ~40-60s transcription per answer on CPU.")
@@ -119,7 +116,6 @@ def _prompt_mode_selection() -> None:
 
     write_mode_file(mode)
 
-    # Update the running process so lifespan reads the chosen mode
     os.environ["TRANSCRIPTION_MODE"] = mode
     get_settings.cache_clear()
 
@@ -131,11 +127,11 @@ async def lifespan(app: FastAPI):
     """Application lifespan: startup and shutdown hooks."""
     settings = get_settings()
 
-    logger.info("Initialising database…")
+    logger.info("Initialising database...")
     await init_db()
     logger.info("Database ready.")
 
-    logger.info("Running audio cleanup…")
+    logger.info("Running audio cleanup...")
     await cleanup_old_audio(
         audio_dir=settings.audio_dir,
         retention_days=settings.audio_retention_days,
@@ -143,11 +139,11 @@ async def lifespan(app: FastAPI):
     )
     logger.info("Audio cleanup done.")
 
-    logger.info("Evicting TTS cache…")
+    logger.info("Evicting TTS cache...")
     evict_tts_cache(settings.tts_cache_dir, settings.tts_cache_max_mb)
     logger.info("TTS cache eviction done.")
 
-    logger.info("Verifying vocab signal dependencies…")
+    logger.info("Verifying vocab signal dependencies...")
     try:
         import simplemma  # noqa: F401
 
@@ -159,7 +155,7 @@ async def lifespan(app: FastAPI):
 
     logger.info("Oxford 5000 loaded: %d words", len(WORD_TO_CEFR))
 
-    # ── Restore last-used transcription mode from data/mode ──────────────────
+    # --- Restore last-used transcription mode from data/mode ---
     from backend.config import get_mode_file
 
     _mode_file = get_mode_file()
@@ -170,13 +166,11 @@ async def lifespan(app: FastAPI):
             get_settings.cache_clear()
             logger.info("Transcription mode restored from data/mode: %s", _saved_mode)
 
-    # Mode selection: prompt user if TRANSCRIPTION_MODE not set in .env
     _prompt_mode_selection()
     settings = get_settings()  # re-read after potential mode change
 
-    # Capability gate: saved mode=local but faster-whisper isn't importable.
-    # Fall back to groq *in-memory only* — never overwrite data/mode, so the
-    # preference survives into environments where local is supported.
+    # Capability gate: fall back to groq *in-memory only*; never overwrite data/mode,
+    # so the preference survives into environments where local is supported.
     if _should_downgrade_to_groq(settings.transcription_mode, is_faster_whisper_installed()):
         if getattr(sys, "frozen", False):
             logger.warning(
@@ -203,15 +197,15 @@ async def lifespan(app: FastAPI):
 
             loop = asyncio.get_running_loop()
             await loop.run_in_executor(_whisper_local_executor, _get_whisper_model)
-            logger.info("faster-whisper model loaded - running CUDA warmup probe…")
+            logger.info("faster-whisper model loaded - running CUDA warmup probe...")
             await _warmup_probe()
             logger.info("faster-whisper ready (device validated).")
         except ImportError:
-            # Missing dep → hard fail. Signals a broken source install (dev forgot
+            # Missing dep -> hard fail. Signals a broken source install (dev forgot
             # `uv sync --group local-transcription`) or a build regression where
             # the packaged bundle is missing fw. The capability gate above is the
             # intended in-memory fallback for that second case, so reaching here
-            # means the gate mis-routed — don't mask it.
+            # means the gate mis-routed; don't mask it.
             logger.critical(
                 "faster-whisper is not installed but TRANSCRIPTION_MODE=local.\n"
                 "  Install: uv sync --group local-transcription\n"
@@ -242,11 +236,11 @@ async def lifespan(app: FastAPI):
             settings.groq_whisper_model,
         )
 
-    logger.info("Pre-loading Kokoro TTS model…")
+    logger.info("Pre-loading Kokoro TTS model...")
     await _ensure_tts_pipeline()
     logger.info("Kokoro TTS model ready.")
 
-    logger.info("Initialising LanguageTool grammar checker…")
+    logger.info("Initialising LanguageTool grammar checker...")
     loop = asyncio.get_running_loop()
     try:
         lt = await asyncio.wait_for(
@@ -273,10 +267,6 @@ app = FastAPI(
     version="0.1.8",
     lifespan=lifespan,
 )
-
-# ---------------------------------------------------------------------------
-# Middleware
-# ---------------------------------------------------------------------------
 
 app.add_middleware(
     CORSMiddleware,

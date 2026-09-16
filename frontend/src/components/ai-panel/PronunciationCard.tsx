@@ -107,7 +107,6 @@ export function PronunciationCard({
   const selectedTier = selectedWord ? tierMap.get(selectedWord) : undefined
   const selectedTierConfig = selectedTier ? TIER_CONFIG[selectedTier] : undefined
 
-  // Group words by tier
   const wordsByTier = new Map<Tier, PronunciationWord[]>()
   for (const tier of TIER_ORDER) {
     const tierWords = item.words?.filter((w) => w.tier === tier) ?? []
@@ -120,7 +119,6 @@ export function PronunciationCard({
 
   return (
     <div className="mb-4 rounded-xl bg-white/[0.03] border border-white/5 overflow-hidden">
-      {/* Card header */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/5">
         <span className="text-xs text-gray-500 uppercase tracking-wider">Pronunciation Analysis</span>
         <button
@@ -135,7 +133,6 @@ export function PronunciationCard({
         </button>
       </div>
 
-      {/* Card body */}
       <div className="p-4">
         {item.loading ? (
           <LoadingRow text="Loading pronunciation details..." />
@@ -253,7 +250,6 @@ export function PronunciationCard({
               <p className="text-green-400 text-sm text-center py-2">All words pronounced clearly</p>
             )}
 
-            {/* Pronunciation score */}
             <div className="mt-3 pt-3 border-t border-white/5">
               <p className="text-center text-xs text-gray-500">
                 Pronunciation score: {item.pronunciationScore?.toFixed(1) ?? '-'}

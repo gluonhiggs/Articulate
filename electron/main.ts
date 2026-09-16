@@ -11,19 +11,19 @@ import * as path from "path";
 import { findFreePort } from "./utils/findFreePort";
 import { spawnBackend } from "./utils/spawnBackend";
 
-// ── State ─────────────────────────────────────────────────────────────────────
+// --- State ---
 
 let mainWindow: BrowserWindow | null = null;
 let backendProcess: child_process.ChildProcess | null = null;
 let backendPort: number = 8000;
 let isQuitting = false;
 
-// ── Paths ─────────────────────────────────────────────────────────────────────
+// --- Paths ---
 
 const dataDir = app.getPath("userData");
 const configEnvPath = path.join(dataDir, "config.env");
 
-// ── Window helpers ────────────────────────────────────────────────────────────
+// --- Window helpers ---
 
 function createLoadingWindow(): BrowserWindow {
   const win = new BrowserWindow({
@@ -47,7 +47,7 @@ function createSetupWindow(): BrowserWindow {
     height: 560,
     resizable: false,
     backgroundColor: "#0b0f19",
-    title: "Articulate — Setup",
+    title: "Articulate - Setup",
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -86,7 +86,7 @@ function createMainWindow(port: number): BrowserWindow {
   return win;
 }
 
-// ── Backend health check ──────────────────────────────────────────────────────
+// --- Backend health check ---
 
 function waitForBackend(port: number, timeoutMs: number = 120_000): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -122,7 +122,7 @@ function waitForBackend(port: number, timeoutMs: number = 120_000): Promise<void
   });
 }
 
-// ── Backend shutdown ──────────────────────────────────────────────────────────
+// --- Backend shutdown ---
 
 function stopBackend(): Promise<void> {
   return new Promise((resolve) => {
@@ -145,7 +145,7 @@ function stopBackend(): Promise<void> {
   });
 }
 
-// ── First-run setup ───────────────────────────────────────────────────────────
+// --- First-run setup ---
 
 function isFirstRun(): boolean {
   return !fs.existsSync(configEnvPath);
@@ -169,12 +169,12 @@ function writeConfigEnv(content: string): void {
   if (content) {
     fs.writeFileSync(configEnvPath, content, "utf-8");
   } else {
-    // User skipped — write a marker file so we don't prompt again.
+    // User skipped: write a marker file so we don't prompt again.
     fs.writeFileSync(configEnvPath, "# Articulate config\n", "utf-8");
   }
 }
 
-// ── IPC handlers ─────────────────────────────────────────────────────────────
+// --- IPC handlers ---
 
 ipcMain.handle("get-port", () => backendPort);
 
@@ -189,7 +189,7 @@ ipcMain.on("open-external", (_event, url: string) => {
 
 // save-config is handled in runSetup() via ipcMain.once for the first-run flow.
 
-// ── App lifecycle ─────────────────────────────────────────────────────────────
+// --- App lifecycle ---
 
 app.whenReady().then(async () => {
   // First-run: collect API keys before starting the backend.
@@ -197,7 +197,6 @@ app.whenReady().then(async () => {
     await runSetup();
   }
 
-  // Find a free port and start the backend.
   backendPort = await findFreePort(8000);
   backendProcess = spawnBackend({
     port: backendPort,
@@ -205,11 +204,10 @@ app.whenReady().then(async () => {
     configEnvPath,
   });
 
-  // Show a loading screen while the backend warms up.
   const loadingWin = createLoadingWindow();
 
   try {
-    // Wait up to 30 min — first launch downloads Kokoro models (~330 MB).
+    // Wait up to 30 min: first launch downloads Kokoro models (~330 MB).
     // Race against process exit so a crash fails fast instead of waiting 30 min.
     await Promise.race([
       waitForBackend(backendPort, 30 * 60 * 1_000),
@@ -220,12 +218,11 @@ app.whenReady().then(async () => {
       }),
     ]);
   } catch (err) {
-    // Backend failed to start; show the log file path in a dialog.
     const { dialog } = await import("electron");
     const logPath = path.join(dataDir, "logs", "backend.log");
     await dialog.showMessageBox({
       type: "error",
-      title: "Articulate — Backend failed to start",
+      title: "Articulate - Backend failed to start",
       message: `The backend process did not respond within 2 minutes.\n\nCheck the log file for details:\n${logPath}`,
       buttons: ["Quit", "Open Log"],
     }).then(({ response }) => {
@@ -235,7 +232,6 @@ app.whenReady().then(async () => {
     return;
   }
 
-  // Close loading screen, open the real app window.
   loadingWin.close();
   mainWindow = createMainWindow(backendPort);
   mainWindow.loadURL(`http://127.0.0.1:${backendPort}`);

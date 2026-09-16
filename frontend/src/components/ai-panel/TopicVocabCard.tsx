@@ -19,7 +19,6 @@ export function TopicVocabCard({
 }) {
   return (
     <div className="mb-4 rounded-xl bg-white/[0.03] border border-white/5 overflow-hidden">
-      {/* Card header */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/5">
         <span className="text-xs text-gray-500 uppercase tracking-wider">Topic Vocabulary (Band 8-9)</span>
         <button
@@ -34,7 +33,6 @@ export function TopicVocabCard({
         </button>
       </div>
 
-      {/* Card body */}
       <div className="p-4">
         {item.loading ? (
           <LoadingRow text="Generating vocabulary..." />

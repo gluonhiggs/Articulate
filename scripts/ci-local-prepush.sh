@@ -3,9 +3,9 @@
 # Invoked by pre-commit's pre-push stage (see .pre-commit-config.yaml).
 #
 # Two modes:
-#   - Tag push matching v*.*.* → `make release-cpu` (full bundle + installer).
-#   - Branch push (refs/heads/*) → `make ci` (lint + typecheck + tests).
-#   - Anything else             → exit 0.
+#   - Tag push matching v*.*.* -> `make release-cpu` (full bundle + installer).
+#   - Branch push (refs/heads/*) -> `make ci` (lint + typecheck + tests).
+#   - Anything else             -> exit 0.
 #
 # pre-commit sets PRE_COMMIT_REMOTE_BRANCH to the remote ref being pushed
 # (e.g. refs/heads/main or refs/tags/v0.1.6). See:

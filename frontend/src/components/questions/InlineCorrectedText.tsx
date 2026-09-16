@@ -13,9 +13,9 @@ export function InlineCorrectedText({
     return <span>{transcript}</span>
   }
 
-  // Split transcript into tokens (words + whitespace preserved)
+  // The capture group keeps whitespace tokens so the transcript renders unchanged
   const tokens = transcript.split(/(\s+)/)
-  // Build cleaned non-whitespace tokens with their indices for phrase matching
+  // Cleaned word tokens with their index into `tokens`, for phrase matching
   const wordTokens: { clean: string; idx: number }[] = []
   for (let i = 0; i < tokens.length; i++) {
     if (!/^\s*$/.test(tokens[i])) {
@@ -28,16 +28,14 @@ export function InlineCorrectedText({
     (a, b) => (b.word?.split(/\s+/).length ?? 0) - (a.word?.split(/\s+/).length ?? 0),
   )
 
-  // Mark which token indices are consumed by a highlight
+  // Token index -> the highlight that consumed it
   const tokenHighlight = new Map<number, { h: UsageError; isFirst: boolean; span: number }>()
 
   for (const h of sorted) {
     const phraseWords = h.word!.toLowerCase().split(/\s+/).map((w) => cleanWord(w))
     const phraseLen = phraseWords.length
 
-    // Scan wordTokens for a consecutive match
     for (let wi = 0; wi <= wordTokens.length - phraseLen; wi++) {
-      // Skip if any token in this range is already consumed
       const range = wordTokens.slice(wi, wi + phraseLen)
       if (range.some((wt) => tokenHighlight.has(wt.idx))) continue
 
@@ -51,7 +49,6 @@ export function InlineCorrectedText({
     }
   }
 
-  // Render tokens
   const result: React.ReactNode[] = []
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i]
@@ -74,7 +71,7 @@ export function InlineCorrectedText({
       result.push(
         <span key={i} title={tooltip}>
           <span className="correction-wrong">{token}</span>
-          {/* Show correction after the last word of the phrase */}
+          {/* Correction is rendered once per phrase, after its first word */}
           {isFirst && correction && (
             <>
               {' '}

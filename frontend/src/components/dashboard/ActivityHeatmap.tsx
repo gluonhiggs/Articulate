@@ -21,7 +21,6 @@ function getColor(intensity: number): string {
 
 export function ActivityHeatmap({ values }: ActivityHeatmapProps) {
   const { weeks, monthLabels } = useMemo(() => {
-    // Build a date -> entry lookup
     const lookup = new Map<string, HeatmapEntry>()
     for (const v of values) lookup.set(v.date, v)
 
@@ -30,7 +29,7 @@ export function ActivityHeatmap({ values }: ActivityHeatmapProps) {
     const startRaw = new Date(today)
     startRaw.setDate(startRaw.getDate() - 179)
     const start = new Date(startRaw)
-    start.setDate(start.getDate() - start.getDay()) // back to Sunday
+    start.setDate(start.getDate() - start.getDay())
 
     const weeks: { date: Date; entry: HeatmapEntry | null }[][] = []
     const monthLabels: { label: string; col: number }[] = []
@@ -48,7 +47,6 @@ export function ActivityHeatmap({ values }: ActivityHeatmapProps) {
       const isFuture = current > today
       week.push({ date: new Date(current), entry: isFuture ? null : entry })
 
-      // Track month labels
       if (current.getMonth() !== lastMonth && dayOfWeek === 0 && !isFuture) {
         lastMonth = current.getMonth()
         monthLabels.push({
@@ -68,7 +66,6 @@ export function ActivityHeatmap({ values }: ActivityHeatmapProps) {
 
   return (
     <div className="w-full overflow-x-auto">
-      {/* Month labels */}
       <div className="relative mb-1" style={{ height: 16, width: totalWidth }}>
         {monthLabels.map((m, i) => (
           <span
@@ -81,7 +78,6 @@ export function ActivityHeatmap({ values }: ActivityHeatmapProps) {
         ))}
       </div>
 
-      {/* Grid */}
       <div className="flex gap-[3px]">
         {weeks.map((week, wi) => (
           <div key={wi} className="flex flex-col gap-[3px]">

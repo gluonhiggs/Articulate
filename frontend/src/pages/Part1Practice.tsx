@@ -30,7 +30,6 @@ export function Part1Practice() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Header */}
       <div className="bg-sidebar border-b border-cardBorder px-6 py-4 sticky top-0 z-10">
         <PartTabSwitcher activePart="part1" />
       </div>
@@ -78,7 +77,6 @@ export function Part1Practice() {
           </label>
         </div>
 
-        {/* Results count */}
         {!isLoading && (
           <p className="text-textSecondary text-xs mb-4">
             {filtered.length} {filtered.length === 1 ? 'question' : 'questions'}

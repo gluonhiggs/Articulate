@@ -1,4 +1,4 @@
-"""Unit tests for scoring._parse_llm_response() - no API keys required."""
+"""Unit tests for scoring helpers (LLM response parsing, band clamping, prompt building) - no API keys required."""
 
 from backend.services.scoring import _clamp_band, _parse_llm_response
 
@@ -78,7 +78,7 @@ class TestParseLlmResponse:
             '{"fluency":6.0,"vocabulary":5.5,"grammar":5.0,"pronunciation":6.0,"usage_errors":[],"feedback_text":"Good'
         )
         result = _parse_llm_response(raw)
-        assert result["fluency"] == 6.0  # scores recovered via truncation repair
+        assert result["fluency"] == 6.0
 
 
 class TestLengthLabel:

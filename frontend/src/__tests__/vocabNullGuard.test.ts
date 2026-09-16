@@ -1,5 +1,5 @@
 /**
- * Tests for the VocabItem.type null guard in RightPanelPlaceholder.tsx.
+ * Tests for the VocabItem.type null guard in TopicVocabCard.tsx and RightPanelPlaceholder.tsx.
  *
  * The fix: `{(item.type ?? '').replace('_', ' ')}` instead of `{item.type.replace('_', ' ')}`.
  * Without the guard, a null/undefined type from a truncated LLM response crashes the render.

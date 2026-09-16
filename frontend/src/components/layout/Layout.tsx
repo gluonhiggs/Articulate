@@ -7,7 +7,7 @@ export function Layout() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      {/* Backdrop - mobile only, shown when sidebar open */}
+      {/* Backdrop - mobile only */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-10 bg-black/50 md:hidden"

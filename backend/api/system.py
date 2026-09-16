@@ -20,7 +20,7 @@ from backend.services.transcription import (
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/system", tags=["system"])
 
-# ── Background-operation state ────────────────────────────────────────────────
+# Background-operation state
 # op_status: "" | "installing" | "loading" | "failed"
 # All mutations happen on the asyncio event loop thread - no lock needed.
 _op_status: str = ""
@@ -36,9 +36,6 @@ def _get_op_status() -> str:
     return _op_status
 
 
-# ── LLM reachability check ────────────────────────────────────────────────────
-
-
 async def _check_llm_reachable(base_url: str, api_key: str) -> bool:
     try:
         if api_key:
@@ -50,9 +47,6 @@ async def _check_llm_reachable(base_url: str, api_key: str) -> bool:
         return False
 
 
-# ── System info ───────────────────────────────────────────────────────────────
-
-
 @router.get("/info", response_model=SystemInfoOut)
 async def system_info() -> SystemInfoOut:
     settings = get_settings()
@@ -60,7 +54,6 @@ async def system_info() -> SystemInfoOut:
     is_low_accuracy = any(tag in model for tag in ("1b", "3b", "1b-it", "3b-it"))
     llm_reachable = await _check_llm_reachable(settings.llm_base_url, settings.llm_api_key)
 
-    # Whisper info depends on active mode
     if settings.transcription_mode == "local":
         try:
             from backend.services.transcription import _resolve_device_and_model
@@ -89,16 +82,13 @@ async def system_info() -> SystemInfoOut:
     )
 
 
-# ── LLM model switch ──────────────────────────────────────────────────────────
-
-
 @router.patch("/model", response_model=SystemInfoOut)
 async def update_model(body: SetModelRequest) -> SystemInfoOut:
     set_runtime_model(body.model.strip())
     return await system_info()
 
 
-# ── Transcription mode switch ─────────────────────────────────────────────────
+# --- Transcription mode switch ---
 
 
 async def _install_local_runtime() -> None:
@@ -111,7 +101,7 @@ async def _install_local_runtime() -> None:
 
     Chains into _load_model_and_switch on success so a single UI click takes the
     user from cold to mode=local. Previously the install finished and cleared
-    op_status but never loaded the model — requiring a second click.
+    op_status but never loaded the model, requiring a second click.
     """
     try:
         use_gpu = has_nvidia_gpu_driver()
@@ -151,7 +141,7 @@ async def _load_model_and_switch() -> None:
         await loop.run_in_executor(_local_executor, _get_model)
         logger.info("faster-whisper model loaded -- running warmup probe...")
         await warmup_probe()
-        # Guard: if op_status was cleared by a concurrent groq switch, abort
+        # A concurrent switch to groq may have cleared op_status while the model loaded.
         if _get_op_status() != "loading":
             logger.info("Mode switched away during load -- aborting local activation.")
             return
@@ -174,7 +164,7 @@ async def update_transcription_mode(body: SetTranscriptionModeRequest) -> System
     current_op = _get_op_status()
 
     if mode == "groq":
-        # Synchronous -- fast. Unload model, switch immediately.
+        # Nothing to install or load, so switch synchronously.
         from backend.services.transcription import unload_model
 
         unload_model()
@@ -184,10 +174,9 @@ async def update_transcription_mode(body: SetTranscriptionModeRequest) -> System
         _set_op_status("")
         return await system_info()
 
-    # mode == "local"
     # Desktop installer bundles faster-whisper, so the normal path has it
     # available. If a frozen build somehow lacks it (build regression), fail
-    # fast with a 400 — pip-installing into a PyInstaller bundle can't work
+    # fast with a 400: pip-installing into a PyInstaller bundle can't work
     # because imports resolve against frozen bytecode, not site-packages.
     if getattr(sys, "frozen", False) and not is_faster_whisper_installed():
         raise HTTPException(
@@ -200,7 +189,7 @@ async def update_transcription_mode(body: SetTranscriptionModeRequest) -> System
         )
 
     if current_op in ("installing", "loading"):
-        # Already in progress -- return current state, do not double-launch
+        # Already in progress: return current state, do not double-launch
         return await system_info()
 
     # Install path also catches the "fw installed but CUDA wheels missing" case.

@@ -50,7 +50,6 @@ async def _seed_questions(session: AsyncSession) -> None:
     with open(seed_path, "r", encoding="utf-8") as f:
         questions_data = json.load(f)
 
-    # Get existing question texts to avoid duplicates
     existing_texts = set((await session.execute(select(Question.text))).scalars().all())
 
     # Build lookup of all existing questions for parent_text resolution
@@ -59,7 +58,6 @@ async def _seed_questions(session: AsyncSession) -> None:
     for q in existing_result.scalars().all():
         existing_by_text[q.text] = q
 
-    # Separate by part
     part1_and_2 = [q for q in questions_data if q["part"] in ("1", "2")]
     part3 = [q for q in questions_data if q["part"] == "3"]
 
@@ -164,10 +162,8 @@ async def init_db() -> None:
     await _ensure_indexes()
 
     async with AsyncSessionLocal() as session:
-        # Always run seeding (additive - skips existing by text match)
         await _seed_questions(session)
 
-        # Ensure UserStats row with id=1 exists
         stats_result = await session.execute(select(UserStats).where(UserStats.id == 1))
         stats = stats_result.scalars().first()
         if stats is None:

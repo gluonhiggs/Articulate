@@ -15,7 +15,7 @@ export function findFreePort(startPort: number = 8000): Promise<number> {
       server.on("error", () => {
         attempts++;
         if (attempts >= maxAttempts) {
-          reject(new Error(`No free port found in range ${startPort}–${startPort + maxAttempts - 1}`));
+          reject(new Error(`No free port found in range ${startPort}-${startPort + maxAttempts - 1}`));
         } else {
           tryPort(port + 1);
         }

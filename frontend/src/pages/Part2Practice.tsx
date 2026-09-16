@@ -9,10 +9,10 @@ import { PartTabSwitcher } from './PartTabSwitcher'
 type Category = 'person' | 'object' | 'activity' | 'place'
 
 const CATEGORIES: { id: Category; label: string; emoji: string }[] = [
-  { id: 'person', label: 'Person', emoji: '👤' },
-  { id: 'object', label: 'Object', emoji: '📦' },
-  { id: 'activity', label: 'Activity', emoji: '🏃' },
-  { id: 'place', label: 'Place', emoji: '📍' },
+  { id: 'person', label: 'Person', emoji: '\u{1F464}' },
+  { id: 'object', label: 'Object', emoji: '\u{1F4E6}' },
+  { id: 'activity', label: 'Activity', emoji: '\u{1F3C3}' },
+  { id: 'place', label: 'Place', emoji: '\u{1F4CD}' },
 ]
 
 function CueCardItem({
@@ -38,7 +38,7 @@ function CueCardItem({
         <ul className="space-y-1.5 mt-2">
           {question.bullet_points.map((bp, i) => (
             <li key={i} className="text-xs text-textSecondary flex items-start gap-2">
-              <span className="text-accent mt-0.5 flex-shrink-0">•</span>
+              <span className="text-accent mt-0.5 flex-shrink-0">{'\u2022'}</span>
               <span>{bp}</span>
             </li>
           ))}
@@ -68,7 +68,6 @@ export function Part2Practice() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Header */}
       <div className="bg-sidebar border-b border-cardBorder px-6 py-4 sticky top-0 z-10">
         <PartTabSwitcher activePart="part2" />
       </div>

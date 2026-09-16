@@ -5,7 +5,7 @@ On Windows without Developer Mode, 7-Zip cannot create macOS symlinks inside
 the winCodeSign archive (darwin/10.12/lib/libcrypto.dylib etc.) and exits with
 code 2. electron-builder treats that as a fatal error and retries forever.
 
-This script runs 7-Zip ourselves, tolerates exit code 2 (partial extraction),
+This script runs 7-Zip itself, tolerates exit code 2 (partial extraction),
 and copies the result to the expected cache directory if the Windows binaries
 are present. The macOS symlinks are irrelevant on Windows.
 
@@ -38,7 +38,7 @@ def find_7za(script_dir: Path) -> Path:
     candidate = script_dir.parent / "electron" / "node_modules" / "7zip-bin" / "win" / "x64" / "7za.exe"
     if candidate.exists():
         return candidate
-    raise FileNotFoundError("7za.exe not found in electron/node_modules — run `bun install` first")
+    raise FileNotFoundError("7za.exe not found in electron/node_modules - run `bun install` first")
 
 
 def main() -> None:

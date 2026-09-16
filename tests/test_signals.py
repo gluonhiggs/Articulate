@@ -1,17 +1,9 @@
-"""Tests for the deterministic scoring signals computed in _run_pipeline().
-
-These tests validate the inline logic for fluency gap rate and CEFR vocabulary
-distribution by running the same computation with known inputs.
-"""
+"""Tests for the deterministic scoring signals fed to the LLM scorer."""
 
 from __future__ import annotations
 
 from backend.data.oxford import WORD_TO_CEFR, WORD_TO_DATA
 from backend.services.vocab import compute_vocab_signal
-
-# ---------------------------------------------------------------------------
-# CEFR vocabulary signal helpers
-# ---------------------------------------------------------------------------
 
 GAP_THRESHOLD = 0.5  # mirrors Settings.gap_threshold default
 
@@ -22,7 +14,7 @@ def _w(word: str) -> dict:
 
 
 def _compute_fluency(words: list[dict]) -> tuple[int, set[str], float]:
-    """Replicate the fluency signal loop from _run_pipeline()."""
+    """Replicate the fluency signal loop inlined in _run_pipeline() (backend/api/attempts.py)."""
     gap_count = 0
     disfluent: set[str] = set()
     for i in range(1, len(words)):
@@ -87,7 +79,6 @@ class TestCEFRSignal:
         # "house" (A1) is a content word and not a stop word
         words = [_w("house"), _w("house"), _w("house")]
         signal = compute_vocab_signal(words, "house house house")
-        # A1:100% and 0 B2+ words
         assert "0 B2+ words" in signal
         assert "A1:100%" in signal
 
@@ -111,7 +102,6 @@ class TestCEFRSignal:
         assert "unique lemmas" in signal
 
     def test_punctuation_stripped_from_words(self):
-        # "house." should match the same as "house"
         words = [_w("house."), _w("house,")]
         signal = compute_vocab_signal(words, "house. house,")
         assert "A1:100%" in signal
@@ -149,7 +139,6 @@ class TestIdiomSignal:
 
         text = "In my opinion, to some extent this is true. On the other hand, it depends on the situation."
         signal = _compute_idiom_signal(text, len(text.split()))
-        # Should detect at least 3 phrases
         assert "matched:" in signal
 
     def test_empty_transcript(self):

@@ -1,9 +1,9 @@
 """
-Formulaic / idiomatic phrase list - loaded once at module level.
+Formulaic / idiomatic phrase list.
 
 IELTS_PHRASES is a list of common English formulaic sequences relevant to
 IELTS Speaking. Matching these against a transcript detects idiomatic language
-use (Signal 4 in LEXICAL-RESOURCE-SIGNALS.md), which distinguishes Band 7
+use (Signal 4 in docs/analysis/LEXICAL-RESOURCE-SIGNALS.md), which distinguishes Band 7
 ("uses some less common and idiomatic vocabulary") from Band 6.
 
 Coverage strategy:
@@ -13,25 +13,16 @@ Coverage strategy:
   - Common IELTS topic collocations used as fixed phrases (Band 6-7+)
   - Higher-register fixed expressions (Band 7-8+)
 
-Calibration thresholds (per 100 words of transcript):
-  0     -> no formulaic use detected (Band 5–6 indicator)
-  1–2   -> limited (Band 6)
-  2–4   -> adequate (Band 6–7)
-  4–6   -> good (Band 7)
-  >6    -> high (Band 7–8+)
-
-Phrases are stored lowercased. Matching is done case-insensitively against
-the lowercased transcript. Multi-word phrases matched greedily (longest first).
-
-Do NOT import this per-request - it is loaded once at module import time.
+Matching and density thresholds: _compute_idiom_signal() in backend/services/vocab.py.
+Phrases must be lowercase. The transcript is lowercased and punctuation other than
+apostrophes becomes spaces before matching, so hyphenated entries never match.
 """
 
 from __future__ import annotations
 
-# Sorted by length descending at load time (see bottom of file)
-# so longer phrases (e.g. "in the long run") match before subsets ("in the long")
+# Order and duplicates don't matter here; IELTS_PHRASES dedupes and sorts at the bottom.
 _RAW_PHRASES: list[str] = [
-    # ── Discourse connectors / cohesive devices ──────────────────────────
+    # --- Discourse connectors / cohesive devices ---
     "on the other hand",
     "on the one hand",
     "having said that",
@@ -74,7 +65,7 @@ _RAW_PHRASES: list[str] = [
     "apart from that",
     "aside from that",
     "what is interesting is",
-    # ── Hedging and qualification ─────────────────────────────────────────
+    # --- Hedging and qualification ---
     "to a certain extent",
     "to a large extent",
     "to some extent",
@@ -113,7 +104,7 @@ _RAW_PHRASES: list[str] = [
     "as far as i know",
     "as far as i am concerned",
     "as far as i can tell",
-    # ── Opinion and stance phrases ────────────────────────────────────────
+    # --- Opinion and stance phrases ---
     "from my point of view",
     "in my opinion",
     "in my view",
@@ -135,7 +126,7 @@ _RAW_PHRASES: list[str] = [
     "there is a strong case for",
     "the main reason is",
     "the key point is",
-    # ── Idiomatic verb phrases ────────────────────────────────────────────
+    # --- Idiomatic verb phrases ---
     "keep in mind",
     "bear in mind",
     "take into account",
@@ -207,7 +198,7 @@ _RAW_PHRASES: list[str] = [
     "reach a conclusion",
     "draw a conclusion",
     "make a difference",
-    # ── Fixed expressions and idioms ──────────────────────────────────────
+    # --- Fixed expressions and idioms ---
     "in the long run",
     "in the short term",
     "in the long term",
@@ -247,7 +238,7 @@ _RAW_PHRASES: list[str] = [
     "as time goes by",
     "as time goes on",
     "in this day and age",
-    # ── IELTS topic-specific fixed collocations ───────────────────────────
+    # --- IELTS topic-specific fixed collocations ---
     "quality of life",
     "standard of living",
     "way of life",
@@ -294,5 +285,5 @@ _RAW_PHRASES: list[str] = [
     "pose a challenge",
 ]
 
-# Deduplicate and sort by length descending (longest match first)
+# Longest first, so "as a result of this" claims its span before "as a result" can match inside it
 IELTS_PHRASES: list[str] = sorted(set(_RAW_PHRASES), key=lambda p: len(p), reverse=True)

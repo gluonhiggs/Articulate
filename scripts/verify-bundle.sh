@@ -2,18 +2,19 @@
 #
 # Verify a PyInstaller backend bundle.
 #
-# Runs three checks:
-#   1. Presence — every package the backend imports is in the bundle
-#   2. Variant shape — CPU: no nvidia-* wheel DLLs; GPU: >=3 CUDA runtime libs
-#   3. Size floor — bundle is big enough to contain the expected payload
-#   4. Smoke — backend starts and stays running for 10s
+# Checks:
+#   1. Presence - every package the backend imports is in the bundle
+#   2. Variant shape - CPU: no nvidia-* wheel DLLs; GPU: >=3 CUDA runtime libs
+#   3. Size floor - bundle is big enough to contain the expected payload
+#   4. Smoke - backend starts and stays running for 10s
 #
 # Usage:
 #   MATRIX_VARIANT=cpu bash scripts/verify-bundle.sh
 #   MATRIX_VARIANT=gpu bash scripts/verify-bundle.sh
 #
-# Called by .github/workflows/release.yml AND scripts/ci-local.sh. Keeping one
-# script means CI and local runs exercise the same code path.
+# Superseded by scripts/verify-bundle.py (called by the Makefile and
+# release.yml). This bash version is no longer invoked, and its package list
+# and smoke test lag behind the .py's.
 #
 set -uo pipefail
 
@@ -25,7 +26,7 @@ echo "=== Presence check (variant=${VARIANT}) ==="
 PACKAGES="uvicorn spacy kokoro torch pydantic_core faster_whisper ctranslate2"
 for pkg in $PACKAGES; do
   if [ ! -d "$BUNDLE/$pkg" ]; then
-    echo "FAIL: $BUNDLE/$pkg is missing — bundle is incomplete"
+    echo "FAIL: $BUNDLE/$pkg is missing - bundle is incomplete"
     exit 1
   fi
   echo "OK: $pkg"
@@ -34,7 +35,7 @@ done
 if [ "${VARIANT}" = "gpu" ]; then
   # PyInstaller can flatten nvidia.* (PEP 420 namespace package) into
   # _internal/ root OR keep _internal/nvidia/*/bin/ hierarchy. Don't
-  # rely on directory existence — grep for the actual DLL/SO filenames.
+  # rely on directory existence; search for the actual DLL/SO filenames.
   echo "=== GPU check: CUDA runtime libs ==="
   FOUND=$(find "$BUNDLE" \
     -iname "cublas64*.dll" -o -iname "libcublas*.so*" \
@@ -65,7 +66,7 @@ else
     NVIDIA_LIBS=0
   fi
   if [ "$NVIDIA_LIBS" -gt 0 ]; then
-    echo "FAIL: CPU variant bundle contains ${NVIDIA_LIBS} nvidia-* wheel libs under _internal/nvidia/ — should be 0"
+    echo "FAIL: CPU variant bundle contains ${NVIDIA_LIBS} nvidia-* wheel libs under _internal/nvidia/ - should be 0"
     find "$BUNDLE/nvidia" -iname "*.dll" -o -iname "*.so*" 2>/dev/null | head -20 || true
     exit 1
   fi
@@ -76,9 +77,9 @@ echo "=== Size check ==="
 SIZE_MB=$(du -sm dist/articulate_backend | cut -f1)
 echo "Bundle size: ${SIZE_MB} MB"
 # Size floors per variant/OS:
-#   macOS (cpu only): ~510 MB → floor 400
-#   Win/Linux CPU:    ~510 MB → floor 450
-#   Win/Linux GPU:    ~1.7 GB → floor 1000
+#   macOS (cpu only): ~510 MB -> floor 400
+#   Win/Linux CPU:    ~510 MB -> floor 450
+#   Win/Linux GPU:    ~1.7 GB -> floor 1000
 if [ "${VARIANT}" = "gpu" ]; then
   MIN_MB=1000
 elif [ "${RUNNER_OS_VAL}" = "macOS" ] || [ "${RUNNER_OS_VAL}" = "Darwin" ]; then
@@ -97,7 +98,7 @@ EXE="dist/articulate_backend/articulate_backend"
 ls -la "$EXE" || true
 # Windows windowed exes (console=False) have no usable stdout, so shell
 # redirection captures nothing. backend_launcher.py honours ARTICULATE_LOG_PATH
-# and writes sys.stdout/stderr to the file itself — works on all three OSes.
+# and writes sys.stdout/stderr to the file itself, which works on all three OSes.
 export ARTICULATE_NO_INTERACTIVE="${ARTICULATE_NO_INTERACTIVE:-1}"
 export ARTICULATE_PORT="${ARTICULATE_PORT:-8765}"
 # Pin smoke test to groq so the 10s window doesn't trigger a ~486 MB
