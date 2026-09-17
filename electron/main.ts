@@ -88,6 +88,9 @@ function createMainWindow(port: number): BrowserWindow {
 
 // --- Backend health check ---
 
+// First launch downloads Kokoro models (~330 MB), so startup can take a long time.
+const BACKEND_START_TIMEOUT_MS = 30 * 60 * 1_000;
+
 function waitForBackend(port: number, timeoutMs: number = 120_000): Promise<void> {
   return new Promise((resolve, reject) => {
     const deadline = Date.now() + timeoutMs;
@@ -112,7 +115,7 @@ function waitForBackend(port: number, timeoutMs: number = 120_000): Promise<void
 
     const scheduleNextCheck = () => {
       if (Date.now() >= deadline) {
-        reject(new Error("Backend did not start within the timeout."));
+        reject(new Error(`The backend process did not respond within ${Math.round(timeoutMs / 60_000)} minutes.`));
         return;
       }
       setTimeout(check, interval);
@@ -207,10 +210,9 @@ app.whenReady().then(async () => {
   const loadingWin = createLoadingWindow();
 
   try {
-    // Wait up to 30 min: first launch downloads Kokoro models (~330 MB).
-    // Race against process exit so a crash fails fast instead of waiting 30 min.
+    // Race against process exit so a crash fails fast instead of waiting out the timeout.
     await Promise.race([
-      waitForBackend(backendPort, 30 * 60 * 1_000),
+      waitForBackend(backendPort, BACKEND_START_TIMEOUT_MS),
       new Promise<never>((_, reject) => {
         backendProcess!.once("exit", (code) => {
           reject(new Error(`Backend exited with code ${code ?? "unknown"} before becoming ready.`));
@@ -220,10 +222,11 @@ app.whenReady().then(async () => {
   } catch (err) {
     const { dialog } = await import("electron");
     const logPath = path.join(dataDir, "logs", "backend.log");
+    const reason = err instanceof Error ? err.message : String(err);
     await dialog.showMessageBox({
       type: "error",
       title: "Articulate - Backend failed to start",
-      message: `The backend process did not respond within 2 minutes.\n\nCheck the log file for details:\n${logPath}`,
+      message: `${reason}\n\nCheck the log file for details:\n${logPath}`,
       buttons: ["Quit", "Open Log"],
     }).then(({ response }) => {
       if (response === 1) shell.openPath(logPath);

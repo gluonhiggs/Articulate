@@ -46,7 +46,7 @@ help:
 	@echo "    test-backend / test-frontend"
 	@echo "    frontend                                 Build frontend/dist"
 	@echo "    bundle-cpu / bundle-gpu                  PyInstaller only"
-	@echo "    verify-cpu / verify-gpu                  Run scripts/verify-bundle.sh"
+	@echo "    verify-cpu / verify-gpu                  Run scripts/verify-bundle.py"
 	@echo "    electron-package                         electron-builder only"
 	@echo "    clean                                    Remove dist/ build/ frontend/dist/"
 

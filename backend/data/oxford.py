@@ -29,9 +29,9 @@ _US_TO_UK: Dict[str, str] = {
     # -our / -or
     "color": "colour",
     "honor": "honour",
-    "favor": "favor",
+    "favor": "favour",
     "behavior": "behaviour",
-    "neighbour": "neighbor",
+    "neighbor": "neighbour",
     "harbor": "harbour",
     "humor": "humour",
     "labor": "labour",

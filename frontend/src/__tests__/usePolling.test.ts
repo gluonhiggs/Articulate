@@ -1,51 +1,45 @@
 /**
  * Tests for the usePolling timeout logic.
  *
- * The hook polls /attempts/:id every 1500ms while the attempt is processing.
+ * The hook polls /attempts/:id every POLLING_INTERVAL_MS while the attempt is processing.
  * After POLLING_TIMEOUT_MS, it stops polling and surfaces isTimedOut=true
  * to the caller so the UI can show an error.
  *
  * Rather than rendering the full hook with TanStack Query infrastructure,
- * we test a copy of the refetchInterval decision function - same pattern
- * as the rest of the __tests__ suite.
+ * we test the exported refetchInterval decision function the hook uses.
  */
 
-const POLLING_TIMEOUT_MS = 3 * 60 * 1000 // must match usePolling.ts
+import { nextPollingInterval, POLLING_INTERVAL_MS, POLLING_TIMEOUT_MS } from '../hooks/usePolling'
 
-// Simulate the refetchInterval callback logic from usePolling.ts
 function makeIntervalDecision(
   startedAtRef: { current: number | null },
   setIsTimedOut: (v: boolean) => void,
 ) {
-  return function decide(status: string | undefined): number | false {
-    if (status === 'processing' || status === undefined) {
-      if (!startedAtRef.current) startedAtRef.current = Date.now()
-      if (Date.now() - startedAtRef.current > POLLING_TIMEOUT_MS) {
-        setIsTimedOut(true)
-        return false
-      }
-      return 1500
-    }
-    startedAtRef.current = null
-    setIsTimedOut(false)
-    return false
-  }
+  return (status: string | undefined) => nextPollingInterval(status, startedAtRef, setIsTimedOut)
 }
 
 describe('usePolling interval logic', () => {
-  it('returns 1500 while processing within the timeout window', () => {
+  it('keeps polling while processing within the timeout window', () => {
     const startedAtRef = { current: Date.now() }
     const setIsTimedOut = vi.fn()
     const decide = makeIntervalDecision(startedAtRef, setIsTimedOut)
-    expect(decide('processing')).toBe(1500)
+    expect(decide('processing')).toBe(POLLING_INTERVAL_MS)
     expect(setIsTimedOut).not.toHaveBeenCalled()
   })
 
-  it('returns 1500 when status is undefined (first poll, no data yet)', () => {
+  it.each(['transcribing', 'scoring'])('keeps polling while status is %s', (status) => {
     const startedAtRef = { current: Date.now() }
     const setIsTimedOut = vi.fn()
     const decide = makeIntervalDecision(startedAtRef, setIsTimedOut)
-    expect(decide(undefined)).toBe(1500)
+    expect(decide(status)).toBe(POLLING_INTERVAL_MS)
+    expect(setIsTimedOut).not.toHaveBeenCalled()
+  })
+
+  it('keeps polling when status is undefined (first poll, no data yet)', () => {
+    const startedAtRef = { current: Date.now() }
+    const setIsTimedOut = vi.fn()
+    const decide = makeIntervalDecision(startedAtRef, setIsTimedOut)
+    expect(decide(undefined)).toBe(POLLING_INTERVAL_MS)
   })
 
   it('records startedAt on the first processing call', () => {
@@ -64,7 +58,7 @@ describe('usePolling interval logic', () => {
     expect(startedAtRef.current).toBe(1000)
   })
 
-  it('sets isTimedOut=true and returns false after 3 minutes of processing', () => {
+  it('sets isTimedOut=true and returns false after POLLING_TIMEOUT_MS of processing', () => {
     const startedAtRef = { current: Date.now() - POLLING_TIMEOUT_MS - 1 }
     const setIsTimedOut = vi.fn()
     const decide = makeIntervalDecision(startedAtRef, setIsTimedOut)
@@ -90,13 +84,13 @@ describe('usePolling interval logic', () => {
     expect(setIsTimedOut).toHaveBeenCalledWith(false)
   })
 
-  it('does not time out at exactly 3 minutes (boundary - must be strictly greater)', () => {
+  it('does not time out just before POLLING_TIMEOUT_MS (must be strictly greater)', () => {
     // Use 100ms before the boundary so Date.now() advancing during the test
     // does not cross the timeout threshold (same semantic: not yet timed out).
     const startedAtRef = { current: Date.now() - POLLING_TIMEOUT_MS + 100 }
     const setIsTimedOut = vi.fn()
     const decide = makeIntervalDecision(startedAtRef, setIsTimedOut)
-    expect(decide('processing')).toBe(1500)
+    expect(decide('processing')).toBe(POLLING_INTERVAL_MS)
     expect(setIsTimedOut).not.toHaveBeenCalledWith(true)
   })
 })

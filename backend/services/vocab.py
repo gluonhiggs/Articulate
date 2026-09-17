@@ -717,6 +717,16 @@ def _length_label(n: int) -> str:
 
 
 # --- Signal 4: Idiomatic / formulaic language ---
+def _normalize_for_idiom_search(text: str) -> str:
+    """Lowercase and turn punctuation into spaces, keeping apostrophes (contractions)."""
+    return re.sub(r"[^\w\s']", " ", text.lower())
+
+
+# Phrases get the same normalization as the transcript, so hyphenated entries such as
+# "work-life balance" can match. IELTS_PHRASES order (longest first) is preserved.
+_IDIOM_SEARCH_TERMS: list[tuple[str, str]] = [(p, _normalize_for_idiom_search(p)) for p in IELTS_PHRASES]
+
+
 def _compute_idiom_signal(transcript: str, total_words: int) -> str:
     """Distinct IELTS_PHRASES matches per 100 response words, with a band label.
 
@@ -727,20 +737,18 @@ def _compute_idiom_signal(transcript: str, total_words: int) -> str:
     if not transcript or total_words == 0:
         return "idiomatic density: insufficient data"
 
-    text = transcript.lower()
-    # Remove punctuation except apostrophes (keep contractions)
-    text = re.sub(r"[^\w\s']", " ", text)
+    text = _normalize_for_idiom_search(transcript)
 
     matched: list[str] = []
     consumed_spans: list[tuple[int, int]] = []  # avoid double-counting overlapping matches
 
-    for phrase in IELTS_PHRASES:
+    for phrase, needle in _IDIOM_SEARCH_TERMS:
         idx = 0
         while True:
-            pos = text.find(phrase, idx)
+            pos = text.find(needle, idx)
             if pos == -1:
                 break
-            end = pos + len(phrase)
+            end = pos + len(needle)
             before_ok = pos == 0 or text[pos - 1] == " "
             after_ok = end >= len(text) or text[end] == " "
             if before_ok and after_ok:

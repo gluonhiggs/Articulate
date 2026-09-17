@@ -49,6 +49,15 @@ class TestCEFRWordlist:
         assert "color" in WORD_TO_CEFR
         assert WORD_TO_CEFR["color"] == WORD_TO_CEFR["colour"]
 
+    def test_us_aliases_point_from_us_to_uk(self):
+        from backend.data.oxford import _US_TO_UK
+
+        # A no-op or reversed pair silently leaves the US spelling without a CEFR level.
+        assert all(us != uk for us, uk in _US_TO_UK.items())
+        for us, uk in [("favor", "favour"), ("neighbor", "neighbour"), ("behavior", "behaviour")]:
+            assert _US_TO_UK[us] == uk
+            assert WORD_TO_CEFR[us] == WORD_TO_CEFR[uk]
+
     def test_b2_word_has_ipa(self):
         # Any B2 word should have a North American IPA transcription
         b2_word = next(w for w, lvl in WORD_TO_CEFR.items() if lvl == "B2")
@@ -146,6 +155,22 @@ class TestIdiomSignal:
 
         signal = _compute_idiom_signal("", 0)
         assert "insufficient" in signal
+
+    def test_hyphenated_phrase_detected_with_or_without_hyphen(self):
+        from backend.services.vocab import _compute_idiom_signal
+
+        for text in ("I try to keep a good work-life balance.", "I try to keep a good work life balance."):
+            signal = _compute_idiom_signal(text, len(text.split()))
+            assert "'work-life balance'" in signal, text
+
+    def test_every_listed_phrase_is_matchable(self):
+        from backend.data.idioms import IELTS_PHRASES
+        from backend.services.vocab import _compute_idiom_signal
+
+        for phrase in IELTS_PHRASES:
+            text = f"zzz {phrase} zzz"
+            signal = _compute_idiom_signal(text, len(text.split()))
+            assert f"'{phrase}'" in signal, phrase
 
 
 class TestCollocationSignal:

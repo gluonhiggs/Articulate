@@ -52,7 +52,7 @@ Accuracy and variety of structures and tenses:
 - Use `clean_pct` from GRAMMAR SIGNALS as a directional anchor - higher clean_pct = higher
   band; calibrate against the band descriptors above (e.g. "majority error-free" = Band 8,
   "frequent error-free" = Band 7).
-- Also use rule ×N counts to judge whether errors are systematic (repeated rule = fossilised gap).
+- Also use rule xN counts to judge whether errors are systematic (repeated rule = fossilised gap).
 - For structural range, scan the transcript and list in `grammar_notes` which construction
   types you observe (relative clauses, passives, conditionals, complement clauses,
   nominalisations - cite sentence if helpful), then anchor your score to the rubric ladder:
