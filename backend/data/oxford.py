@@ -87,7 +87,8 @@ _US_TO_UK: Dict[str, str] = {
     "dialog": "dialogue",
     "analog": "analogue",
     "check": "cheque",
-    "tire": "tyre",
+    # No "tire" -> "tyre": vocab scoring looks up the lemma first, and simplemma lemmatizes
+    # "tired"/"tiring" to "tire", which would score the A1 word "tired" as B1 "tyre".
     "curb": "kerb",
     "gray": "grey",
     "jewelry": "jewellery",

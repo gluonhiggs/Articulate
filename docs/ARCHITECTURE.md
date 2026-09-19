@@ -398,7 +398,7 @@ All prompts are in `backend/prompts/`. Loaded from disk once at startup, cached 
 | **Model validation** | PATCH /model accepts any string. Bad model name fails silently on next score. Verify via backend logs: `LLM generate: model=…` |
 | **Prompt caching** | `BAND-SCORES.md` + prompt `.txt` files loaded at import. Must restart server after editing. |
 | **Groq rate limits** | Free tier: 7,200 audio seconds/hour for Whisper. Long recordings consume quota faster. |
-| **Polling timeout** | 3 minutes, client-side only. Stuck attempt not auto-cancelled on backend. |
+| **Polling timeout** | 6 minutes (`POLLING_TIMEOUT_MS` in `usePolling.ts`), client-side only. Stuck attempt not auto-cancelled on backend. |
 | **Score display** | Criteria shown as `X.X` (e.g. `5.5`). Overall score is the arithmetic mean of the 4 criteria, rounded to nearest 0.5. |
 | **Audio format** | Prefers WebM/Opus; falls back to WebM then MP4. Android may send MP4. |
 | **Part 3 orphans** | If `parent_question_id` resolution fails during seeding, questions are orphaned. Logged as warning. |

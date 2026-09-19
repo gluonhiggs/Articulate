@@ -58,6 +58,28 @@ class TestCEFRWordlist:
             assert _US_TO_UK[us] == uk
             assert WORD_TO_CEFR[us] == WORD_TO_CEFR[uk]
 
+    def test_us_alias_does_not_hijack_another_headwords_lemma(self):
+        import csv
+
+        import simplemma
+
+        from backend.data.oxford import _CSV, _US_TO_UK
+
+        # compute_vocab_signal looks up the lemma before the surface word, so an alias key that is
+        # the lemma of a different headword (e.g. "tire" for "tired") would give that word the wrong level.
+        with open(_CSV, newline="", encoding="utf-8") as f:
+            headwords = {row["word"].strip().lower() for row in csv.DictReader(f)}
+        applied = {us for us, uk in _US_TO_UK.items() if uk in headwords and us not in headwords}
+        for word in headwords:
+            if not word or " " in word:
+                continue
+            lemma = simplemma.lemmatize(word, lang="en")
+            if lemma != word and lemma in applied:
+                assert WORD_TO_CEFR[lemma] == WORD_TO_CEFR[word], f"alias {lemma!r} changes the level of {word!r}"
+
+        tired_level = WORD_TO_CEFR.get(simplemma.lemmatize("tired", lang="en")) or WORD_TO_CEFR.get("tired")
+        assert tired_level == "A1"
+
     def test_b2_word_has_ipa(self):
         # Any B2 word should have a North American IPA transcription
         b2_word = next(w for w, lvl in WORD_TO_CEFR.items() if lvl == "B2")
