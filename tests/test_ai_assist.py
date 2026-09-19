@@ -1,59 +1,97 @@
-"""Unit tests for ai_assist.py - specifically the JSON repair logic."""
+"""ai_assist service: schema-constrained sample answers and topic vocabulary, with no salvage of partial output."""
 
 from __future__ import annotations
 
-import json
-
 import pytest
 
-from backend.services.ai_assist import _repair_vocab_json
+from backend.services import ai_assist
+from backend.services.llm_client import LLMOutputError
+
+VOCAB_ITEM = {
+    "term": "broaden one's horizons",
+    "type": "collocation",
+    "definition": "expand experience of the world",
+    "example": "Travelling solo broadened my horizons.",
+}
 
 
-def test_repair_valid_json_round_trips():
-    """Already-valid JSON is returned without modification."""
-    raw = (
-        '{"vocabulary": [{"term": "proliferate", "type": "verb",'
-        ' "definition": "grow rapidly", "example": "Cities proliferate."}]}'
-    )
-    repaired = _repair_vocab_json(raw)
-    data = json.loads(repaired)
-    assert "vocabulary" in data
-    assert len(data["vocabulary"]) == 1
-    assert data["vocabulary"][0]["term"] == "proliferate"
+@pytest.fixture
+def fake_llm(monkeypatch):
+    """Replace generate_json with a stub, and make any plain generate() call a failure."""
+    state = {"result": {}, "kwargs": {}}
+
+    async def fake_generate_json(**kwargs):
+        state["kwargs"] = kwargs
+        if isinstance(state["result"], Exception):
+            raise state["result"]
+        return state["result"]
+
+    async def forbidden_generate(*args, **kwargs):
+        raise AssertionError("ai_assist must use the JSON-schema call, not free-text generate()")
+
+    monkeypatch.setattr(ai_assist.llm_client, "generate_json", fake_generate_json)
+    monkeypatch.setattr(ai_assist.llm_client, "generate", forbidden_generate)
+    return state
 
 
-def test_repair_truncated_missing_close_array_and_brace():
-    """JSON truncated after last item - missing ] and }."""
-    raw = (
-        '{"vocabulary": [{"term": "proliferate", "type": "verb", "definition": "grow rapidly", "example": "test"}'
-        # missing ]} at end
-    )
-    repaired = _repair_vocab_json(raw)
-    data = json.loads(repaired)
-    assert "vocabulary" in data
-    assert len(data["vocabulary"]) == 1
+class TestSampleAnswer:
+    async def test_returns_answer_and_key_phrases(self, fake_llm):
+        fake_llm["result"] = {"sample_answer": "Honestly, I'd say the city.", "key_phrases": ["at my fingertips"]}
+
+        result = await ai_assist.generate_sample_answer("City or countryside?", "1")
+
+        assert result == {"sample_answer": "Honestly, I'd say the city.", "key_phrases": ["at my fingertips"]}
+        assert fake_llm["kwargs"]["max_tokens"] >= 8192
+
+    async def test_truncated_output_raises_instead_of_returning_raw_text(self, fake_llm):
+        fake_llm["result"] = LLMOutputError("gemini output was cut off at max_tokens=8192")
+
+        with pytest.raises(LLMOutputError, match="cut off"):
+            await ai_assist.generate_sample_answer("City or countryside?", "1")
+
+    async def test_empty_answer_raises(self, fake_llm):
+        fake_llm["result"] = {"sample_answer": "", "key_phrases": []}
+
+        with pytest.raises(ValueError):
+            await ai_assist.generate_sample_answer("City or countryside?", "1")
+
+    async def test_missing_key_phrases_defaults_to_empty_list(self, fake_llm):
+        fake_llm["result"] = {"sample_answer": "Honestly, I'd say the city."}
+
+        assert (await ai_assist.generate_sample_answer("City or countryside?", "1"))["key_phrases"] == []
 
 
-def test_repair_truncated_two_items_third_partial():
-    """Three items where third is cut mid-value - only two complete items recovered."""
-    raw = (
-        '{"vocabulary": ['
-        '{"term": "a", "type": "noun", "definition": "def a", "example": "ex a"}, '
-        '{"term": "b", "type": "verb", "definition": "def b", "example": "ex b"}, '
-        '{"term": "c", "type": "adj", "definition":'  # truncated here
-    )
-    repaired = _repair_vocab_json(raw)
-    data = json.loads(repaired)
-    assert len(data["vocabulary"]) == 2
+class TestTopicVocab:
+    async def test_returns_vocabulary_items(self, fake_llm):
+        fake_llm["result"] = {"vocabulary": [VOCAB_ITEM]}
 
+        result = await ai_assist.generate_topic_vocab("Do you like travelling?")
 
-def test_repair_no_json_raises_value_error():
-    """No JSON at all raises ValueError."""
-    with pytest.raises(ValueError, match="No JSON found"):
-        _repair_vocab_json("just random text without any braces")
+        assert result == {"vocabulary": [VOCAB_ITEM]}
+        assert fake_llm["kwargs"]["max_tokens"] >= 8192
 
+    async def test_truncated_output_raises_instead_of_being_repaired(self, fake_llm):
+        fake_llm["result"] = LLMOutputError("gemini output was cut off at max_tokens=8192")
 
-def test_repair_no_complete_object_raises_value_error():
-    """Opening brace but no closing brace raises ValueError."""
-    with pytest.raises(ValueError, match="No complete JSON object found"):
-        _repair_vocab_json('{"vocabulary": [{"term": "no closing brace ever')
+        with pytest.raises(LLMOutputError, match="cut off"):
+            await ai_assist.generate_topic_vocab("Do you like travelling?")
+
+    async def test_items_without_a_term_are_dropped(self, fake_llm):
+        fake_llm["result"] = {"vocabulary": [VOCAB_ITEM, {"term": "  ", "definition": "nothing"}]}
+
+        result = await ai_assist.generate_topic_vocab("Do you like travelling?")
+
+        assert result == {"vocabulary": [VOCAB_ITEM]}
+
+    async def test_empty_vocabulary_raises(self, fake_llm):
+        fake_llm["result"] = {"vocabulary": []}
+
+        with pytest.raises(ValueError):
+            await ai_assist.generate_topic_vocab("Do you like travelling?")
+
+    async def test_excluded_terms_reach_the_prompt(self, fake_llm):
+        fake_llm["result"] = {"vocabulary": [VOCAB_ITEM]}
+
+        await ai_assist.generate_topic_vocab("Do you like travelling?", exclude_terms=["wanderlust"])
+
+        assert "wanderlust" in fake_llm["kwargs"]["prompt"]

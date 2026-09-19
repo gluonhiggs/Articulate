@@ -214,6 +214,7 @@ async def score_attempt(
             num_predict=2048,  # 8bd8c98 added 4 *_evidence fields (~200-300 extra tokens); 1024 cut off usage_errors
             num_ctx=8192,  # headroom for long Part 2 transcripts; was 4096
             timeout=120.0,
+            reasoning_effort=settings.llm_reasoning_effort,
         )
     except (RuntimeError, FileNotFoundError) as exc:
         logger.exception("Scoring failed: %s", exc)

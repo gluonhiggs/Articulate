@@ -28,9 +28,10 @@ async def save_audio(
     upload_file: UploadFile,
     attempt_id: int,
     audio_dir: str,
+    filename_stem: str | None = None,
 ) -> str:
     """
-    Save an uploaded audio file as {audio_dir}/{attempt_id}{ext} and return that path.
+    Save an uploaded audio file as {audio_dir}/{filename_stem or attempt_id}{ext} and return that path.
 
     ext is derived from the upload's content_type (e.g. .mp4 for audio/mp4 from
     Android), defaulting to .webm for unknown types.
@@ -39,7 +40,7 @@ async def save_audio(
     audio_path.mkdir(parents=True, exist_ok=True)
 
     ext = _MIME_TO_EXT.get(upload_file.content_type or "", ".webm")
-    dest = audio_path / f"{attempt_id}{ext}"
+    dest = audio_path / f"{filename_stem or attempt_id}{ext}"
 
     async with aiofiles.open(dest, "wb") as f:
         while True:

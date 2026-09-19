@@ -12,6 +12,7 @@ from sqlalchemy.future import select
 
 from backend.config import get_settings
 from backend.models import Base, Question, UserStats
+from backend.services.interview_packs import seed_sample_packs
 
 logger = logging.getLogger(__name__)
 
@@ -147,6 +148,7 @@ async def _ensure_indexes() -> None:
             "ALTER TABLE questions ADD COLUMN topic_tag TEXT",
             "ALTER TABLE questions ADD COLUMN source TEXT",
             "ALTER TABLE questions ADD COLUMN last_seen_date DATE",
+            "ALTER TABLE interview_answers ADD COLUMN grading_started_at DATETIME",
         ]:
             try:
                 await conn.execute(text(col_sql))
@@ -177,3 +179,5 @@ async def init_db() -> None:
                 )
             )
             await session.commit()
+
+        await seed_sample_packs(session)

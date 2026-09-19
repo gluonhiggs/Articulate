@@ -32,6 +32,16 @@ class Settings(BaseSettings):
     llm_model: str = "gemma-3-27b-it"
     llm_base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai"
     llm_api_key: str = ""
+    # Sent as reasoning_effort on the IELTS scoring/improve/ai_assist calls when non-empty.
+    # "none" or "minimal" stops a thinking model from spending the token budget before answering.
+    llm_reasoning_effort: str = ""
+    interview_grader_model: str = "gemini-3.5-flash-lite"
+    interview_drafter_model: str = "gemini-3.5-flash-lite"
+    interview_verifier_model: str = "openai/gpt-oss-120b"
+    interview_verifier_base_url: str = "https://api.groq.com/openai/v1"
+    # Ceiling for the Groq verifier reply; lowered further when the prompt is long,
+    # so prompt + reply stay inside the free tier's 8000 tokens per minute.
+    interview_verifier_max_tokens: int = 4096
     pronunciation_tier: int = 1
     max_audio_size_mb: int = 300
     audio_retention_days: int = 60

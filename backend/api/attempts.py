@@ -5,7 +5,6 @@ import json
 import logging
 import os
 import re
-import threading
 import time
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
@@ -27,87 +26,12 @@ from backend.services import improve as improve_service
 from backend.services import scoring as scoring_service
 from backend.services import transcription as transcription_service
 from backend.services.audio import EXT_TO_MIME
+from backend.services.grammar import get_lt_tool, is_speech_artifact
 from backend.services.vocab import compute_grammar_signals, compute_pronunciation_signal, compute_vocab_signal
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/attempts", tags=["attempts"])
-
-# --- LanguageTool singleton (optional - requires Java) ---
-
-_lt_tool = None
-_lt_tool_init_attempted = False
-_lt_lock = threading.Lock()
-
-
-def _get_lt_tool():
-    global _lt_tool, _lt_tool_init_attempted
-    with _lt_lock:
-        if _lt_tool_init_attempted:
-            return _lt_tool
-        _lt_tool_init_attempted = True
-    try:
-        import language_tool_python  # type: ignore[import]
-
-        _lt_tool = language_tool_python.LanguageTool("en-US")
-        _lt_tool.picky = True  # enable stricter rule set (sent as request param to /check)
-        logger.info("LanguageTool initialized (local, picky=True)")
-    except Exception as exc:
-        logger.warning("LanguageTool local unavailable (Java required): %s", exc)
-        try:
-            import language_tool_python  # type: ignore[import]
-
-            # Fallback: sends transcript to languagetool.org - no Java needed.
-            _lt_tool = language_tool_python.LanguageToolPublicAPI("en-US")
-            logger.info("LanguageTool initialized (public API fallback)")
-        except Exception as exc2:
-            logger.warning("LanguageTool public API also unavailable: %s", exc2)
-            _lt_tool = None
-    return _lt_tool
-
-
-# --- LanguageTool artifact filter ---
-# Whisper (Groq API) may capitalise the first word of segments separated by
-# pauses. LanguageTool flags these as UPPERCASE_SENTENCE_START and related
-# casing/punctuation rules - transcription artefacts, not speaker errors.
-# Filtering them out before building grammar_context prevents the LLM from
-# penalising phantom mistakes.
-#
-# Kept: GRAMMAR, CONFUSED_WORDS, MISC, TYPOS - all genuine error categories.
-
-_LT_FILTERED_RULE_IDS: frozenset[str] = frozenset(
-    {
-        # VAD segment-boundary capitalisation - primary transcription artefact
-        "UPPERCASE_SENTENCE_START",
-        # Whitespace / formatting - concepts absent from speech
-        "WHITESPACE_RULE",
-        "EN_QUOTES",
-        # Punctuation absence - spoken language has no terminal punctuation
-        "COMMA_PARENTHESIS_WHITESPACE",
-        "PUNCTUATION_PARAGRAPH_END",
-        "UNLIKELY_OPENING_PUNCTUATION",
-        # Style rules outside the IELTS speaking rubric
-        "TOO_LONG_SENTENCE",
-        "ENGLISH_WORD_REPEAT_BEGINNING_RULE",
-    }
-)
-
-_LT_FILTERED_CATEGORIES: frozenset[str] = frozenset(
-    {
-        "CASING",  # all casing rules - meaningless in speech
-        "TYPOGRAPHY",  # formatting rules - meaningless in speech
-        "PUNCTUATION",  # missing / wrong punctuation - transcription artefact
-        "STYLE",  # subjective style - not an IELTS speaking criterion
-        "REDUNDANCY",  # wordy phrasing - not penalised in IELTS speaking
-    }
-)
-
-# Rules that belong to filtered categories but catch genuine errors worth surfacing.
-_LT_WHITELISTED_RULE_IDS: frozenset[str] = frozenset(
-    {
-        "BORED_OF",  # STYLE: 'bored of' -> 'bored with/by' - real preposition error
-    }
-)
 
 
 def _sentence_spans(text: str) -> list[tuple[int, int]]:
@@ -229,6 +153,18 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                 if end_time is not None:
                     duration_seconds = int(end_time)
 
+            # Persist the transcript before the slow signal and scoring steps, so the
+            # status endpoint can show it while the attempt is still being scored.
+            t3 = await session.execute(select(Attempt).where(Attempt.id == attempt_id))
+            attempt_transcribed = t3.scalar_one_or_none()
+            if attempt_transcribed is None:
+                logger.error("Attempt %d not found during pipeline, aborting.", attempt_id)
+                return
+            attempt_transcribed.transcript = transcript
+            attempt_transcribed.word_timestamps = word_timestamps_json
+            attempt_transcribed.duration_seconds = duration_seconds
+            await session.commit()
+
             # ----------------------------------------------------------------
             # 2. Scoring signals
             # ----------------------------------------------------------------
@@ -266,14 +202,14 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             vocab_signal = compute_vocab_signal(words, transcript)
 
             # Signal 3: Grammar checker (LanguageTool - requires Java)
-            # Both _get_lt_tool() initialization AND lt.check() run inside
+            # Both get_lt_tool() initialization AND lt.check() run inside
             # run_in_executor so the first-time Java startup (10-30s on Windows)
             # never blocks the event loop. Without this, the first pipeline after
             # a server restart freezes all concurrent requests (including status
             # polls) until Java starts, causing "Cannot connect to server (timeout)".
             def _lt_check(text: str) -> tuple[str | None, list]:
                 """Returns (source_label, matches). source_label is None when LT unavailable."""
-                lt = _get_lt_tool()
+                lt = get_lt_tool()
                 if lt is None:
                     return (None, [])
                 source = "local" if type(lt).__name__ == "LanguageTool" else "public API"
@@ -289,12 +225,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                         timeout=30.0,
                     )
                     if lt_source is not None:
-                        filtered_matches = [
-                            m
-                            for m in matches
-                            if m.rule_id not in _LT_FILTERED_RULE_IDS
-                            and (m.rule_id in _LT_WHITELISTED_RULE_IDS or m.category not in _LT_FILTERED_CATEGORIES)
-                        ]
+                        filtered_matches = [m for m in matches if not is_speech_artifact(m)]
                         logger.info(
                             "\n\n========== LT_RAW_MATCHES attempt_id=%d ==========\n"
                             "  source : %s\n"
@@ -526,9 +457,6 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                 await session.commit()
                 return
 
-            attempt.transcript = transcript
-            attempt.word_timestamps = word_timestamps_json
-            attempt.duration_seconds = duration_seconds
             attempt.fluency = fluency
             attempt.vocabulary = vocabulary
             attempt.grammar = grammar

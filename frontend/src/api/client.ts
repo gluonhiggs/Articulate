@@ -2,7 +2,7 @@ import type { Attempt, DashboardData, ForecastEntry, ImproveResponse, Part3Group
 
 const BASE = '/api/v1'
 
-async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   let response: Response
   try {
     response = await fetch(`${BASE}${path}`, {

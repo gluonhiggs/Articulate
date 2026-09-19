@@ -25,6 +25,15 @@ const configEnvPath = path.join(dataDir, "config.env");
 
 // --- Window helpers ---
 
+function isWebUrl(url: string): boolean {
+  try {
+    const { protocol } = new URL(url);
+    return protocol === "http:" || protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 function createLoadingWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: 480,
@@ -73,9 +82,10 @@ function createMainWindow(port: number): BrowserWindow {
     },
   });
 
-  // Open external links in the system browser, not Electron.
+  // Open external links in the system browser, not Electron. Only web links: pack files from other
+  // people can carry file: or custom-protocol URLs that would launch local programs.
   win.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    if (isWebUrl(url)) shell.openExternal(url);
     return { action: "deny" };
   });
 
@@ -91,31 +101,45 @@ function createMainWindow(port: number): BrowserWindow {
 // First launch downloads Kokoro models (~330 MB), so startup can take a long time.
 const BACKEND_START_TIMEOUT_MS = 30 * 60 * 1_000;
 
-function waitForBackend(port: number, timeoutMs: number = 120_000): Promise<void> {
+function formatDuration(ms: number): string {
+  const seconds = Math.round(ms / 1_000);
+  if (seconds < 120) return `${seconds} second${seconds === 1 ? "" : "s"}`;
+  return `${Math.round(seconds / 60)} minutes`;
+}
+
+function waitForBackend(port: number, timeoutMs: number): Promise<void> {
   return new Promise((resolve, reject) => {
     const deadline = Date.now() + timeoutMs;
     const interval = 500;
 
     const check = () => {
+      // A timed-out request is destroyed, which also emits "error"; the flag keeps
+      // each request from scheduling more than one follow-up check.
+      let settled = false;
+      const next = () => {
+        if (settled) return;
+        settled = true;
+        scheduleNextCheck();
+      };
       const req = http.get(
         `http://127.0.0.1:${port}/api/v1/system/info`,
         (res) => {
+          res.resume();
           if (res.statusCode === 200) {
-            res.resume();
+            settled = true;
             resolve();
           } else {
-            res.resume();
-            scheduleNextCheck();
+            next();
           }
         }
       );
-      req.on("error", scheduleNextCheck);
-      req.setTimeout(1000, () => { req.destroy(); scheduleNextCheck(); });
+      req.on("error", next);
+      req.setTimeout(1000, () => { req.destroy(); next(); });
     };
 
     const scheduleNextCheck = () => {
       if (Date.now() >= deadline) {
-        reject(new Error(`The backend process did not respond within ${Math.round(timeoutMs / 60_000)} minutes.`));
+        reject(new Error(`The backend process did not respond within ${formatDuration(timeoutMs)}.`));
         return;
       }
       setTimeout(check, interval);
@@ -187,7 +211,7 @@ ipcMain.on("open-log-file", () => {
 });
 
 ipcMain.on("open-external", (_event, url: string) => {
-  shell.openExternal(url);
+  if (isWebUrl(url)) shell.openExternal(url);
 });
 
 // save-config is handled in runSetup() via ipcMain.once for the first-run flow.
@@ -211,11 +235,15 @@ app.whenReady().then(async () => {
 
   try {
     // Race against process exit so a crash fails fast instead of waiting out the timeout.
+    // A binary that cannot be launched (e.g. ENOENT) emits "error" but never "exit".
     await Promise.race([
       waitForBackend(backendPort, BACKEND_START_TIMEOUT_MS),
       new Promise<never>((_, reject) => {
         backendProcess!.once("exit", (code) => {
           reject(new Error(`Backend exited with code ${code ?? "unknown"} before becoming ready.`));
+        });
+        backendProcess!.once("error", (err) => {
+          reject(new Error(`Backend could not be started: ${err.message}`));
         });
       }),
     ]);

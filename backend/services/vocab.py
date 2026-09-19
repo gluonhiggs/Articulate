@@ -666,7 +666,7 @@ def compute_grammar_signals(
 
 
 # --- Lexical diversity (MTLD) and response length label ---
-def _mtld(words: list[str], threshold: float = 0.72) -> float:
+def mtld(words: list[str], threshold: float = 0.72) -> float:
     """Measure of Textual Lexical Diversity (McCarthy & Jarvis 2010).
 
     Bidirectional: average of forward and backward pass.
@@ -978,7 +978,7 @@ def compute_vocab_signal(words: List[Dict[str, Any]], transcript: str) -> str:
         # --- Signal 7: Lexical diversity (MTLD) ---
         word_list = transcript.lower().split()
         if len(word_list) >= 50:
-            mtld_score = round(_mtld(word_list), 1)
+            mtld_score = round(mtld(word_list), 1)
             if mtld_score < 50:
                 lvl = "basic"
             elif mtld_score < 70:

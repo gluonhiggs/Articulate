@@ -52,10 +52,11 @@ describe('usePolling interval logic', () => {
   })
 
   it('does NOT overwrite startedAt on subsequent processing calls', () => {
-    const startedAtRef = { current: 1000 } // already set
+    const startedAt = Date.now() - 5_000 // already set, still inside the timeout window
+    const startedAtRef = { current: startedAt }
     const decide = makeIntervalDecision(startedAtRef, vi.fn())
-    decide('processing')
-    expect(startedAtRef.current).toBe(1000)
+    expect(decide('processing')).toBe(POLLING_INTERVAL_MS)
+    expect(startedAtRef.current).toBe(startedAt)
   })
 
   it('sets isTimedOut=true and returns false after POLLING_TIMEOUT_MS of processing', () => {
@@ -75,22 +76,43 @@ describe('usePolling interval logic', () => {
     expect(setIsTimedOut).toHaveBeenCalledWith(false)
   })
 
-  it('returns false and clears state when status becomes failed', () => {
-    const startedAtRef = { current: 99999 }
-    const setIsTimedOut = vi.fn()
-    const decide = makeIntervalDecision(startedAtRef, setIsTimedOut)
-    expect(decide('failed')).toBe(false)
-    expect(startedAtRef.current).toBeNull()
-    expect(setIsTimedOut).toHaveBeenCalledWith(false)
-  })
+  it.each(['failed', 'failed:transcription', 'failed:empty_audio', 'failed:scoring'])(
+    'returns false and clears state when status becomes %s',
+    (status) => {
+      const startedAtRef = { current: 99999 }
+      const setIsTimedOut = vi.fn()
+      const decide = makeIntervalDecision(startedAtRef, setIsTimedOut)
+      expect(decide(status)).toBe(false)
+      expect(startedAtRef.current).toBeNull()
+      expect(setIsTimedOut).toHaveBeenCalledWith(false)
+    },
+  )
 
-  it('does not time out just before POLLING_TIMEOUT_MS (must be strictly greater)', () => {
-    // Use 100ms before the boundary so Date.now() advancing during the test
-    // does not cross the timeout threshold (same semantic: not yet timed out).
-    const startedAtRef = { current: Date.now() - POLLING_TIMEOUT_MS + 100 }
-    const setIsTimedOut = vi.fn()
-    const decide = makeIntervalDecision(startedAtRef, setIsTimedOut)
-    expect(decide('processing')).toBe(POLLING_INTERVAL_MS)
-    expect(setIsTimedOut).not.toHaveBeenCalledWith(true)
+  describe('timeout boundary (strictly greater than POLLING_TIMEOUT_MS)', () => {
+    const START = 1_700_000_000_000
+
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('keeps polling at exactly POLLING_TIMEOUT_MS', () => {
+      vi.setSystemTime(START + POLLING_TIMEOUT_MS)
+      const setIsTimedOut = vi.fn()
+      const decide = makeIntervalDecision({ current: START }, setIsTimedOut)
+      expect(decide('processing')).toBe(POLLING_INTERVAL_MS)
+      expect(setIsTimedOut).not.toHaveBeenCalled()
+    })
+
+    it('times out 1ms after POLLING_TIMEOUT_MS', () => {
+      vi.setSystemTime(START + POLLING_TIMEOUT_MS + 1)
+      const setIsTimedOut = vi.fn()
+      const decide = makeIntervalDecision({ current: START }, setIsTimedOut)
+      expect(decide('processing')).toBe(false)
+      expect(setIsTimedOut).toHaveBeenCalledWith(true)
+    })
   })
 })

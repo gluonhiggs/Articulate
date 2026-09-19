@@ -13,12 +13,12 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from backend.api import attempts, dashboard, questions, system, tts
-from backend.api.attempts import _get_lt_tool
+from backend.api import attempts, dashboard, interview, questions, system, tts
 from backend.config import get_settings
 from backend.database import init_db
 from backend.services import llm_client
 from backend.services.audio import cleanup_old_audio
+from backend.services.grammar import get_lt_tool
 from backend.services.transcription import is_faster_whisper_installed
 from backend.services.tts import _ensure_pipeline as _ensure_tts_pipeline
 from backend.services.tts import evict_tts_cache
@@ -244,7 +244,7 @@ async def lifespan(app: FastAPI):
     loop = asyncio.get_running_loop()
     try:
         lt = await asyncio.wait_for(
-            loop.run_in_executor(None, _get_lt_tool),
+            loop.run_in_executor(None, get_lt_tool),
             timeout=30.0,
         )
         if lt is not None:
@@ -285,6 +285,7 @@ app.include_router(attempts.router)
 app.include_router(dashboard.router)
 app.include_router(system.router)
 app.include_router(tts.router)
+app.include_router(interview.router)
 
 # ---------------------------------------------------------------------------
 # Frontend static files (catch-all - MUST be last)

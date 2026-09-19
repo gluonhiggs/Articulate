@@ -465,6 +465,7 @@ export function QuestionDetail() {
           onRetry={handleRetry}
           errorMessage={errorMessage}
           backendStatus={polledAttempt?.status ?? null}
+          transcript={polledAttempt?.status === 'scoring' ? polledAttempt.transcript : null}
         />
       </div>
 

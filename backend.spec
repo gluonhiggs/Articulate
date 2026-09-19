@@ -62,6 +62,9 @@ datas = [
     (str(ROOT / "backend" / "prompts"), "backend/prompts"),
     # IELTS band descriptors (read at import time by backend/services/scoring.py)
     (str(ROOT / "BAND-SCORES.md"), "."),
+    # Seed data loaded by backend/database.py:init_db
+    (str(ROOT / "data" / "seed_questions.json"), "data"),
+    (str(ROOT / "data" / "interview_packs"), "data/interview_packs"),
     # simplemma language data
     *collect_data_files("simplemma"),
     # spaCy + model

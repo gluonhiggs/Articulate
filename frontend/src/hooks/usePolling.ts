@@ -8,15 +8,16 @@ export const POLLING_INTERVAL_MS = 1500
 const PROCESSING_STATUSES = ['processing', 'transcribing', 'scoring']
 
 /**
- * refetchInterval decision: keep polling while the attempt is still being processed
+ * refetchInterval decision: keep polling while the item is still being processed
  * (or no status has arrived yet), and give up with isTimedOut=true after POLLING_TIMEOUT_MS.
  */
-export function nextPollingInterval(
-  status: string | undefined,
+export function nextPollingInterval<S extends string>(
+  status: S | undefined,
   startedAtRef: { current: number | null },
   setIsTimedOut: (timedOut: boolean) => void,
+  isInProgress: (status: S) => boolean = (value) => PROCESSING_STATUSES.includes(value),
 ): number | false {
-  if (!status || PROCESSING_STATUSES.includes(status)) {
+  if (!status || isInProgress(status)) {
     if (!startedAtRef.current) startedAtRef.current = Date.now()
     if (Date.now() - startedAtRef.current > POLLING_TIMEOUT_MS) {
       setIsTimedOut(true)

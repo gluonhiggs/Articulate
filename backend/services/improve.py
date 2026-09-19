@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import logging
 from typing import Any, Dict
 
@@ -9,6 +8,17 @@ from backend.constants import PROMPTS_DIR
 from backend.services import llm_client
 
 logger = logging.getLogger(__name__)
+
+IMPROVE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "improved_text": {"type": "string"},
+        "explanation": {"type": "string"},
+    },
+    "required": ["improved_text", "explanation"],
+}
+# Generous, because a thinking model spends part of the budget before the answer starts.
+MAX_TOKENS = 8192
 
 
 def _load_prompt() -> str:
@@ -32,60 +42,45 @@ def _build_prompt(
     )
 
 
-def _parse_response(raw: str) -> Dict[str, Any]:
-    """Extract improved_text and explanation from LLM JSON response.
-
-    Missing or invalid JSON falls back to the raw text as improved_text; raises
-    ValueError on an empty response or JSON without improved_text.
-    """
-    if not raw or not raw.strip():
-        raise ValueError("LLM returned empty response for improve request")
-
-    start = raw.find("{")
-    end = raw.rfind("}") + 1
-    if start == -1 or end <= start:
-        logger.warning("LLM response contained no JSON, using raw text as improved_text.")
-        return {"improved_text": raw.strip(), "explanation": ""}
-
-    json_str = raw[start:end]
-    try:
-        data = json.loads(json_str)
-    except json.JSONDecodeError:
-        logger.warning("LLM returned invalid JSON for improve, using raw text.")
-        return {"improved_text": raw.strip(), "explanation": ""}
-
-    improved = data.get("improved_text", "")
-    if not improved:
-        raise ValueError("LLM returned JSON without improved_text field")
-
-    return {
-        "improved_text": improved,
-        "explanation": data.get("explanation", ""),
-    }
-
-
 async def generate_improvement(
     question_text: str,
     transcript: str,
     current_band: float,
     target_band: float,
 ) -> Dict[str, Any]:
-    """Call the LLM to rewrite the response at a higher band level."""
+    """
+    Call the LLM to rewrite the response at a higher band level.
+
+    Raises RuntimeError (LLMOutputError when the model truncated or broke the JSON)
+    or ValueError, which the API turns into a 502, rather than ever returning
+    partial model output as the rewrite.
+    """
     settings = get_settings()
     prompt = _build_prompt(question_text, transcript, current_band, target_band)
 
     try:
-        raw_text = await llm_client.generate(
+        data = await llm_client.generate_json(
             base_url=settings.llm_base_url,
             model=settings.llm_model,
             prompt=prompt,
             api_key=settings.llm_api_key,
+            schema=IMPROVE_SCHEMA,
+            schema_name="ielts_improved_response",
             temperature=0.4,
-            num_predict=1024,
+            max_tokens=MAX_TOKENS,
             timeout=120.0,
+            reasoning_effort=settings.llm_reasoning_effort,
         )
     except RuntimeError as exc:
         logger.exception("LLM request failed for improve: %s", exc)
         raise
 
-    return _parse_response(raw_text)
+    improved = data.get("improved_text")
+    if not isinstance(improved, str) or not improved.strip():
+        raise ValueError("The rewrite came back empty. Please try again.")
+
+    explanation = data.get("explanation")
+    return {
+        "improved_text": improved.strip(),
+        "explanation": explanation if isinstance(explanation, str) else "",
+    }

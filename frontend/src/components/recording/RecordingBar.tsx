@@ -10,6 +10,7 @@ interface RecordingBarProps {
   onRetry?: () => void
   errorMessage?: string | null
   backendStatus?: string | null
+  transcript?: string | null
 }
 
 const BACKEND_STEP_LABELS: Record<string, string> = {
@@ -60,7 +61,10 @@ export function RecordingBar({
   onRetry,
   errorMessage,
   backendStatus,
+  transcript,
 }: RecordingBarProps) {
+  const showTranscript = status === 'polling' && !!transcript
+
   return (
     <div className="sticky bottom-0 left-0 right-0 bg-sidebar/95 backdrop-blur border-t border-cardBorder px-6 py-4 z-10">
       <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
@@ -211,6 +215,17 @@ export function RecordingBar({
           </div>
         )}
       </div>
+
+      {showTranscript && (
+        <div className="max-w-3xl mx-auto mt-3 rounded-lg border border-cardBorder bg-card/60 px-4 py-3">
+          <p className="text-textSecondary text-xs mb-1.5">
+            What you said - scoring your answer...
+          </p>
+          <p className="text-textPrimary text-sm leading-relaxed max-h-24 overflow-y-auto">
+            {transcript}
+          </p>
+        </div>
+      )}
     </div>
   )
 }

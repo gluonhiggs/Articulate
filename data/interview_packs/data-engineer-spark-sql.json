@@ -1,0 +1,1489 @@
+{
+  "format": "articulate-interview-pack",
+  "format_version": 1,
+  "pack": {
+    "id": "e1c06bc2-9308-5124-9ec0-362791969000",
+    "title": "Data Engineer - Spark and SQL (sample)",
+    "role": "de",
+    "level": "mid",
+    "version": 1,
+    "author": "Articulate sample",
+    "job_description": "Client: a retail and e-commerce analytics company (name withheld). Role: Data Engineer (mid-level) in an offshore team that works daily with the client's data platform group.\n\nResponsibilities:\n- Build and maintain batch data pipelines in PySpark on a cloud data platform (Databricks or similar).\n- Load and model data in a lakehouse (Parquet / Delta Lake) and in PostgreSQL for reporting.\n- Tune Spark jobs (partitioning, joins, caching) and SQL queries (indexes, query plans).\n- Orchestrate workflows with Airflow and make pipelines reliable and safe to re-run.\n- Explain technical decisions clearly in English to the client's engineers.\n\nRequirements:\n- 3+ years of data engineering experience with Spark (PySpark or Scala) and SQL.\n- Solid PostgreSQL knowledge: window functions, indexing, transactions and isolation.\n- Experience with Airflow, Git and CI; Kafka or Kubernetes is a plus.\n- Good spoken English for daily stand-ups and design discussions with the client."
+  },
+  "glossary": [
+    {
+      "term": "PySpark",
+      "aliases": [
+        "pie spark",
+        "py spark"
+      ]
+    },
+    {
+      "term": "Spark SQL",
+      "aliases": [
+        "spark sequel"
+      ]
+    },
+    {
+      "term": "PostgreSQL",
+      "aliases": [
+        "postgres",
+        "post gres",
+        "postgre sequel",
+        "post gress sequel"
+      ]
+    },
+    {
+      "term": "SQL",
+      "aliases": [
+        "sequel"
+      ]
+    },
+    {
+      "term": "Parquet",
+      "aliases": [
+        "par kay",
+        "parkay"
+      ]
+    },
+    {
+      "term": "shuffle",
+      "aliases": []
+    },
+    {
+      "term": "coalesce",
+      "aliases": [
+        "co a less",
+        "coal esce"
+      ]
+    },
+    {
+      "term": "repartition",
+      "aliases": [
+        "re partition"
+      ]
+    },
+    {
+      "term": "DataFrame",
+      "aliases": [
+        "data frame"
+      ]
+    },
+    {
+      "term": "RDD",
+      "aliases": [
+        "r d d"
+      ]
+    },
+    {
+      "term": "reduceByKey",
+      "aliases": [
+        "reduce by key"
+      ]
+    },
+    {
+      "term": "groupByKey",
+      "aliases": [
+        "group by key"
+      ]
+    },
+    {
+      "term": "unpersist",
+      "aliases": [
+        "un persist"
+      ]
+    },
+    {
+      "term": "broadcast join",
+      "aliases": [
+        "broad cast join",
+        "broadcast joint"
+      ]
+    },
+    {
+      "term": "sort-merge join",
+      "aliases": [
+        "sort merge join",
+        "short merge join"
+      ]
+    },
+    {
+      "term": "AQE",
+      "aliases": [
+        "a q e"
+      ]
+    },
+    {
+      "term": "window function",
+      "aliases": [
+        "windows function"
+      ]
+    },
+    {
+      "term": "CTE",
+      "aliases": [
+        "c t e"
+      ]
+    },
+    {
+      "term": "B-tree",
+      "aliases": [
+        "b tree",
+        "bee tree"
+      ]
+    },
+    {
+      "term": "MVCC",
+      "aliases": [
+        "m v c c"
+      ]
+    },
+    {
+      "term": "upsert",
+      "aliases": [
+        "up sert"
+      ]
+    },
+    {
+      "term": "idempotent",
+      "aliases": [
+        "item potent",
+        "idem potent"
+      ]
+    },
+    {
+      "term": "Airflow",
+      "aliases": [
+        "air flow"
+      ]
+    },
+    {
+      "term": "Kafka",
+      "aliases": [
+        "cafka",
+        "caf ka"
+      ]
+    },
+    {
+      "term": "Kubernetes",
+      "aliases": [
+        "cooper netties",
+        "kuber netes",
+        "cooper nettys"
+      ]
+    },
+    {
+      "term": "Databricks",
+      "aliases": [
+        "data bricks"
+      ]
+    },
+    {
+      "term": "Delta Lake",
+      "aliases": []
+    },
+    {
+      "term": "dbt",
+      "aliases": [
+        "d b t"
+      ]
+    },
+    {
+      "term": "ETL",
+      "aliases": [
+        "e t l"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "bc4d247d-37e0-5db6-8a0f-9fc8e626b3d6",
+      "title": "Apache Spark - RDD Programming Guide (operations, shuffle, persistence)",
+      "url": "https://spark.apache.org/docs/latest/rdd-programming-guide.html",
+      "content": "RDD Operations\nRDDs support two types of operations: transformations, which create a new dataset from an existing one, and actions, which return a value to the driver program after running a computation on the dataset. For example, map is a transformation that passes each dataset element through a function and returns a new RDD representing the results. On the other hand, reduce is an action that aggregates all the elements of the RDD using some function and returns the final result to the driver program (although there is also a parallel reduceByKey that returns a distributed dataset).\nAll transformations in Spark are lazy, in that they do not compute their results right away. Instead, they just remember the transformations applied to some base dataset (e.g. a file). The transformations are only computed when an action requires a result to be returned to the driver program. This design enables Spark to run more efficiently. For example, we can realize that a dataset created through map will be used in a reduce and return only the result of the reduce to the driver, rather than the larger mapped dataset.\nBy default, each transformed RDD may be recomputed each time you run an action on it. However, you may also persist an RDD in memory using the persist (or cache) method, in which case Spark will keep the elements around on the cluster for much faster access the next time you query it. There is also support for persisting RDDs on disk, or replicated across multiple nodes.\ncoalesce(numPartitions)\nDecrease the number of partitions in the RDD to numPartitions. Useful for running operations more efficiently after filtering down a large dataset.\nrepartition(numPartitions)\nReshuffle the data in the RDD randomly to create either more or fewer partitions and balance it across them. This always shuffles all data over the network.\ncollect()\nReturn all the elements of the dataset as an array at the driver program. This is usually useful after a filter or other operation that returns a sufficiently small subset of the data.\nShuffle operations\nCertain operations within Spark trigger an event known as the shuffle. The shuffle is Spark's mechanism for re-distributing data so that it's grouped differently across partitions. This typically involves copying data across executors and machines, making the shuffle a complex and costly operation.\nTo understand what happens during the shuffle, we can consider the example of the reduceByKey operation. The reduceByKey operation generates a new RDD where all values for a single key are combined into a tuple - the key and the result of executing a reduce function against all values associated with that key. The challenge is that not all values for a single key necessarily reside on the same partition, or even the same machine, but they must be co-located to compute the result.\nIn Spark, data is generally not distributed across partitions to be in the necessary place for a specific operation. During computations, a single task will operate on a single partition - thus, to organize all the data for a single reduceByKey reduce task to execute, Spark needs to perform an all-to-all operation. It must read from all partitions to find all the values for all keys, and then bring together values across partitions to compute the final result for each key - this is called the shuffle.\nPerformance Impact\nThe Shuffle is an expensive operation since it involves disk I/O, data serialization, and network I/O. To organize data for the shuffle, Spark generates sets of tasks - map tasks to organize the data, and a set of reduce tasks to aggregate it. This nomenclature comes from MapReduce and does not directly relate to Spark's map and reduce operations.\nRDD Persistence\nOne of the most important capabilities in Spark is persisting (or caching) a dataset in memory across operations. When you persist an RDD, each node stores any partitions of it that it computes in memory and reuses them in other actions on that dataset (or datasets derived from it). This allows future actions to be much faster (often by more than 10x). Caching is a key tool for iterative algorithms and fast interactive use.\nYou can mark an RDD to be persisted using the persist() or cache() methods on it. The first time it is computed in an action, it will be kept in memory on the nodes. Spark's cache is fault-tolerant - if any partition of an RDD is lost, it will automatically be recomputed using the transformations that originally created it.\nIn addition, each persisted RDD can be stored using a different storage level, allowing you, for example, to persist the dataset on disk, persist it in memory but as serialized Java objects (to save space), replicate it across nodes. These levels are set by passing a StorageLevel object (Python, Scala, Java) to persist(). The cache() method is a shorthand for using the default storage level, which is StorageLevel.MEMORY_ONLY (store deserialized objects in memory). The full set of storage levels is:\nMEMORY_ONLY\nStore RDD as deserialized Java objects in the JVM. If the RDD does not fit in memory, some partitions will not be cached and will be recomputed on the fly each time they're needed. This is the default level.\nMEMORY_AND_DISK\nStore RDD as deserialized Java objects in the JVM. If the RDD does not fit in memory, store the partitions that don't fit on disk, and read them from there when they're needed.\nDISK_ONLY\nStore the RDD partitions only on disk.\nMEMORY_ONLY_2, MEMORY_AND_DISK_2, etc.\nSame as the levels above, but replicate each partition on two cluster nodes.\nWhich Storage Level to Choose?\nDon't spill to disk unless the functions that computed your datasets are expensive, or they filter a large amount of the data. Otherwise, recomputing a partition may be as fast as reading it from disk.\nRemoving Data\nSpark automatically monitors cache usage on each node and drops out old data partitions in a least-recently-used (LRU) fashion. If you would like to manually remove an RDD instead of waiting for it to fall out of the cache, use the RDD.unpersist() method. Note that this method does not block by default. To block until resources are freed, specify blocking=true when calling this method.\nSpark actions are executed through a set of stages, separated by distributed \"shuffle\" operations. Spark automatically broadcasts the common data needed by tasks within each stage. The data broadcasted this way is cached in serialized form and deserialized before running each task. This means that explicitly creating broadcast variables is only useful when tasks across multiple stages need the same data or when caching the data in deserialized form is important."
+    },
+    {
+      "id": "ddbe33ce-4cb4-53bb-9314-bb39de671c12",
+      "title": "PySpark - Quickstart: DataFrame (lazy evaluation)",
+      "url": "https://spark.apache.org/docs/latest/api/python/getting_started/quickstart_df.html",
+      "content": "This is a short introduction and quickstart for the PySpark DataFrame API. PySpark DataFrames are lazily evaluated. They are implemented on top of RDDs. When Spark transforms data, it does not immediately compute the transformation but plans how to compute later. When actions such as collect() are explicitly called, the computation starts. This notebook shows the basic usages of the DataFrame, geared mainly for new users. You can run the latest version of these examples by yourself in 'Live Notebook: DataFrame' at the quickstart page.\nPySpark DataFrame is lazily evaluated and simply selecting a column does not trigger the computation but it returns a Column instance."
+    },
+    {
+      "id": "5cb8f77a-d013-5d7d-8b01-44fc67f626c7",
+      "title": "PySpark API - DataFrame.cache",
+      "url": "https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.cache.html",
+      "content": "Persists the DataFrame with the default storage level (MEMORY_AND_DISK_DESER).\nNotes\nThe default storage level has changed to MEMORY_AND_DISK_DESER to match Scala in 3.0.\nCached data is shared across all Spark sessions on the cluster."
+    },
+    {
+      "id": "de78f0f9-ccdd-5575-940d-636b42be3533",
+      "title": "PySpark API - DataFrame.coalesce",
+      "url": "https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.coalesce.html",
+      "content": "Returns a new DataFrame that has exactly numPartitions partitions.\nSimilar to coalesce defined on an RDD, this operation results in a narrow dependency, e.g. if you go from 1000 partitions to 100 partitions, there will not be a shuffle, instead each of the 100 new partitions will claim 10 of the current partitions. If a larger number of partitions is requested, it will stay at the current number of partitions.\nHowever, if you're doing a drastic coalesce, e.g. to numPartitions = 1, this may result in your computation taking place on fewer nodes than you like (e.g. one node in the case of numPartitions = 1). To avoid this, you can call repartition(). This will add a shuffle step, but means the current upstream partitions will be executed in parallel (per whatever the current partitioning is)."
+    },
+    {
+      "id": "2f7f011d-8805-536e-8365-4c597a7a9ff8",
+      "title": "Apache Spark SQL - Performance Tuning (partitions, joins, AQE)",
+      "url": "https://spark.apache.org/docs/latest/sql-performance-tuning.html",
+      "content": "Spark offers many techniques for tuning the performance of DataFrame or SQL workloads. Those techniques, broadly speaking, include caching data, altering how datasets are partitioned, selecting the optimal join strategy, and providing the optimizer with additional information it can use to build more efficient execution plans.\nspark.sql.shuffle.partitions\n200\nConfigures the number of partitions to use when shuffling data for joins or aggregations.\n1.1.0\nCoalesce hints allow Spark SQL users to control the number of output files just like coalesce, repartition and repartitionByRange in the Dataset API, they can be used for performance tuning and reducing the number of output files. The \"COALESCE\" hint only has a partition number as a parameter. The \"REPARTITION\" hint has a partition number, columns, or both/neither of them as parameters. The \"REPARTITION_BY_RANGE\" hint must have column names and a partition number is optional. The \"REBALANCE\" hint has an initial partition number, columns, or both/neither of them as parameters.\nMissing or inaccurate statistics will hinder Spark's ability to select an optimal plan, and may lead to poor query performance. It's helpful then to inspect the statistics available to Spark and the estimates it makes during query planning and execution.\nQuery plan estimates: You can inspect Spark's cost estimates in the optimized query plan via EXPLAIN COST or DataFrame.explain(mode=\"cost\").\nAutomatically Broadcasting Joins\nspark.sql.autoBroadcastJoinThreshold\n10485760 (10 MB)\nConfigures the maximum size in bytes for a table that will be broadcast to all worker nodes when performing a join. By setting this value to -1, broadcasting can be disabled.\n1.1.0\nspark.sql.broadcastTimeout\n300\nTimeout in seconds for the broadcast wait time in broadcast joins\n1.3.0\nJoin Strategy Hints\nThe join strategy hints, namely BROADCAST, MERGE, SHUFFLE_HASH and SHUFFLE_REPLICATE_NL, instruct Spark to use the hinted strategy on each specified relation when joining them with another relation. For example, when the BROADCAST hint is used on table 't1', broadcast join (either broadcast hash join or broadcast nested loop join depending on whether there is any equi-join key) with 't1' as the build side will be prioritized by Spark even if the size of table 't1' suggested by the statistics is above the configuration spark.sql.autoBroadcastJoinThreshold.\nNote that there is no guarantee that Spark will choose the join strategy specified in the hint since a specific strategy may not support all join types.\nAdaptive Query Execution\nAdaptive Query Execution (AQE) is an optimization technique in Spark SQL that makes use of the runtime statistics to choose the most efficient query execution plan, which is enabled by default since Apache Spark 3.2.0. Spark SQL can turn on and off AQE by spark.sql.adaptive.enabled as an umbrella configuration.\nspark.sql.adaptive.enabled\ntrue\nWhen true, enable adaptive query execution, which re-optimizes the query plan in the middle of query execution, based on accurate runtime statistics.\n1.6.0\nCoalescing Post Shuffle Partitions\nThis feature coalesces the post shuffle partitions based on the map output statistics when both spark.sql.adaptive.enabled and spark.sql.adaptive.coalescePartitions.enabled configurations are true. This feature simplifies the tuning of shuffle partition number when running queries. You do not need to set a proper shuffle partition number to fit your dataset. Spark can pick the proper shuffle partition number at runtime once you set a large enough initial number of shuffle partitions via spark.sql.adaptive.coalescePartitions.initialPartitionNum configuration.\nConverting sort-merge join to broadcast join\nAQE converts sort-merge join to broadcast hash join when the runtime statistics of any join side are smaller than the adaptive broadcast hash join threshold. This is not as efficient as planning a broadcast hash join in the first place, but it's better than continuing the sort-merge join, as we can avoid sorting both join sides and read shuffle files locally to save network traffic (provided spark.sql.adaptive.localShuffleReader.enabled is true).\nOptimizing Skew Join\nData skew can severely downgrade the performance of join queries. This feature dynamically handles skew in sort-merge join by splitting (and replicating if needed) skewed tasks into roughly evenly sized tasks. It takes effect when both spark.sql.adaptive.enabled and spark.sql.adaptive.skewJoin.enabled configurations are enabled.\nspark.sql.adaptive.skewJoin.enabled\ntrue\nWhen true and spark.sql.adaptive.enabled is true, Spark dynamically handles skew in sort-merge join by splitting (and replicating if needed) skewed partitions.\n3.0.0"
+    },
+    {
+      "id": "aaeaf272-d73f-51e1-b530-c5e1f5410b4b",
+      "title": "Apache Spark - Configuration: spark.sql.sources.partitionOverwriteMode",
+      "url": "https://spark.apache.org/docs/latest/configuration.html",
+      "content": "spark.sql.sources.partitionOverwriteMode\nSTATIC\nWhen INSERT OVERWRITE a partitioned data source table, we currently support 2 modes: static and dynamic. In static mode, Spark deletes all the partitions that match the partition specification(e.g. PARTITION(a=1,b)) in the INSERT statement, before overwriting. In dynamic mode, Spark doesn't delete partitions ahead, and only overwrite those partitions that have data written into it at runtime. By default we use static mode to keep the same behavior of Spark prior to 2.3. Note that this config doesn't affect Hive serde tables, as they are always overwritten with dynamic mode. This can also be set as an output option for a data source using key partitionOverwriteMode (which takes precedence over this setting), e.g. dataframe.write.option(\"partitionOverwriteMode\", \"dynamic\").save(path).\n2.3.0"
+    },
+    {
+      "id": "e9a96895-ae5b-5ed0-9c0f-8748beeed4fc",
+      "title": "PostgreSQL - Tutorial: Window Functions",
+      "url": "https://www.postgresql.org/docs/current/tutorial-window.html",
+      "content": "A window function performs a calculation across a set of table rows that are somehow related to the current row. This is comparable to the type of calculation that can be done with an aggregate function. However, window functions do not cause rows to become grouped into a single output row like non-window aggregate calls would. Instead, the rows retain their separate identities. Behind the scenes, the window function is able to access more than just the current row of the query result.\nHere is an example that shows how to compare each employee's salary with the average salary in his or her department:\nSELECT depname, empno, salary, avg(salary) OVER (PARTITION BY depname) FROM empsalary;\nThe first three output columns come directly from the table empsalary, and there is one output row for each row in the table. The fourth column represents an average taken across all the table rows that have the same depname value as the current row. (This actually is the same function as the non-window avg aggregate, but the OVER clause causes it to be treated as a window function and computed across the window frame.)\nA window function call always contains an OVER clause directly following the window function's name and argument(s). This is what syntactically distinguishes it from a normal function or non-window aggregate. The OVER clause determines exactly how the rows of the query are split up for processing by the window function. The PARTITION BY clause within OVER divides the rows into groups, or partitions, that share the same values of the PARTITION BY expression(s). For each row, the window function is computed across the rows that fall into the same partition as the current row.\nYou can also control the order in which rows are processed by window functions using ORDER BY within OVER. (The window ORDER BY does not even have to match the order in which the rows are output.) Here is an example:\nSELECT depname, empno, salary, row_number() OVER (PARTITION BY depname ORDER BY salary DESC) FROM empsalary;\nAs shown here, the row_number window function assigns sequential numbers to the rows within each partition, in the order defined by the ORDER BY clause (with tied rows numbered in an unspecified order). row_number needs no explicit parameter, because its behavior is entirely determined by the OVER clause.\nThe rows considered by a window function are those of the \"virtual table\" produced by the query's FROM clause as filtered by its WHERE, GROUP BY, and HAVING clauses if any. For example, a row removed because it does not meet the WHERE condition is not seen by any window function. A query can contain multiple window functions that slice up the data in different ways using different OVER clauses, but they all act on the same collection of rows defined by this virtual table.\nThere is another important concept associated with window functions: for each row, there is a set of rows within its partition called its window frame. Some window functions act only on the rows of the window frame, rather than of the whole partition. By default, if ORDER BY is supplied then the frame consists of all rows from the start of the partition up through the current row, plus any following rows that are equal to the current row according to the ORDER BY clause. When ORDER BY is omitted the default frame consists of all rows in the partition. [5] Here is an example using sum:\nWindow functions are permitted only in the SELECT list and the ORDER BY clause of the query. They are forbidden elsewhere, such as in GROUP BY, HAVING and WHERE clauses. This is because they logically execute after the processing of those clauses. Also, window functions execute after non-window aggregate functions. This means it is valid to include an aggregate function call in the arguments of a window function, but not vice versa.\nIf there is a need to filter or group rows after the window calculations are performed, you can use a sub-select. For example:\nSELECT depname, empno, salary, enroll_date FROM (SELECT depname, empno, salary, enroll_date, row_number() OVER (PARTITION BY depname ORDER BY salary DESC, empno) AS pos FROM empsalary ) AS ss WHERE pos < 3;\nThe above query only shows the rows from the inner query having row_number less than 3 (that is, the first two rows for each department)."
+    },
+    {
+      "id": "9089d788-d9ef-5231-b338-f65a926391dd",
+      "title": "PostgreSQL - Window Functions reference (ranking functions)",
+      "url": "https://www.postgresql.org/docs/current/functions-window.html",
+      "content": "Window functions provide the ability to perform calculations across sets of rows that are related to the current query row. See Section 3.5 for an introduction to this feature, and Section 4.2.8 for syntax details.\nrow_number () -> bigint\nReturns the number of the current row within its partition, counting from 1.\nrank () -> bigint\nReturns the rank of the current row, with gaps; that is, the row_number of the first row in its peer group.\ndense_rank () -> bigint\nReturns the rank of the current row, without gaps; this function effectively counts peer groups.\nAll of the functions listed in Table 9.67 depend on the sort ordering specified by the ORDER BY clause of the associated window definition. Rows that are not distinct when considering only the ORDER BY columns are said to be peers. The four ranking functions (including cume_dist) are defined so that they give the same answer for all rows of a peer group."
+    },
+    {
+      "id": "12a2439f-6d57-544a-9165-72a6edf0717d",
+      "title": "PostgreSQL - Indexes: Introduction",
+      "url": "https://www.postgresql.org/docs/current/indexes-intro.html",
+      "content": "Suppose we have a table similar to this:\nCREATE TABLE test1 ( id integer, content varchar );\nand the application issues many queries of the form:\nSELECT content FROM test1 WHERE id = constant;\nWith no advance preparation, the system would have to scan the entire test1 table, row by row, to find all matching entries. If there are many rows in test1 and only a few rows (perhaps zero or one) that would be returned by such a query, this is clearly an inefficient method. But if the system has been instructed to maintain an index on the id column, it can use a more efficient method for locating matching rows. For instance, it might only have to walk a few levels deep into a search tree.\nOnce an index is created, no further intervention is required: the system will update the index when the table is modified, and it will use the index in queries when it thinks doing so would be more efficient than a sequential table scan. But you might have to run the ANALYZE command regularly to update statistics to allow the query planner to make educated decisions. See Chapter 14 for information about how to find out whether an index is used and when and why the planner might choose not to use an index.\nIndexes can also benefit UPDATE and DELETE commands with search conditions. Indexes can moreover be used in join searches. Thus, an index defined on a column that is part of a join condition can also significantly speed up queries with joins.\nAfter an index is created, the system has to keep it synchronized with the table. This adds overhead to data manipulation operations. Indexes can also prevent the creation of heap-only tuples. Therefore indexes that are seldom or never used in queries should be removed."
+    },
+    {
+      "id": "9559b4ec-dffd-5cd4-bb38-a81dc377c361",
+      "title": "PostgreSQL - Index Types: B-Tree",
+      "url": "https://www.postgresql.org/docs/current/indexes-types.html",
+      "content": "PostgreSQL provides several index types: B-tree, Hash, GiST, SP-GiST, GIN, BRIN, and the extension bloom. Each index type uses a different algorithm that is best suited to different types of indexable clauses. By default, the CREATE INDEX command creates B-tree indexes, which fit the most common situations. The other index types are selected by writing the keyword USING followed by the index type name. For example, to create a Hash index:\nCREATE INDEX name ON table USING HASH (column);\nB-trees can handle equality and range queries on data that can be sorted into some ordering. In particular, the PostgreSQL query planner will consider using a B-tree index whenever an indexed column is involved in a comparison using one of these operators:\n< <= = >= >\nConstructs equivalent to combinations of these operators, such as BETWEEN and IN, can also be implemented with a B-tree index search. Also, an IS NULL or IS NOT NULL condition on an index column can be used with a B-tree index.\nThe optimizer can also use a B-tree index for queries involving the pattern matching operators LIKE and ~ if the pattern is a constant and is anchored to the beginning of the string - for example, col LIKE 'foo%' or col ~ '^foo', but not col LIKE '%bar'. However, if your database does not use the C locale you will need to create the index with a special operator class to support indexing of pattern-matching queries; see Section 11.10 below. It is also possible to use B-tree indexes for ILIKE and ~*, but only if the pattern starts with non-alphabetic characters, i.e., characters that are not affected by upper/lower case conversion.\nB-tree indexes can also be used to retrieve data in sorted order. This is not always faster than a simple scan and sort, but it is often helpful."
+    },
+    {
+      "id": "6e3b44bd-4146-5bb3-addc-07768247c6f1",
+      "title": "PostgreSQL - Indexes on Expressions",
+      "url": "https://www.postgresql.org/docs/current/indexes-expressional.html",
+      "content": "An index column need not be just a column of the underlying table, but can be a function or scalar expression computed from one or more columns of the table. This feature is useful to obtain fast access to tables based on the results of computations.\nFor example, a common way to do case-insensitive comparisons is to use the lower function:\nSELECT * FROM test1 WHERE lower(col1) = 'value';\nThis query can use an index if one has been defined on the result of the lower(col1) function:\nCREATE INDEX test1_lower_col1_idx ON test1 (lower(col1));"
+    },
+    {
+      "id": "0a976394-15fa-5cd1-8b3f-906bfd5f07b0",
+      "title": "PostgreSQL - Multicolumn Indexes",
+      "url": "https://www.postgresql.org/docs/current/indexes-multicolumn.html",
+      "content": "A multicolumn B-tree index can be used with query conditions that involve any subset of the index's columns, but the index is most efficient when there are constraints on the leading (leftmost) columns. The exact rule is that equality constraints on leading columns, plus any inequality constraints on the first column that does not have an equality constraint, will always be used to limit the portion of the index that is scanned. Constraints on columns to the right of these columns are checked in the index, so they'll always save visits to the table proper, but they do not necessarily reduce the portion of the index that has to be scanned. If a B-tree index scan can apply the skip scan optimization effectively, it will apply every column constraint when navigating through the index via repeated index searches. This can reduce the portion of the index that has to be read, even though one or more columns (prior to the least significant index column from the query predicate) lacks a conventional equality constraint. Skip scan works by generating a dynamic equality constraint internally, that matches every possible value in an index column (though only given a column that lacks an equality constraint that comes from the query predicate, and only when the generated constraint can be used in conjunction with a later column constraint from the query predicate).\nFor example, given an index on (x, y), and a query condition WHERE y = 7700, a B-tree index scan might be able to apply the skip scan optimization. This generally happens when the query planner expects that repeated WHERE x = N AND y = 7700 searches for every possible value of N (or for every x value that is actually stored in the index) is the fastest possible approach, given the available indexes on the table. This approach is generally only taken when there are so few distinct x values that the planner expects the scan to skip over most of the index (because most of its leaf pages cannot possibly contain relevant tuples). If there are many distinct x values, then the entire index will have to be scanned, so in most cases the planner will prefer a sequential table scan over using the index.\nMulticolumn indexes should be used sparingly. In most situations, an index on a single column is sufficient and saves space and time. Indexes with more than three columns are unlikely to be helpful unless the usage of the table is extremely stylized. See also Section 11.5 and Section 11.9 for some discussion of the merits of different index configurations."
+    },
+    {
+      "id": "4dce8559-f580-5167-968e-041de438da86",
+      "title": "PostgreSQL - Examining Index Usage",
+      "url": "https://www.postgresql.org/docs/current/indexes-examine.html",
+      "content": "Although indexes in PostgreSQL do not need maintenance or tuning, it is still important to check which indexes are actually used by the real-life query workload. Examining index usage for an individual query is done with the EXPLAIN command; its application for this purpose is illustrated in Section 14.1. It is also possible to gather overall statistics about index usage in a running server, as described in Section 27.2.\nAlways run ANALYZE first. This command collects statistics about the distribution of the values in the table. This information is required to estimate the number of rows returned by a query, which is needed by the planner to assign realistic costs to each possible query plan. In absence of any real statistics, some default values are assumed, which are almost certain to be inaccurate. Examining an application's index usage without having run ANALYZE is therefore a lost cause. See Section 24.1.3 and Section 24.1.6 for more information.\nIt is especially fatal to use very small test data sets. While selecting 1000 out of 100000 rows could be a candidate for an index, selecting 1 out of 100 rows will hardly be, because the 100 rows probably fit within a single disk page, and there is no plan that can beat sequentially fetching 1 disk page.\nWhen indexes are not used, it can be useful for testing to force their use. There are run-time parameters that can turn off various plan types (see Section 19.7.1). For instance, turning off sequential scans (enable_seqscan) and nested-loop joins (enable_nestloop), which are the most basic plans, will force the system to use a different plan. If the system still chooses a sequential scan or nested-loop join then there is probably a more fundamental reason why the index is not being used; for example, the query condition does not match the index. (What kind of query can use what kind of index is explained in the previous sections.)\nIf forcing index usage does use the index, then there are two possibilities: Either the system is right and using the index is indeed not appropriate, or the cost estimates of the query plans are not reflecting reality. So you should time your query with and without indexes. The EXPLAIN ANALYZE command can be useful here."
+    },
+    {
+      "id": "06335e2b-0152-5825-a858-708bfcdb011e",
+      "title": "PostgreSQL - Transaction Isolation",
+      "url": "https://www.postgresql.org/docs/current/transaction-iso.html",
+      "content": "The SQL standard defines four levels of transaction isolation. The most strict is Serializable, which is defined by the standard in a paragraph which says that any concurrent execution of a set of Serializable transactions is guaranteed to produce the same effect as running them one at a time in some order. The other three levels are defined in terms of phenomena, resulting from interaction between concurrent transactions, which must not occur at each level. The standard notes that due to the definition of Serializable, none of these phenomena are possible at that level. (This is hardly surprising -- if the effect of the transactions must be consistent with having been run one at a time, how could you see any phenomena caused by interactions?)\nThe phenomena which are prohibited at various levels are:\ndirty read\nA transaction reads data written by a concurrent uncommitted transaction.\nnonrepeatable read\nA transaction re-reads data it has previously read and finds that data has been modified by another transaction (that committed since the initial read).\nphantom read\nA transaction re-executes a query returning a set of rows that satisfy a search condition and finds that the set of rows satisfying the condition has changed due to another recently-committed transaction.\nserialization anomaly\nThe result of successfully committing a group of transactions is inconsistent with all possible orderings of running those transactions one at a time.\nTable 13.1. Transaction Isolation Levels\nIsolation Level\nDirty Read\nNonrepeatable Read\nPhantom Read\nSerialization Anomaly\nRead uncommitted\nAllowed, but not in PG\nPossible\nPossible\nPossible\nRead committed\nNot possible\nPossible\nPossible\nPossible\nRepeatable read\nNot possible\nNot possible\nAllowed, but not in PG\nPossible\nSerializable\nNot possible\nNot possible\nNot possible\nNot possible\nIn PostgreSQL, you can request any of the four standard transaction isolation levels, but internally only three distinct isolation levels are implemented, i.e., PostgreSQL's Read Uncommitted mode behaves like Read Committed. This is because it is the only sensible way to map the standard isolation levels to PostgreSQL's multiversion concurrency control architecture.\nThe table also shows that PostgreSQL's Repeatable Read implementation does not allow phantom reads. This is acceptable under the SQL standard because the standard specifies which anomalies must not occur at certain isolation levels; higher guarantees are acceptable. The behavior of the available isolation levels is detailed in the following subsections.\nRead Committed is the default isolation level in PostgreSQL. When a transaction uses this isolation level, a SELECT query (without a FOR UPDATE/SHARE clause) sees only data committed before the query began; it never sees either uncommitted data or changes committed by concurrent transactions during the query's execution. In effect, a SELECT query sees a snapshot of the database as of the instant the query begins to run. However, SELECT does see the effects of previous updates executed within its own transaction, even though they are not yet committed. Also note that two successive SELECT commands can see different data, even though they are within a single transaction, if other transactions commit changes after the first SELECT starts and before the second SELECT starts.\nUPDATE, DELETE, SELECT FOR UPDATE, and SELECT FOR SHARE commands behave the same as SELECT in terms of searching for target rows: they will only find target rows that were committed as of the command start time. However, such a target row might have already been updated (or deleted or locked) by another concurrent transaction by the time it is found. In this case, the would-be updater will wait for the first updating transaction to commit or roll back (if it is still in progress). If the first updater rolls back, then its effects are negated and the second updater can proceed with updating the originally found row. If the first updater commits, the second updater will ignore the row if the first updater deleted it, otherwise it will attempt to apply its operation to the updated version of the row. The search condition of the command (the WHERE clause) is re-evaluated to see if the updated version of the row still matches the search condition. If so, the second updater proceeds with its operation using the updated version of the row. In the case of SELECT FOR UPDATE and SELECT FOR SHARE, this means it is the updated version of the row that is locked and returned to the client.\nThe Repeatable Read isolation level only sees data committed before the transaction began; it never sees either uncommitted data or changes committed by concurrent transactions during the transaction's execution. (However, each query does see the effects of previous updates executed within its own transaction, even though they are not yet committed.) This is a stronger guarantee than is required by the SQL standard for this isolation level, and prevents all of the phenomena described in Table 13.1 except for serialization anomalies. As mentioned above, this is specifically allowed by the standard, which only describes the minimum protections each isolation level must provide.\nThis level is different from Read Committed in that a query in a repeatable read transaction sees a snapshot as of the start of the first non-transaction-control statement in the transaction, not as of the start of the current statement within the transaction. Thus, successive SELECT commands within a single transaction see the same data, i.e., they do not see changes made by other transactions that committed after their own transaction started.\nApplications using this level must be prepared to retry transactions due to serialization failures.\nUPDATE, DELETE, MERGE, SELECT FOR UPDATE, and SELECT FOR SHARE commands behave the same as SELECT in terms of searching for target rows: they will only find target rows that were committed as of the transaction start time. However, such a target row might have already been updated (or deleted or locked) by another concurrent transaction by the time it is found. In this case, the repeatable read transaction will wait for the first updating transaction to commit or roll back (if it is still in progress). If the first updater rolls back, then its effects are negated and the repeatable read transaction can proceed with updating the originally found row. But if the first updater commits (and actually updated or deleted the row, not just locked it) then the repeatable read transaction will be rolled back with the message\nERROR: could not serialize access due to concurrent update\nbecause a repeatable read transaction cannot modify or lock rows changed by other transactions after the repeatable read transaction began.\nWhen an application receives this error message, it should abort the current transaction and retry the whole transaction from the beginning. The second time through, the transaction will see the previously-committed change as part of its initial view of the database, so there is no logical conflict in using the new version of the row as the starting point for the new transaction's update.\nThe Serializable isolation level provides the strictest transaction isolation. This level emulates serial transaction execution for all committed transactions; as if transactions had been executed one after another, serially, rather than concurrently. However, like the Repeatable Read level, applications using this level must be prepared to retry transactions due to serialization failures. In fact, this isolation level works exactly the same as Repeatable Read except that it also monitors for conditions which could make execution of a concurrent set of serializable transactions behave in a manner inconsistent with all possible serial (one at a time) executions of those transactions. This monitoring does not introduce any blocking beyond that present in repeatable read, but there is some overhead to the monitoring, and detection of the conditions which could cause a serialization anomaly will trigger a serialization failure.\nTo guarantee true serializability PostgreSQL uses predicate locking, which means that it keeps locks which allow it to determine when a write would have had an impact on the result of a previous read from a concurrent transaction, had it run first. In PostgreSQL these locks do not cause any blocking and therefore can not play any part in causing a deadlock. They are used to identify and flag dependencies among concurrent Serializable transactions which in certain combinations can lead to serialization anomalies. In contrast, a Read Committed or Repeatable Read transaction which wants to ensure data consistency may need to take out a lock on an entire table, which could block other users attempting to use that table, or it may use SELECT FOR UPDATE or SELECT FOR SHARE which not only can block other transactions but cause disk access.\nThe Serializable isolation level is implemented using a technique known in academic database literature as Serializable Snapshot Isolation, which builds on Snapshot Isolation by adding checks for serialization anomalies. Some differences in behavior and performance may be observed when compared with other systems that use a traditional locking technique. Please see [ports12] for detailed information."
+    },
+    {
+      "id": "6226f33e-f23a-5e82-9dac-5cbddc377555",
+      "title": "PostgreSQL - INSERT ... ON CONFLICT",
+      "url": "https://www.postgresql.org/docs/current/sql-insert.html",
+      "content": "The optional ON CONFLICT clause specifies an alternative action to raising a unique violation or exclusion constraint violation error. For each individual row proposed for insertion, either the insertion proceeds, or, if an arbiter constraint or index specified by conflict_target is violated, the alternative conflict_action is taken. ON CONFLICT DO NOTHING simply avoids inserting a row as its alternative action. ON CONFLICT DO UPDATE updates the existing row that conflicts with the row proposed for insertion as its alternative action.\nconflict_target can perform unique index inference. When performing inference, it consists of one or more index_column_name columns and/or index_expression expressions, and an optional index_predicate. All table_name unique indexes that, without regard to order, contain exactly the conflict_target-specified columns/expressions are inferred (chosen) as arbiter indexes. If an index_predicate is specified, it must, as a further requirement for inference, satisfy arbiter indexes. Note that this means a non-partial unique index (a unique index without a predicate) will be inferred (and thus used by ON CONFLICT) if such an index satisfying every other criteria is available. If an attempt at inference is unsuccessful, an error is raised.\nON CONFLICT DO UPDATE guarantees an atomic INSERT or UPDATE outcome; provided there is no independent error, one of those two outcomes is guaranteed, even under high concurrency. This is also known as UPSERT - \"UPDATE or INSERT\".\nINSERT with an ON CONFLICT DO UPDATE clause is a \"deterministic\" statement. This means that the command will not be allowed to affect any single existing row more than once; a cardinality violation error will be raised when this situation arises. Rows proposed for insertion should not duplicate each other in terms of attributes constrained by an arbiter index or constraint."
+    }
+  ],
+  "questions": [
+    {
+      "id": "57509cdd-cd1b-5558-a43a-c03370e0f4ef",
+      "topic": "Spark execution",
+      "text": "In Spark, transformations are described as lazy. What does that mean, what actually triggers a computation, and why did Spark choose this design?",
+      "answer_seconds": 120,
+      "key_points": [
+        {
+          "id": "d7efaa48-4c9a-546e-91ac-fa88f2f79bbb",
+          "text": "Transformations such as select, filter, withColumn or join do not process any data when they are called; Spark only records them in a plan (lineage).",
+          "weight": 3,
+          "source_quote": "All transformations in Spark are lazy, in that they do not compute their results right away.",
+          "approved": true
+        },
+        {
+          "id": "d6074df3-9c3d-593f-ac5a-cf351cb9ec03",
+          "text": "Computation starts only when an action is called, for example count, collect, show, take or writing the data out.",
+          "weight": 3,
+          "source_quote": "When actions such as collect() are explicitly called, the computation starts.",
+          "approved": true
+        },
+        {
+          "id": "7feb16c6-6ac0-5c6b-a178-cd1f1e7399f4",
+          "text": "Because nothing runs until an action, Spark can optimize the whole chain before executing it (for example pipelining steps together, or pruning columns and pushing filters down for DataFrames) instead of computing every intermediate result.",
+          "weight": 3,
+          "source_quote": "This design enables Spark to run more efficiently.",
+          "approved": true
+        },
+        {
+          "id": "67fbeb14-41ea-586b-a958-1cb02c9ca01f",
+          "text": "Unless the data is cached or persisted, later actions generally recompute the transformations instead of reusing results from earlier actions.",
+          "weight": 2,
+          "source_quote": "By default, each transformed RDD may be recomputed each time you run an action on it.",
+          "approved": true
+        },
+        {
+          "id": "647ddf89-81be-5927-8e01-1106d0fb3f2d",
+          "text": "Runtime errors inside transformation logic, such as a failing UDF or bad input data, often appear only when an action runs, not on the line that defined the transformation.",
+          "weight": 1,
+          "source_quote": null,
+          "approved": true
+        }
+      ],
+      "misconceptions": [
+        {
+          "id": "118d7781-74a7-5051-b39f-282fe3d85847",
+          "text": "Calling a transformation such as filter or join immediately processes the data and stores the result.",
+          "correction": "Transformations only add steps to the plan; no data is processed until an action runs."
+        },
+        {
+          "id": "a4756ebb-e707-50a6-8571-2ef6531afdf5",
+          "text": "Once a DataFrame has been computed by one action, later actions automatically reuse that final result without caching.",
+          "correction": "Spark does not keep the computed DataFrame between actions unless you cache or persist it; later actions re-run the transformations, and only intermediate shuffle files may be reused (shown as skipped stages)."
+        }
+      ],
+      "follow_ups": [
+        {
+          "id": "18af2cc2-c2e4-5425-a67a-fe2a7acf3bfe",
+          "text": "Give some examples of transformations and of actions in the DataFrame API. When you call count() on a DataFrame, how does Spark split that work up on the cluster?",
+          "answer_seconds": 120,
+          "trigger_key_point_id": "d6074df3-9c3d-593f-ac5a-cf351cb9ec03",
+          "key_points": [
+            {
+              "id": "4dfd982a-20d3-53b7-ae50-ad869cd766b0",
+              "text": "Correct examples of transformations, such as select, filter or where, withColumn, join, or groupBy with agg.",
+              "weight": 3,
+              "source_quote": null,
+              "approved": true
+            },
+            {
+              "id": "01d6b3b5-28d4-5f2e-acbe-9e4550db7884",
+              "text": "Correct examples of actions, such as count, collect, show, take, or write/save.",
+              "weight": 3,
+              "source_quote": "When actions such as collect() are explicitly called, the computation starts.",
+              "approved": true
+            },
+            {
+              "id": "6637c3b1-3948-511b-a127-b869ab95a1c1",
+              "text": "count() runs as a job with one task per partition on the executors; each task counts the rows in its own partition, and the partial counts are combined into the total returned to the driver.",
+              "weight": 3,
+              "source_quote": null,
+              "approved": true
+            },
+            {
+              "id": "7266fad5-2ab2-5870-bd26-20ca2d2537db",
+              "text": "Spark splits a job into stages at shuffle boundaries, and each stage runs one task per partition.",
+              "weight": 1,
+              "source_quote": "Spark actions are executed through a set of stages, separated by distributed \"shuffle\" operations.",
+              "approved": true
+            },
+            {
+              "id": "e2317c3b-7d0e-5b0d-ad84-06d8ca53b8a9",
+              "text": "collect() brings every row back to the driver, so it should only be used on small results.",
+              "weight": 1,
+              "source_quote": "Return all the elements of the dataset as an array at the driver program. This is usually useful after a filter or other operation that returns a sufficiently small subset of the data.",
+              "approved": true
+            }
+          ],
+          "misconceptions": [
+            {
+              "id": "aa77f084-01f8-5b6b-a149-9001a5cafb90",
+              "text": "collect() is safe on data of any size because Spark distributes it.",
+              "correction": "collect() returns all rows to the driver process and can run it out of memory; use it only on small results."
+            },
+            {
+              "id": "3c0e3d8b-d121-53ce-a2a7-e5d6c080d64c",
+              "text": "df.groupBy(...).count() is an action because count() is an action.",
+              "correction": "count() on grouped data returns a new DataFrame, so it is a transformation; only DataFrame.count() is an action."
+            }
+          ]
+        },
+        {
+          "id": "89cb3760-a4aa-5c55-a07e-a8bdcb8f0c85",
+          "text": "How can you see what Spark is planning to do with a DataFrame query before or while it runs, and what would you look for?",
+          "answer_seconds": 90,
+          "trigger_key_point_id": "7feb16c6-6ac0-5c6b-a178-cd1f1e7399f4",
+          "key_points": [
+            {
+              "id": "b30ddc37-0504-5734-8892-a4daba29f610",
+              "text": "Call explain() on the DataFrame (or EXPLAIN in SQL) to print the plan without running the job.",
+              "weight": 3,
+              "source_quote": null,
+              "approved": true
+            },
+            {
+              "id": "3888141e-5f6d-515f-be64-879d9365d6bb",
+              "text": "explain in extended mode also shows the parsed, analyzed and optimized logical plans in addition to the physical plan.",
+              "weight": 2,
+              "source_quote": null,
+              "approved": true
+            },
+            {
+              "id": "ee62a275-d89e-5f37-b194-d58e7108097c",
+              "text": "In the physical plan, Exchange nodes show shuffles (BroadcastExchange shows a broadcast) and the join node shows the chosen strategy, such as BroadcastHashJoin or SortMergeJoin.",
+              "weight": 3,
+              "source_quote": null,
+              "approved": true
+            },
+            {
+              "id": "36c4fa7e-8dd5-5ea8-9a61-cd222c188823",
+              "text": "With adaptive query execution the plan can change at runtime, so the final plan is visible in the Spark UI SQL tab after the query runs.",
+              "weight": 1,
+              "source_quote": "which re-optimizes the query plan in the middle of query execution, based on accurate runtime statistics.",
+              "approved": true
+            }
+          ],
+          "misconceptions": [
+            {
+              "id": "2624895a-1415-515f-a837-97e3ab978047",
+              "text": "explain() runs the query to measure how long each step takes.",
+              "correction": "explain() only prints the planned execution and does not run the job; actual task metrics come from the Spark UI after an action runs."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "4721f1a7-6ed3-5647-bb51-306316df554a",
+      "topic": "Spark execution",
+      "text": "What is the difference between narrow and wide transformations in Spark? What is a shuffle, and why do data engineers try to reduce shuffles?",
+      "answer_seconds": 120,
+      "key_points": [
+        {
+          "id": "6dd144ad-bbdc-5194-b4cf-98f08a78bd1f",
+          "text": "Narrow transformations, such as map, filter, select or withColumn, work on each partition independently without moving data between partitions, so Spark can run them together in one stage.",
+          "weight": 3,
+          "source_quote": null,
+          "approved": true
+        },
+        {
+          "id": "64990f12-e15b-5d4b-b89c-47670628ce46",
+          "text": "Wide transformations, such as groupBy aggregations, reduceByKey, distinct, most joins and repartition, need data from many input partitions to be redistributed (for example, all rows with the same key brought together), which requires a shuffle.",
+          "weight": 3,
+          "source_quote": "The challenge is that not all values for a single key necessarily reside on the same partition, or even the same machine, but they must be co-located to compute the result.",
+          "approved": true
+        },
+        {
+          "id": "53db38d3-0420-5636-81d8-7a38a58effc8",
+          "text": "A shuffle redistributes data across partitions, which usually means copying data between executors and machines.",
+          "weight": 3,
+          "source_quote": "The shuffle is Spark's mechanism for re-distributing data so that it's grouped differently across partitions.",
+          "approved": true
+        },
+        {
+          "id": "3432550d-0155-59ba-8ef1-e682b7d4d0eb",
+          "text": "Shuffles are expensive because they involve serialization, disk I/O and network I/O, and large shuffles can spill to disk and put pressure on memory.",
+          "weight": 3,
+          "source_quote": "The Shuffle is an expensive operation since it involves disk I/O, data serialization, and network I/O.",
+          "approved": true
+        },
+        {
+          "id": "5abf81cd-b81a-5329-a9fc-74b1a20e8bd0",
+          "text": "Shuffles are stage boundaries: Spark splits a job into a new stage at each shuffle.",
+          "weight": 2,
+          "source_quote": "Spark actions are executed through a set of stages, separated by distributed \"shuffle\" operations.",
+          "approved": true
+        },
+        {
+          "id": "1560d292-fd50-5302-9699-79e61ab19d7e",
+          "text": "Shuffle cost can be reduced by filtering rows and selecting only needed columns before wide operations, or by broadcasting a small table in a join.",
+          "weight": 1,
+          "source_quote": null,
+          "approved": true
+        }
+      ],
+      "misconceptions": [
+        {
+          "id": "b82e75b1-fd6b-51d0-9d36-d10e09399af9",
+          "text": "A shuffle only moves data around in memory, so it is cheap.",
+          "correction": "A shuffle serializes data, writes shuffle files to local disk and sends them over the network; it is usually one of the most expensive parts of a job."
+        },
+        {
+          "id": "dc7ba56e-d31c-5c26-a85f-37ed93b6caec",
+          "text": "filter and select are wide transformations because they touch every row.",
+          "correction": "Touching every row does not make an operation wide; filter and select process each partition in place without moving data, so they are narrow."
+        }
+      ],
+      "follow_ups": [
+        {
+          "id": "37d20ee3-e421-5a8f-9a7f-32adfe2ec587",
+          "text": "Suppose a join on customer_id has one task that runs for an hour while the other tasks in the same stage finish in seconds. What is likely happening, and how would you fix it?",
+          "answer_seconds": 120,
+          "trigger_key_point_id": "64990f12-e15b-5d4b-b89c-47670628ce46",
+          "key_points": [
+            {
+              "id": "33c35d1d-2356-5cf7-910d-d21edea1d4a2",
+              "text": "This is data skew: a few customer_id values have far more rows than the rest, so after the shuffle one partition is much larger and its task becomes a straggler.",
+              "weight": 3,
+              "source_quote": "Data skew can severely downgrade the performance of join queries.",
+              "approved": true
+            },
+            {
+              "id": "fe03ba45-af9e-546e-a204-1a991d5b209e",
+              "text": "Confirm it in the Spark UI by comparing task duration and shuffle read size (maximum versus median) for that stage.",
+              "weight": 2,
+              "source_quote": null,
+              "approved": true
+            },
+            {
+              "id": "4fe41214-aaed-5654-900d-5de7e27fca73",
+              "text": "With adaptive query execution, skew join handling (spark.sql.adaptive.skewJoin.enabled) can split skewed partitions of a sort-merge join automatically.",
+              "weight": 2,
+              "source_quote": "Spark dynamically handles skew in sort-merge join by splitting (and replicating if needed) skewed partitions.",
+              "approved": true
+            },
+            {
+              "id": "e49a9cdb-b9c8-53c4-999a-9ef928dd2b13",
+              "text": "Manual fixes include broadcasting the other side if it is small, salting the hot keys, or processing hot or null keys separately.",
+              "weight": 2,
+              "source_quote": null,
+              "approved": true
+            }
+          ],
+          "misconceptions": [
+            {
+              "id": "3fdbb9f9-2687-511b-bf61-b609892567b1",
+              "text": "Increasing spark.sql.shuffle.partitions will split a single hot key across many partitions.",
+              "correction": "All rows with the same key hash to the same shuffle partition, so more partitions do not break up one hot key; salting or skew join handling is needed."
+            },
+            {
+              "id": "7a50375d-74b0-5a5a-9175-375ffecf6858",
+              "text": "Adding more executors will make the one slow task finish faster.",
+              "correction": "A partition is processed by a single task on one core, so more executors do not speed up that skewed task; the data distribution has to change."
+            }
+          ]
+        },
+        {
+          "id": "7de55adf-98b4-5f1e-adba-d1e983989f0c",
+          "text": "coalesce() and repartition() both change the number of partitions of a DataFrame. Which one is a narrow transformation, and when would you use each?",
+          "answer_seconds": 120,
+          "trigger_key_point_id": "6dd144ad-bbdc-5194-b4cf-98f08a78bd1f",
+          "key_points": [
+            {
+              "id": "43fd960f-f285-52f8-8914-fb3e6148d63c",
+              "text": "coalesce() is narrow: it merges existing partitions without a full shuffle, and it can only reduce the number of partitions.",
+              "weight": 3,
+              "source_quote": "Similar to coalesce defined on an RDD, this operation results in a narrow dependency",
+              "approved": true
+            },
+            {
+              "id": "b075eeeb-0c13-57c4-8ef1-8c0a7f095557",
+              "text": "repartition() is wide: it always performs a full shuffle, can increase or decrease the number of partitions, and redistributes the data across the new partitions (evenly when no columns are given).",
+              "weight": 3,
+              "source_quote": "Reshuffle the data in the RDD randomly to create either more or fewer partitions and balance it across them. This always shuffles all data over the network.",
+              "approved": true
+            },
+            {
+              "id": "0ff86819-468b-5d6e-a57e-433fd12f608a",
+              "text": "Use coalesce() to reduce partitions or output files after the data has been filtered down; use repartition() to increase parallelism, rebalance uneven partitions, or partition by a column.",
+              "weight": 2,
+              "source_quote": "Useful for running operations more efficiently after filtering down a large dataset.",
+              "approved": true
+            },
+            {
+              "id": "e8197f6d-cbff-50cb-8d30-6e6a450ea24c",
+              "text": "A drastic coalesce such as coalesce(1) can pull the upstream work onto very few tasks, so repartition(1) can be faster because the upstream stage keeps its parallelism.",
+              "weight": 1,
+              "source_quote": "However, if you're doing a drastic coalesce, e.g. to numPartitions = 1, this may result in your computation taking place on fewer nodes than you like (e.g. one node in the case of numPartitions = 1).",
+              "approved": true
+            }
+          ],
+          "misconceptions": [
+            {
+              "id": "57f8c4b9-a9f6-5cae-b110-2e3ffc1106e7",
+              "text": "On a DataFrame, coalesce() can be used to increase the number of partitions.",
+              "correction": "DataFrame.coalesce() cannot increase partitions; asking for more keeps the current number. Use repartition() to increase them."
+            },
+            {
+              "id": "de7e0b15-4e55-5f31-bddb-0c118a26c080",
+              "text": "repartition() changes the number of partitions without a shuffle.",
+              "correction": "repartition() always performs a full shuffle; coalesce() is the one that avoids it."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "d8bae8e7-b8ff-5d84-a1cb-cc07d15a99c9",
+      "topic": "Spark performance",
+      "text": "What is the difference between cache() and persist() in Spark? When is caching useful, and how do you choose a storage level?",
+      "answer_seconds": 120,
+      "key_points": [
+        {
+          "id": "5c8462e4-6be6-5d3b-9ec8-e90a8eb04402",
+          "text": "cache() is a shorthand for persist() with the default storage level, while persist() lets you pass an explicit storage level.",
+          "weight": 3,
+          "source_quote": "The cache() method is a shorthand for using the default storage level",
+          "approved": true
+        },
+        {
+          "id": "ecc37386-bc6f-52ef-8c29-13ded4d0462f",
+          "text": "Caching is useful when the same expensive DataFrame or RDD is reused by several actions, for example in iterative algorithms or when one intermediate result feeds multiple outputs.",
+          "weight": 3,
+          "source_quote": "Caching is a key tool for iterative algorithms and fast interactive use.",
+          "approved": true
+        },
+        {
+          "id": "def1eb2c-b44b-52fe-acf6-18625cd1a1f5",
+          "text": "Caching is lazy: the data is stored the first time an action computes it, not when cache() or persist() is called.",
+          "weight": 2,
+          "source_quote": "The first time it is computed in an action, it will be kept in memory on the nodes.",
+          "approved": true
+        },
+        {
+          "id": "92a93def-c71d-5eaf-a107-b7ee6a81eb2e",
+          "text": "Chooses the storage level by trade-off: keep data in memory when it fits; when it does not fit, MEMORY_ONLY recomputes the missing partitions while MEMORY_AND_DISK spills them to disk, which pays off mainly when recomputing them is expensive.",
+          "weight": 3,
+          "source_quote": "If the RDD does not fit in memory, some partitions will not be cached and will be recomputed on the fly each time they're needed.",
+          "approved": true
+        },
+        {
+          "id": "370389fc-b075-55df-b6e6-5743dd45b925",
+          "text": "DISK_ONLY keeps partitions only on disk, and levels ending in _2 replicate each partition on two nodes for faster recovery.",
+          "weight": 1,
+          "source_quote": "There is also support for persisting RDDs on disk, or replicated across multiple nodes.",
+          "approved": true
+        },
+        {
+          "id": "8d23f214-ea1d-5039-8730-7c413fd4a3be",
+          "text": "The default level depends on the API: RDD.cache() uses MEMORY_ONLY, while DataFrame.cache() uses MEMORY_AND_DISK by default (shown as MEMORY_AND_DISK_DESER in PySpark).",
+          "weight": 1,
+          "source_quote": "Persists the DataFrame with the default storage level (MEMORY_AND_DISK_DESER).",
+          "approved": true
+        },
+        {
+          "id": "a7230e32-f840-5495-a99d-8906164a8fab",
+          "text": "Call unpersist() when the data is no longer needed; otherwise it stays cached until Spark evicts it under memory pressure (least-recently-used first) or the application ends.",
+          "weight": 1,
+          "source_quote": "Spark automatically monitors cache usage on each node and drops out old data partitions in a least-recently-used (LRU) fashion.",
+          "approved": true
+        }
+      ],
+      "misconceptions": [
+        {
+          "id": "f83fc6c5-f97f-532a-af45-f5b382748105",
+          "text": "cache() or persist() saves the data permanently, like writing a table.",
+          "correction": "Cached data lives in executor memory or local disk only while the application runs (or until it is unpersisted or evicted); it is not durable storage."
+        },
+        {
+          "id": "47721276-fecc-5fd9-8b3f-5fc6916c4853",
+          "text": "If an executor holding cached partitions fails, the cached data is lost and the job fails.",
+          "correction": "The cache is fault tolerant: lost partitions are recomputed from the lineage that created them."
+        },
+        {
+          "id": "604333e2-a4a5-5901-bab9-b167b0763b98",
+          "text": "Calling cache() immediately computes the DataFrame and stores it.",
+          "correction": "cache() only marks the data for caching; it is materialized when the next action computes it."
+        }
+      ],
+      "follow_ups": [
+        {
+          "id": "3ea55eba-3ac2-53a1-ada0-d38e1f74b356",
+          "text": "Suppose the data you persist is larger than the storage memory available on the executors. What happens with MEMORY_ONLY compared with MEMORY_AND_DISK, and which would you choose?",
+          "answer_seconds": 90,
+          "trigger_key_point_id": "92a93def-c71d-5eaf-a107-b7ee6a81eb2e",
+          "key_points": [
+            {
+              "id": "d6871824-ea82-56ac-baeb-db98c381f7f9",
+              "text": "With MEMORY_ONLY, partitions that do not fit are simply not cached and are recomputed from lineage each time they are needed.",
+              "weight": 3,
+              "source_quote": "If the RDD does not fit in memory, some partitions will not be cached and will be recomputed on the fly each time they're needed.",
+              "approved": true
+            },
+            {
+              "id": "f69c6b20-26b4-593c-b3e2-f469cf8968d5",
+              "text": "With MEMORY_AND_DISK, partitions that do not fit in memory are written to local disk and read back from there when needed.",
+              "weight": 3,
+              "source_quote": "If the RDD does not fit in memory, store the partitions that don't fit on disk, and read them from there when they're needed.",
+              "approved": true
+            },
+            {
+              "id": "6f4260d2-c262-593c-b7d2-210ffe265ce7",
+              "text": "Spilling to disk pays off mainly when recomputing a partition is expensive; otherwise recomputing can be about as fast as reading it from disk.",
+              "weight": 2,
+              "source_quote": "Don't spill to disk unless the functions that computed your datasets are expensive, or they filter a large amount of the data.",
+              "approved": true
+            }
+          ],
+          "misconceptions": [
+            {
+              "id": "080c4b8e-aac8-52c7-9bac-a36afc47854f",
+              "text": "With MEMORY_ONLY, partitions that do not fit in memory are lost and the job fails.",
+              "correction": "They are not cached and are recomputed from lineage when needed; the job continues."
+            }
+          ]
+        },
+        {
+          "id": "f724b1c3-26ff-5d66-8ab2-73c9c2fd0af1",
+          "text": "Can caching make a Spark job slower or less stable? Give an example of when you would not cache.",
+          "answer_seconds": 90,
+          "trigger_key_point_id": "ecc37386-bc6f-52ef-8c29-13ded4d0462f",
+          "key_points": [
+            {
+              "id": "74824be3-7f7d-5899-a306-8124eca63ed2",
+              "text": "Yes: caching costs time to materialize and uses executor memory or disk, so data that is used by only one action gains nothing from it.",
+              "weight": 3,
+              "source_quote": null,
+              "approved": true
+            },
+            {
+              "id": "4a981a2d-54d4-5009-815e-9183dc00cae2",
+              "text": "Cached data competes for executor memory with execution work such as joins, aggregations and shuffles, which can cause more spilling or cache eviction.",
+              "weight": 2,
+              "source_quote": null,
+              "approved": true
+            },
+            {
+              "id": "5dd8997f-cbe3-59ef-9545-bab44f3f13f5",
+              "text": "If you cache, cache after filtering and selecting only the needed columns rather than the whole raw input, and unpersist when finished.",
+              "weight": 1,
+              "source_quote": null,
+              "approved": true
+            }
+          ],
+          "misconceptions": [
+            {
+              "id": "184d2977-0188-5601-8c42-9b3e6be707d4",
+              "text": "Caching every intermediate DataFrame always makes a Spark job faster.",
+              "correction": "Caching only helps when data is reused and expensive to recompute; otherwise it adds materialization cost and memory pressure."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "78535c0b-917e-5d7c-99f6-0e86a709c178",
+      "topic": "Spark performance",
+      "text": "How does a broadcast join work in Spark? When does Spark choose it, and when is it a bad idea?",
+      "answer_seconds": 120,
+      "key_points": [
+        {
+          "id": "7833733c-18c7-5f5e-a225-6411700a3a63",
+          "text": "Spark sends a full copy of the small table to every executor, and each partition of the large table is joined locally against it, so the large table does not need to be shuffled.",
+          "weight": 3,
+          "source_quote": "a table that will be broadcast to all worker nodes when performing a join",
+          "approved": true
+        },
+        {
+          "id": "968a6d04-de1e-5a84-9c38-7c4969eedcf0",
+          "text": "Spark chooses a broadcast join automatically when the estimated size of one join side is below a configurable size threshold.",
+          "weight": 3,
+          "source_quote": "Configures the maximum size in bytes for a table that will be broadcast to all worker nodes when performing a join.",
+          "approved": true
+        },
+        {
+          "id": "f26a2834-f865-5ca6-b6cd-e1bf7bc02b59",
+          "text": "The threshold is spark.sql.autoBroadcastJoinThreshold, 10 MB by default; setting it to -1 disables automatic broadcasting.",
+          "weight": 1,
+          "source_quote": "By setting this value to -1, broadcasting can be disabled.",
+          "approved": true
+        },
+        {
+          "id": "1bd4622c-b741-5cfe-b8ef-48408dbc33d7",
+          "text": "You can request it explicitly with a broadcast hint, such as broadcast(df) in the DataFrame API or /*+ BROADCAST(t) */ in SQL, even when the table is above the threshold.",
+          "weight": 2,
+          "source_quote": "will be prioritized by Spark even if the size of table 't1' suggested by the statistics is above the configuration spark.sql.autoBroadcastJoinThreshold.",
+          "approved": true
+        },
+        {
+          "id": "632282ab-fb8b-5044-b1e1-c7107b41d640",
+          "text": "It is a bad idea when the broadcast side is large: it is collected to the driver and held in memory on every executor, which can cause out-of-memory errors or broadcast timeouts.",
+          "weight": 3,
+          "source_quote": null,
+          "approved": true
+        },
+        {
+          "id": "c35da0f1-611c-5ed8-9114-a7c05ae319a7",
+          "text": "With adaptive query execution, Spark can switch a sort-merge join to a broadcast join at runtime when runtime statistics show that one side is small.",
+          "weight": 2,
+          "source_quote": "AQE converts sort-merge join to broadcast hash join when the runtime statistics of any join side are smaller than the adaptive broadcast hash join threshold.",
+          "approved": true
+        },
+        {
+          "id": "e0622ca4-7c16-5147-bc3a-34f504babf98",
+          "text": "Which side can be broadcast depends on the join type; for example, in a left outer join only the right side can be broadcast.",
+          "weight": 1,
+          "source_quote": null,
+          "approved": true
+        }
+      ],
+      "misconceptions": [
+        {
+          "id": "abaa0573-9812-531d-88c5-4c33678a0971",
+          "text": "In a broadcast join, the large table is copied to all executors.",
+          "correction": "Only the small side is broadcast; the large side stays partitioned where it is."
+        },
+        {
+          "id": "5d8de396-a7d0-533b-b4be-b11b2d384ff6",
+          "text": "A broadcast join still shuffles both tables before joining them.",
+          "correction": "Avoiding the shuffle is the point: neither side is shuffled for the join itself."
+        }
+      ],
+      "follow_ups": [
+        {
+          "id": "55d4e274-c77e-5185-9378-4b72c9980ebd",
+          "text": "A job that joins with a broadcast lookup table starts failing with driver out-of-memory errors as the lookup table grows. What would you check and what would you change?",
+          "answer_seconds": 120,
+          "trigger_key_point_id": "632282ab-fb8b-5044-b1e1-c7107b41d640",
+          "key_points": [
+            {
+              "id": "8cf1d2e5-7dbd-5f2a-b3c9-2015d4340f6f",
+              "text": "The broadcast side is collected to the driver and built into a hash table there before it is sent to executors, so a growing table can exceed driver memory.",
+              "weight": 3,
+              "source_quote": null,
+              "approved": true
+            },
+            {
+              "id": "d46be392-faa2-5525-af07-4e66ec9caf6f",
+              "text": "Check the physical plan (explain or the Spark UI SQL tab) to confirm the broadcast and see the size of the broadcast side.",
+              "weight": 2,
+              "source_quote": null,
+              "approved": true
+            },
+            {
+              "id": "994fae0d-2f6f-5794-aaa4-8c60961d67e1",
+              "text": "Stop broadcasting that table: remove the hint, or lower or disable spark.sql.autoBroadcastJoinThreshold (-1), so Spark falls back to a sort-merge join.",
+              "weight": 3,
+              "source_quote": "By setting this value to -1, broadcasting can be disabled.",
+              "approved": true
+            },
+            {
+              "id": "301b9b42-c902-58dd-839a-5d8083bb8cde",
+              "text": "If it must stay broadcast, shrink it first by selecting only the needed columns and filtering rows.",
+              "weight": 1,
+              "source_quote": null,
+              "approved": true
+            }
+          ],
+          "misconceptions": [
+            {
+              "id": "9a16d6ed-5319-5a93-9523-6cf02aff97ad",
+              "text": "Increasing executor memory alone fixes driver out-of-memory errors caused by a broadcast.",
+              "correction": "The driver collects and builds the broadcast relation, so driver memory or not broadcasting is what fixes a driver OOM."
+            }
+          ]
+        },
+        {
+          "id": "56c28516-ad12-51b6-9ae5-942d59db9d0f",
+          "text": "When both tables are large, which join strategy does Spark normally use, and how does it work?",
+          "answer_seconds": 90,
+          "trigger_key_point_id": "968a6d04-de1e-5a84-9c38-7c4969eedcf0",
+          "key_points": [
+            {
+              "id": "d8072594-d63a-56e8-a9f2-67bab8f796f8",
+              "text": "Spark normally uses a sort-merge join for two large tables joined on equality keys.",
+              "weight": 3,
+              "source_quote": null,
+              "approved": true
+            },
+            {
+              "id": "818146f5-e3bb-533e-bd89-ca22058445c2",
+              "text": "Both sides are shuffled by the join key so that rows with the same key end up in the same partition.",
+              "weight": 3,
+              "source_quote": null,
+              "approved": true
+            },
+            {
+              "id": "0e799fd9-3d90-5e0b-bbf5-2d497a05524a",
+              "text": "Each partition is then sorted by the join key on both sides and the sorted rows are merged.",
+              "weight": 2,
+              "source_quote": null,
+              "approved": true
+            },
+            {
+              "id": "28425d86-2731-5cd8-a07f-5805c4a2f4d8",
+              "text": "Adaptive query execution can split skewed partitions of a sort-merge join at runtime.",
+              "weight": 1,
+              "source_quote": "This feature dynamically handles skew in sort-merge join by splitting (and replicating if needed) skewed tasks into roughly evenly sized tasks.",
+              "approved": true
+            }
+          ],
+          "misconceptions": [
+            {
+              "id": "5ec189bc-2a6f-563a-a661-f70c4a7262cc",
+              "text": "A sort-merge join requires the input tables to be already sorted on disk.",
+              "correction": "Spark shuffles and sorts the data itself during the join; the inputs do not need to be pre-sorted."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "b14f643a-2724-51c8-8ed1-411b1f478086",
+      "topic": "SQL",
+      "text": "What is the difference between a window function and GROUP BY in SQL? Give an example of a problem where you need a window function.",
+      "answer_seconds": 120,
+      "key_points": [
+        {
+          "id": "9dc3de0b-8bee-5f93-adec-6dafbe2b612c",
+          "text": "GROUP BY collapses each group into one output row, while a window function keeps every input row and adds a calculated value to each row.",
+          "weight": 3,
+          "source_quote": "However, window functions do not cause rows to become grouped into a single output row like non-window aggregate calls would. Instead, the rows retain their separate identities.",
+          "approved": true
+        },
+        {
+          "id": "35030af7-db1f-5bc1-b703-2a7269260a84",
+          "text": "A window function computes a value over a set of related rows for each row and is written with OVER (...); PARTITION BY inside OVER defines that set, for example per department.",
+          "weight": 2,
+          "source_quote": "The PARTITION BY clause within OVER divides the rows into groups, or partitions, that share the same values of the PARTITION BY expression(s).",
+          "approved": true
+        },
+        {
+          "id": "ccad5971-6484-5192-818e-4e650d2466d6",
+          "text": "ORDER BY inside OVER sets the order of rows within each partition, which ranking functions and running totals depend on.",
+          "weight": 2,
+          "source_quote": "You can also control the order in which rows are processed by window functions using ORDER BY within OVER.",
+          "approved": true
+        },
+        {
+          "id": "09d832b2-f380-54b5-b4ad-ce19a056f6cc",
+          "text": "A valid example: comparing each row with its group average, ranking rows within a group or top-N per group, running totals, or previous/next row values with LAG or LEAD.",
+          "weight": 3,
+          "source_quote": "Here is an example that shows how to compare each employee's salary with the average salary in his or her department",
+          "approved": true
+        },
+        {
+          "id": "02970a83-3b14-5bef-97cf-d146cefd6168",
+          "text": "Window functions are evaluated after WHERE, GROUP BY and HAVING, so you cannot filter on their result in WHERE; you use a subquery or CTE instead (or QUALIFY where supported).",
+          "weight": 2,
+          "source_quote": "They are forbidden elsewhere, such as in GROUP BY, HAVING and WHERE clauses. This is because they logically execute after the processing of those clauses.",
+          "approved": true
+        },
+        {
+          "id": "2d815392-70e6-59cc-bb8e-74bc5ad1b8b8",
+          "text": "With ORDER BY in OVER, the default frame runs from the start of the partition to the current row (including ties), which is why SUM() OVER (ORDER BY ...) gives a running total.",
+          "weight": 1,
+          "source_quote": "By default, if ORDER BY is supplied then the frame consists of all rows from the start of the partition up through the current row, plus any following rows that are equal to the current row according to the ORDER BY clause.",
+          "approved": true
+        }
+      ],
+      "misconceptions": [
+        {
+          "id": "a69657c1-b699-5780-b1a5-e921300f6484",
+          "text": "A window function returns one row per partition, just like GROUP BY.",
+          "correction": "A window function returns a value for every input row; rows are not collapsed."
+        },
+        {
+          "id": "3bec2220-4ae8-5ff8-8c80-89c8da5566ef",
+          "text": "You can filter on a window function result directly in the WHERE clause of the same query.",
+          "correction": "Window functions run after WHERE, so filtering on them needs a subquery or CTE (or QUALIFY in engines that support it)."
+        }
+      ],
+      "follow_ups": [
+        {
+          "id": "ac36fc5c-1a06-5a83-9be0-68e1b9ea5c19",
+          "text": "Using a window function, explain how you would write a query that returns the three highest-paid employees in each department.",
+          "answer_seconds": 90,
+          "trigger_key_point_id": "09d832b2-f380-54b5-b4ad-ce19a056f6cc",
+          "key_points": [
+            {
+              "id": "3b1d01aa-2ab8-54ab-9029-348c893c1c0d",
+              "text": "Number or rank the rows with a window function partitioned by department and ordered by salary descending, for example ROW_NUMBER() OVER (PARTITION BY department ORDER BY salary DESC).",
+              "weight": 3,
+              "source_quote": "row_number() OVER (PARTITION BY depname ORDER BY salary DESC)",
+              "approved": true
+            },
+            {
+              "id": "55d1abe6-739c-599d-82e6-7593454cd94e",
+              "text": "Filter on that number (<= 3) in an outer query or CTE, or with QUALIFY where supported (for example Databricks SQL), because the window result cannot be used in the WHERE clause of the same query.",
+              "weight": 3,
+              "source_quote": "If there is a need to filter or group rows after the window calculations are performed, you can use a sub-select.",
+              "approved": true
+            },
+            {
+              "id": "c6357fd5-0425-56ea-a2e5-73d8a8f87a8f",
+              "text": "Decide how to handle ties: ROW_NUMBER returns at most three rows per department, while RANK or DENSE_RANK can return more when salaries tie.",
+              "weight": 2,
+              "source_quote": "(with tied rows numbered in an unspecified order)",
+              "approved": true
+            }
+          ],
+          "misconceptions": [
+            {
+              "id": "7d970f8d-74e9-568a-9be9-a8dd33b14ee3",
+              "text": "ORDER BY salary DESC LIMIT 3 returns the top three employees in each department.",
+              "correction": "LIMIT applies to the whole result, so it returns three rows in total, not three per department."
+            }
+          ]
+        },
+        {
+          "id": "4106c206-3125-5b91-957a-dd228897f225",
+          "text": "What is the difference between ROW_NUMBER, RANK and DENSE_RANK?",
+          "answer_seconds": 90,
+          "trigger_key_point_id": "ccad5971-6484-5192-818e-4e650d2466d6",
+          "key_points": [
+            {
+              "id": "065dd52d-0c0b-5d20-8354-2e216814c635",
+              "text": "ROW_NUMBER gives each row a unique sequential number within its partition, even when the ordering values tie.",
+              "weight": 3,
+              "source_quote": "Returns the number of the current row within its partition, counting from 1.",
+              "approved": true
+            },
+            {
+              "id": "7c3fcd5e-93bd-55d5-bf3c-f974ded2a9aa",
+              "text": "RANK gives tied rows the same rank and leaves gaps after a tie (for example 1, 1, 3).",
+              "weight": 3,
+              "source_quote": "Returns the rank of the current row, with gaps; that is, the row_number of the first row in its peer group.",
+              "approved": true
+            },
+            {
+              "id": "ea43fc75-d7ec-597a-b31c-d393785c07b3",
+              "text": "DENSE_RANK gives tied rows the same rank without gaps (for example 1, 1, 2).",
+              "weight": 3,
+              "source_quote": "Returns the rank of the current row, without gaps; this function effectively counts peer groups.",
+              "approved": true
+            }
+          ],
+          "misconceptions": [
+            {
+              "id": "dc7750ac-ff34-5537-9682-fed8b0b6cd11",
+              "text": "RANK and DENSE_RANK both skip numbers after ties.",
+              "correction": "Only RANK leaves gaps after ties; DENSE_RANK does not."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "283e1c75-e89d-51b3-9454-c97e10779bc0",
+      "topic": "SQL",
+      "text": "In PostgreSQL, when does adding a B-tree index speed up a query, and what are common reasons the planner does not use an index you created?",
+      "answer_seconds": 150,
+      "key_points": [
+        {
+          "id": "45bf14d0-f64b-586d-a9d3-87e971eabe70",
+          "text": "An index helps selective queries: when a WHERE or JOIN condition on the indexed column matches a small fraction of the rows, PostgreSQL can find them without scanning the whole table.",
+          "weight": 3,
+          "source_quote": "But if the system has been instructed to maintain an index on the id column, it can use a more efficient method for locating matching rows.",
+          "approved": true
+        },
+        {
+          "id": "0d46176b-192b-5a36-b61e-8e773a12897b",
+          "text": "B-tree indexes support equality and range conditions (=, <, <=, >, >=, BETWEEN, IN), IS NULL, sorted output, and LIKE patterns anchored at the start such as 'abc%' (with the C locale or a pattern operator class).",
+          "weight": 1,
+          "source_quote": "B-trees can handle equality and range queries on data that can be sorted into some ordering.",
+          "approved": true
+        },
+        {
+          "id": "dfc3b129-1194-53ed-b58f-fe623c82437c",
+          "text": "The planner is cost-based: when a query returns a large share of the table, or the table is small, a sequential scan can be cheaper, so the index is not used.",
+          "weight": 3,
+          "source_quote": "it will use the index in queries when it thinks doing so would be more efficient than a sequential table scan.",
+          "approved": true
+        },
+        {
+          "id": "fdcaf4d2-d8ef-5ec0-898b-fb3ab4af1b89",
+          "text": "An index is not used when the condition does not match what was indexed, for example wrapping the column in a function such as lower(email) without an expression index, or a LIKE pattern with a leading wildcard such as '%abc'.",
+          "weight": 3,
+          "source_quote": "but not col LIKE '%bar'",
+          "approved": true
+        },
+        {
+          "id": "4c96423b-1c6f-5062-8c2d-8698e16cc14a",
+          "text": "Missing or stale statistics can mislead the planner, so run ANALYZE and check the plan with EXPLAIN or EXPLAIN ANALYZE.",
+          "weight": 2,
+          "source_quote": "But you might have to run the ANALYZE command regularly to update statistics to allow the query planner to make educated decisions.",
+          "approved": true
+        },
+        {
+          "id": "f37107fe-80a1-50f7-abc7-b3470fac531b",
+          "text": "Indexes are not free: they slow down INSERT, UPDATE and DELETE and use storage, so unused indexes should be removed.",
+          "weight": 2,
+          "source_quote": "After an index is created, the system has to keep it synchronized with the table. This adds overhead to data manipulation operations.",
+          "approved": true
+        }
+      ],
+      "misconceptions": [
+        {
+          "id": "95ee0044-702e-57bc-8b71-5088879d29ca",
+          "text": "If an index exists on a column, PostgreSQL always uses it for queries that filter on that column.",
+          "correction": "The planner chooses by estimated cost; for low-selectivity conditions or small tables a sequential scan is often cheaper."
+        },
+        {
+          "id": "681a6b46-aefd-5479-a33e-f384298ecea0",
+          "text": "Adding more indexes always makes the database faster.",
+          "correction": "Every index adds write overhead and storage, and queries that cannot use it gain nothing."
+        }
+      ],
+      "follow_ups": [
+        {
+          "id": "e28668de-bdff-51ff-bf49-e7ad8d07f9e6",
+          "text": "You have a B-tree index on (customer_id, order_date). Which of these conditions can use it well: customer_id = 5; customer_id = 5 AND order_date >= '2026-01-01'; order_date >= '2026-01-01' alone? Explain why.",
+          "answer_seconds": 120,
+          "trigger_key_point_id": "fdcaf4d2-d8ef-5ec0-898b-fb3ab4af1b89",
+          "key_points": [
+            {
+              "id": "6ef34c9b-12bd-5688-a88b-ac1660c0c29a",
+              "text": "customer_id = 5, and customer_id = 5 with a range on order_date, use the index efficiently because they constrain the leading column.",
+              "weight": 3,
+              "source_quote": "The exact rule is that equality constraints on leading columns, plus any inequality constraints on the first column that does not have an equality constraint, will always be used to limit the portion of the index that is scanned.",
+              "approved": true
+            },
+            {
+              "id": "3deffaa0-2cd3-54dc-afc2-488db7b51766",
+              "text": "A condition only on order_date does not constrain the leading column, so the index cannot be used efficiently: at best the whole index is scanned, and the planner usually prefers a sequential scan.",
+              "weight": 3,
+              "source_quote": "If there are many distinct x values, then the entire index will have to be scanned, so in most cases the planner will prefer a sequential table scan over using the index.",
+              "approved": true
+            },
+            {
+              "id": "83056578-c843-5f22-861f-190bead3f479",
+              "text": "PostgreSQL 18 skip scan can still use the index for order_date alone when customer_id has few distinct values.",
+              "weight": 1,
+              "source_quote": "This approach is generally only taken when there are so few distinct x values that the planner expects the scan to skip over most of the index",
+              "approved": true
+            },
+            {
+              "id": "ad23c57a-40a3-52c5-9d1b-f5adf3686c59",
+              "text": "If queries often filter only by order_date, add a separate index on order_date or choose the column order that matches the most common queries.",
+              "weight": 2,
+              "source_quote": null,
+              "approved": true
+            }
+          ],
+          "misconceptions": [
+            {
+              "id": "0f245939-d011-5eb2-83de-a24915b8bd31",
+              "text": "A multicolumn index can only be used when the query filters on every column in the index.",
+              "correction": "A multicolumn B-tree index can be used with any subset of its columns; it is most efficient when the leading columns are constrained."
+            },
+            {
+              "id": "36d3112f-5894-5f43-9a55-267b464b3904",
+              "text": "The column order in a multicolumn B-tree index does not matter.",
+              "correction": "Order matters: constraints on the leading (leftmost) columns determine how much of the index has to be scanned."
+            }
+          ]
+        },
+        {
+          "id": "0cabe6f2-38dd-5a6f-83a6-281e8d8acf9a",
+          "text": "How would you check whether a slow query in PostgreSQL is actually using your index?",
+          "answer_seconds": 90,
+          "trigger_key_point_id": "4c96423b-1c6f-5062-8c2d-8698e16cc14a",
+          "key_points": [
+            {
+              "id": "e380eac6-afa6-5d15-be1f-dd2fc979339d",
+              "text": "Run EXPLAIN on the query and look for Index Scan, Index Only Scan or Bitmap Index Scan rather than Seq Scan on that table.",
+              "weight": 3,
+              "source_quote": "Examining index usage for an individual query is done with the EXPLAIN command",
+              "approved": true
+            },
+            {
+              "id": "02a92658-35c4-5873-a510-d4f47acb39ae",
+              "text": "Use EXPLAIN ANALYZE to run the query and compare estimated rows with actual rows and timings.",
+              "weight": 2,
+              "source_quote": "So you should time your query with and without indexes. The EXPLAIN ANALYZE command can be useful here.",
+              "approved": true
+            },
+            {
+              "id": "1408c6ab-eaee-54cf-b545-7813931600e3",
+              "text": "Run ANALYZE first so the planner works with up-to-date statistics.",
+              "weight": 2,
+              "source_quote": "Always run ANALYZE first.",
+              "approved": true
+            },
+            {
+              "id": "cc96386c-8c1f-5504-9f11-7bc6fb82d79d",
+              "text": "Check server-wide index usage statistics, such as idx_scan in pg_stat_user_indexes, to find indexes that are never used.",
+              "weight": 1,
+              "source_quote": "It is also possible to gather overall statistics about index usage in a running server",
+              "approved": true
+            }
+          ],
+          "misconceptions": [
+            {
+              "id": "ba470a28-cacb-5008-add0-f63f20f0940f",
+              "text": "EXPLAIN ANALYZE only shows the estimated plan and does not run the query.",
+              "correction": "EXPLAIN ANALYZE actually executes the statement (so run data-changing statements inside a transaction you roll back); plain EXPLAIN does not execute it."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "13830733-fa9e-5e85-bb88-664c442ffc45",
+      "topic": "SQL",
+      "text": "Explain the transaction isolation levels in PostgreSQL. Which problems, such as dirty reads, non-repeatable reads or phantom reads, does each level prevent?",
+      "answer_seconds": 150,
+      "key_points": [
+        {
+          "id": "b428ce7f-4980-5406-b52c-ddf74eceb30f",
+          "text": "Correct meaning of the read phenomena: a dirty read sees uncommitted changes, a non-repeatable read finds a row changed when it is read again, and a phantom read finds a different set of rows for the same search condition.",
+          "weight": 2,
+          "source_quote": "A transaction reads data written by a concurrent uncommitted transaction.",
+          "approved": true
+        },
+        {
+          "id": "52805117-07f7-5d05-abed-df7b61862032",
+          "text": "Read Committed is the PostgreSQL default: each statement sees only data committed before that statement started, so dirty reads cannot happen, but two queries in the same transaction can see different data (non-repeatable and phantom reads).",
+          "weight": 3,
+          "source_quote": "Read Committed is the default isolation level in PostgreSQL.",
+          "approved": true
+        },
+        {
+          "id": "2deadb54-695e-56e9-8540-051ad09d9110",
+          "text": "Repeatable Read uses one snapshot for the whole transaction, so running a query again returns the same data (no non-repeatable reads).",
+          "weight": 3,
+          "source_quote": "The Repeatable Read isolation level only sees data committed before the transaction began; it never sees either uncommitted data or changes committed by concurrent transactions during the transaction's execution.",
+          "approved": true
+        },
+        {
+          "id": "e87dbaa6-bc31-51eb-8ecb-63d9f423c6cd",
+          "text": "In PostgreSQL, Repeatable Read also prevents phantom reads, which is stricter than the SQL standard requires, but serialization anomalies are still possible.",
+          "weight": 1,
+          "source_quote": "prevents all of the phenomena described in Table 13.1 except for serialization anomalies.",
+          "approved": true
+        },
+        {
+          "id": "47b1baac-aad3-58f5-a76e-c0e8062a7d89",
+          "text": "Serializable guarantees that committed concurrent transactions have the same effect as running them one at a time in some order; PostgreSQL enforces this by aborting a transaction with a serialization failure when needed.",
+          "weight": 3,
+          "source_quote": "This level emulates serial transaction execution for all committed transactions; as if transactions had been executed one after another, serially, rather than concurrently.",
+          "approved": true
+        },
+        {
+          "id": "a75807db-71d2-560e-9353-f1b27a38ed4d",
+          "text": "At Repeatable Read and Serializable, the application must be ready to retry transactions that fail with serialization errors.",
+          "weight": 2,
+          "source_quote": "Applications using this level must be prepared to retry transactions due to serialization failures.",
+          "approved": true
+        },
+        {
+          "id": "42266cfd-02e3-5138-b87d-e23208f57bd1",
+          "text": "In PostgreSQL, Read Uncommitted behaves like Read Committed, so dirty reads never happen (stricter than the SQL standard requires).",
+          "weight": 1,
+          "source_quote": "PostgreSQL's Read Uncommitted mode behaves like Read Committed.",
+          "approved": true
+        }
+      ],
+      "misconceptions": [
+        {
+          "id": "f15a3f28-4856-5575-abcb-4a010a1badaf",
+          "text": "PostgreSQL implements Serializable by locking tables so that transactions run one after another.",
+          "correction": "It uses Serializable Snapshot Isolation: transactions run concurrently, its predicate locks do not block, and a conflicting transaction is rolled back with a serialization failure."
+        }
+      ],
+      "follow_ups": [
+        {
+          "id": "ed7bdcb8-d8c3-545f-b492-01259f73896a",
+          "text": "Two transactions running at Repeatable Read try to update the same row at the same time. What happens in PostgreSQL, and what should the application do?",
+          "answer_seconds": 90,
+          "trigger_key_point_id": "a75807db-71d2-560e-9353-f1b27a38ed4d",
+          "key_points": [
+            {
+              "id": "ccad860f-eb1b-5fbc-99ea-96f5cfb6ace0",
+              "text": "The second transaction waits until the first one commits or rolls back.",
+              "weight": 3,
+              "source_quote": "In this case, the repeatable read transaction will wait for the first updating transaction to commit or roll back (if it is still in progress).",
+              "approved": true
+            },
+            {
+              "id": "4a3ec76f-50f2-5050-b163-3eab77dec27b",
+              "text": "If the first transaction commits its change to that row, the second one fails with a serialization error (could not serialize access due to concurrent update).",
+              "weight": 3,
+              "source_quote": "ERROR: could not serialize access due to concurrent update",
+              "approved": true
+            },
+            {
+              "id": "7bd9bb38-a08e-5716-96a9-0b89f71a3af0",
+              "text": "The application should roll back and retry the whole transaction from the beginning.",
+              "weight": 3,
+              "source_quote": "When an application receives this error message, it should abort the current transaction and retry the whole transaction from the beginning.",
+              "approved": true
+            },
+            {
+              "id": "46f42971-ea18-537a-b078-55a87bc6b049",
+              "text": "If the first transaction rolls back instead, the second one continues with its update.",
+              "weight": 1,
+              "source_quote": "If the first updater rolls back, then its effects are negated and the repeatable read transaction can proceed with updating the originally found row.",
+              "approved": true
+            }
+          ],
+          "misconceptions": [
+            {
+              "id": "1c8dde96-a96a-5488-8450-c6b60ffcc3e4",
+              "text": "At Repeatable Read, the second update silently overwrites the first one.",
+              "correction": "PostgreSQL raises a serialization failure for the second transaction instead of allowing a lost update at Repeatable Read."
+            }
+          ]
+        },
+        {
+          "id": "3d6958b5-939f-5fc4-8f17-79fcc22f6cfe",
+          "text": "Under the default Read Committed level, two transactions each read an account balance, calculate a new balance in application code, and write it back. What can go wrong, and how would you prevent it?",
+          "answer_seconds": 120,
+          "trigger_key_point_id": "52805117-07f7-5d05-abed-df7b61862032",
+          "key_points": [
+            {
+              "id": "8025b194-0fa3-552b-b384-048654eb059e",
+              "text": "Both transactions can read the same old balance, and the later write overwrites the earlier one, so one change is lost (a lost update).",
+              "weight": 3,
+              "source_quote": null,
+              "approved": true
+            },
+            {
+              "id": "3a70f48a-7397-58d6-bc98-d93d5c32a939",
+              "text": "Names at least one concurrency-safe way to do the read-modify-write: a single atomic UPDATE (SET balance = balance - 100), locking the row first with SELECT ... FOR UPDATE, an optimistic check (a version or the old balance in the UPDATE's WHERE clause, retrying when no row changed), or Repeatable Read/Serializable with a retry on serialization failure.",
+              "weight": 3,
+              "source_quote": null,
+              "approved": true
+            },
+            {
+              "id": "ba1e6ac3-ae7b-53cd-b4d3-2000aafff6bf",
+              "text": "Explains why the chosen fix works, for example a waiting UPDATE in Read Committed is re-applied to the newly committed row version, or FOR UPDATE blocks other writers until the transaction commits.",
+              "weight": 2,
+              "source_quote": "otherwise it will attempt to apply its operation to the updated version of the row.",
+              "approved": true
+            }
+          ],
+          "misconceptions": [
+            {
+              "id": "02ff1bc6-c069-5dd1-b351-08da6fc8170a",
+              "text": "Read Committed prevents lost updates because a transaction only sees committed data.",
+              "correction": "Seeing only committed data prevents dirty reads, not read-modify-write lost updates done in application code."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "e5dabd74-bb92-52b6-8e18-0da2936870f9",
+      "topic": "Data modeling & pipelines",
+      "text": "What does it mean for a data pipeline to be idempotent? How would you design a daily batch job so it can be safely re-run after a failure?",
+      "answer_seconds": 150,
+      "key_points": [
+        {
+          "id": "1f621611-350a-53f3-b0ca-3e341b104f30",
+          "text": "Idempotent means that running the job again for the same input or run date produces the same final result, with no duplicated or double-counted data.",
+          "weight": 3,
+          "source_quote": null,
+          "approved": true
+        },
+        {
+          "id": "2fe5b552-9793-52fa-9644-610d4e359a0f",
+          "text": "Each run processes a clearly defined slice of input, such as the partition for the run's logical date or a recorded offset or watermark, not whatever the current time happens to be, so re-runs and backfills read the same data.",
+          "weight": 3,
+          "source_quote": null,
+          "approved": true
+        },
+        {
+          "id": "6cd7dd0b-e138-5037-a6e1-79198fd5fb4d",
+          "text": "The write replaces or merges the run's output (overwrite that slice, or MERGE/upsert on a unique key) instead of blindly appending, so a re-run does not create duplicates.",
+          "weight": 3,
+          "source_quote": null,
+          "approved": true
+        },
+        {
+          "id": "86feebd3-3880-54a7-a63b-752402bee8d7",
+          "text": "For partitioned tables or files, overwrite only the partitions the run produces, for example with Spark dynamic partition overwrite.",
+          "weight": 2,
+          "source_quote": "In dynamic mode, Spark doesn't delete partitions ahead, and only overwrite those partitions that have data written into it at runtime.",
+          "approved": true
+        },
+        {
+          "id": "587a7709-e29e-5a10-a5af-c90aaa3749ab",
+          "text": "For database tables, upsert on a unique key, for example INSERT ... ON CONFLICT DO UPDATE in PostgreSQL or MERGE.",
+          "weight": 2,
+          "source_quote": "ON CONFLICT DO UPDATE updates the existing row that conflicts with the row proposed for insertion as its alternative action.",
+          "approved": true
+        },
+        {
+          "id": "5ceedb93-1aa8-5294-9ccd-5738cdfe98c1",
+          "text": "The write is all-or-nothing, for example inside a database transaction, by loading a staging table and swapping it in, or with a table format that commits atomically, so a failed run does not leave partial data visible.",
+          "weight": 2,
+          "source_quote": null,
+          "approved": true
+        }
+      ],
+      "misconceptions": [
+        {
+          "id": "ba6344cc-4314-5f48-8e9b-c4872fcb6019",
+          "text": "Re-running a failed append-only job is safe because a failed run writes nothing.",
+          "correction": "A failed run can leave partial output; without overwrite, upsert or atomic commits, a retry can duplicate rows."
+        },
+        {
+          "id": "e57a96ea-8177-57ec-bb29-0704c4da305f",
+          "text": "An idempotent pipeline is a pipeline that never fails.",
+          "correction": "Idempotency is about re-runs producing the same result, not about avoiding failures."
+        }
+      ],
+      "follow_ups": [
+        {
+          "id": "6529fde3-2e48-5d75-ab1d-96b615fb7980",
+          "text": "The target is a PostgreSQL table and the same source rows can arrive more than once. How exactly would you load them without creating duplicates?",
+          "answer_seconds": 120,
+          "trigger_key_point_id": "6cd7dd0b-e138-5037-a6e1-79198fd5fb4d",
+          "key_points": [
+            {
+              "id": "ab28cbb0-4011-57f5-81bc-3e54c9eb08b4",
+              "text": "Define a unique constraint or unique index on the business key.",
+              "weight": 3,
+              "source_quote": "The optional ON CONFLICT clause specifies an alternative action to raising a unique violation or exclusion constraint violation error.",
+              "approved": true
+            },
+            {
+              "id": "aebc34ca-f34e-5f84-bbc5-44ada9ee0e52",
+              "text": "Load with INSERT ... ON CONFLICT (key) DO UPDATE to update existing rows, or DO NOTHING to skip them.",
+              "weight": 3,
+              "source_quote": "ON CONFLICT DO NOTHING simply avoids inserting a row as its alternative action. ON CONFLICT DO UPDATE updates the existing row that conflicts with the row proposed for insertion as its alternative action.",
+              "approved": true
+            },
+            {
+              "id": "69d95847-b0a4-5b77-9ffc-a0835d877106",
+              "text": "Deduplicate the incoming batch first, because a single INSERT ... ON CONFLICT DO UPDATE cannot affect the same existing row twice.",
+              "weight": 2,
+              "source_quote": "This means that the command will not be allowed to affect any single existing row more than once; a cardinality violation error will be raised when this situation arises.",
+              "approved": true
+            },
+            {
+              "id": "bdb28717-05d8-5cfc-b95d-3bc7e0888024",
+              "text": "The upsert is atomic even under concurrency, unlike checking with SELECT and then inserting.",
+              "weight": 1,
+              "source_quote": "ON CONFLICT DO UPDATE guarantees an atomic INSERT or UPDATE outcome; provided there is no independent error, one of those two outcomes is guaranteed, even under high concurrency.",
+              "approved": true
+            }
+          ],
+          "misconceptions": [
+            {
+              "id": "3d96a1aa-d572-5863-998d-a703b0a6d80b",
+              "text": "Checking with SELECT whether the row exists and then inserting is safe when several loads run at the same time.",
+              "correction": "Two sessions can both see no row and both insert; use a unique constraint with INSERT ... ON CONFLICT so the database handles it atomically."
+            },
+            {
+              "id": "543f8dc3-7429-52b9-be15-21eeec140b61",
+              "text": "ON CONFLICT prevents duplicates even when there is no unique constraint or unique index on the key columns.",
+              "correction": "ON CONFLICT needs a unique index or constraint as the arbiter; without one there is no conflict to detect."
+            }
+          ]
+        },
+        {
+          "id": "b16863d1-8c5c-5b79-84c7-b6e80874b922",
+          "text": "In Spark, what is the risk of df.write.mode(\"overwrite\") on a date-partitioned table when a re-run only contains data for one day, and how do you avoid it?",
+          "answer_seconds": 90,
+          "trigger_key_point_id": "86feebd3-3880-54a7-a63b-752402bee8d7",
+          "key_points": [
+            {
+              "id": "4308cdb7-9a3d-5a62-9a2b-f9b06f2d07b2",
+              "text": "With the default static overwrite mode, the overwrite can delete partitions that are not in the new data, for example wiping every other day when the DataFrame only contains one day.",
+              "weight": 3,
+              "source_quote": "In static mode, Spark deletes all the partitions that match the partition specification(e.g. PARTITION(a=1,b)) in the INSERT statement, before overwriting.",
+              "approved": true
+            },
+            {
+              "id": "1bd0f09b-2724-5d70-b526-b6f26212bdb1",
+              "text": "Limits the overwrite to the day being re-run, for example with partitionOverwriteMode set to dynamic for Parquet/Hive-style tables, INSERT OVERWRITE with an explicit PARTITION (dt = ...), or Delta Lake replaceWhere on the run date.",
+              "weight": 3,
+              "source_quote": "In dynamic mode, Spark doesn't delete partitions ahead, and only overwrite those partitions that have data written into it at runtime.",
+              "approved": true
+            }
+          ],
+          "misconceptions": [
+            {
+              "id": "8d28c473-2c14-54b1-9d63-b588c6a1f5e9",
+              "text": "By default, mode(\"overwrite\") only replaces the partitions that appear in the DataFrame.",
+              "correction": "The default partition overwrite mode is static; dynamic mode must be enabled to limit the overwrite to partitions present in the data."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
