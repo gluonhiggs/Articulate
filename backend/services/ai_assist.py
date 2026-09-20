@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-import logging
 import random
 from typing import Any, Dict, List, Optional
 
-from backend.config import get_settings
+from backend.config import get_assist_model, get_settings
 from backend.constants import PROMPTS_DIR
 from backend.services import llm_client
-
-logger = logging.getLogger(__name__)
 
 _VOCAB_FOCUS_ROTATION = [
     "idioms and set phrases",
@@ -85,7 +82,7 @@ async def generate_sample_answer(
 
     data = await llm_client.generate_json(
         base_url=settings.llm_base_url,
-        model=settings.llm_model,
+        model=get_assist_model(),
         prompt=prompt,
         api_key=settings.llm_api_key,
         schema=SAMPLE_ANSWER_SCHEMA,
@@ -129,7 +126,7 @@ async def generate_topic_vocab(
 
     data = await llm_client.generate_json(
         base_url=settings.llm_base_url,
-        model=settings.llm_model,
+        model=get_assist_model(),
         prompt=prompt,
         api_key=settings.llm_api_key,
         schema=TOPIC_VOCAB_SCHEMA,

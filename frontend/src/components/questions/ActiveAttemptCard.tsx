@@ -5,6 +5,7 @@ import { ImproveSection } from './ImproveSection'
 import { InlineCorrectedText } from './InlineCorrectedText'
 import { ScoreCircle } from './ScoreCircle'
 import { ScoreTags } from './ScoreTags'
+import { attemptFailureLabel, attemptProcessingLabel, isAttemptFailed, isAttemptProcessing } from './utils'
 
 export function ActiveAttemptCard({
   attempt,
@@ -87,23 +88,26 @@ export function ActiveAttemptCard({
       .catch(() => setPlaying(false))
   }
 
-  if (attempt.status === 'processing') {
+  if (isAttemptProcessing(attempt.status)) {
     return (
       <div className={`rounded-xl p-5 glow-border-active bg-card ${isNew ? 'slide-in-top' : ''}`}>
         <div className="flex items-center gap-3">
           <span className="text-gray-500 text-xs font-mono">#{index + 1}</span>
           <div className="animate-spin h-4 w-4 border-2 border-teal-400 border-t-transparent rounded-full" />
-          <span className="text-gray-400 text-sm">Scoring...</span>
+          <span className="text-gray-400 text-sm">{attemptProcessingLabel(attempt.status)}</span>
         </div>
       </div>
     )
   }
 
-  if (attempt.status === 'failed') {
+  if (isAttemptFailed(attempt.status)) {
     return (
       <div className={`rounded-xl p-5 bg-card border border-red-500/30 ${isNew ? 'slide-in-top' : ''}`}>
         <span className="text-gray-500 text-xs font-mono">#{index + 1}</span>
-        <p className="text-red-400 text-sm mt-1">Processing failed - please try recording again.</p>
+        <p className="text-red-400 text-sm mt-1">{attemptFailureLabel(attempt.status)}</p>
+        {attempt.transcript && (
+          <p className="text-[15px] leading-relaxed text-gray-200 mt-3">{attempt.transcript}</p>
+        )}
       </div>
     )
   }

@@ -10,6 +10,7 @@ from backend.services import interview_grading
 from backend.services.interview_grading import (
     GROQ_FREE_TIER_TOKENS_PER_MINUTE,
     MIN_VERIFIER_MAX_TOKENS,
+    estimated_request_tokens,
     verifier_max_tokens,
 )
 
@@ -21,13 +22,19 @@ class TestVerifierMaxTokens:
         assert verifier_max_tokens("x" * 400, 4096) == 4096
 
     def test_long_prompt_lowers_the_reply_budget(self):
-        prompt = "x" * 20000  # about 5000 prompt tokens
-        assert verifier_max_tokens(prompt, 4096) == GROQ_FREE_TIER_TOKENS_PER_MINUTE - 5000
+        prompt = "x" * 20000
+        assert MIN_VERIFIER_MAX_TOKENS < verifier_max_tokens(prompt, 4096) < 4096
 
-    @pytest.mark.parametrize("chars", [0, 4000, 16000, 24000, 28000])
-    def test_prompt_plus_reply_stay_inside_the_free_tier_budget(self, chars):
+    @pytest.mark.parametrize("chars", [0, 4000, 12000, 16000, 20000])
+    def test_request_plus_reply_stay_inside_the_free_tier_budget(self, chars):
         prompt = "x" * chars
-        assert chars // 4 + verifier_max_tokens(prompt, 4096) <= GROQ_FREE_TIER_TOKENS_PER_MINUTE
+        total = estimated_request_tokens(prompt) + verifier_max_tokens(prompt, 4096)
+        assert total <= GROQ_FREE_TIER_TOKENS_PER_MINUTE
+
+    def test_estimate_leaves_room_for_the_schema_and_a_denser_tokenizer(self):
+        prompt = "x" * 18400  # the 4.6K-token prompt that was rejected with max_tokens=8192
+        assert estimated_request_tokens(prompt) > len(prompt) // 4
+        assert 4600 + verifier_max_tokens(prompt, 4096) < GROQ_FREE_TIER_TOKENS_PER_MINUTE
 
     def test_never_drops_below_a_usable_floor(self):
         assert verifier_max_tokens("x" * 80000, 4096) == MIN_VERIFIER_MAX_TOKENS
@@ -52,11 +59,11 @@ class TestVerifyRequest:
         question = InterviewQuestion(text="What is lazy evaluation in Spark?")
         transcript = "Spark is lazy. " * 1000
 
-        await interview_grading._verify(Settings(), question, transcript, CLAIMS, [])
+        await interview_grading._verify(Settings(interview_verifier_max_tokens=4096), question, transcript, CLAIMS, [])
 
         assert sent["max_tokens"] == verifier_max_tokens(sent["prompt"], 4096)
         assert sent["max_tokens"] < 4096
-        assert len(sent["prompt"]) // 4 + sent["max_tokens"] <= GROQ_FREE_TIER_TOKENS_PER_MINUTE
+        assert estimated_request_tokens(sent["prompt"]) + sent["max_tokens"] <= GROQ_FREE_TIER_TOKENS_PER_MINUTE
 
     async def test_verify_uses_the_configured_ceiling_for_a_short_transcript(self, sent):
         question = InterviewQuestion(text="What is lazy evaluation in Spark?")

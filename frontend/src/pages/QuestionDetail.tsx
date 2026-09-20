@@ -12,20 +12,20 @@ import {
 import { RightPanel } from '../components/ai-panel/RightPanel'
 import { ActiveAttemptCard } from '../components/questions/ActiveAttemptCard'
 import { PrevAttemptCard } from '../components/questions/PrevAttemptCard'
-import { partLabel, partMaxSeconds, partRoute } from '../components/questions/utils'
+import {
+  ATTEMPT_PROCESSING_STATUSES,
+  attemptOutcome,
+  partLabel,
+  partMaxSeconds,
+  partRoute,
+} from '../components/questions/utils'
 import { RecordingBar } from '../components/recording/RecordingBar'
 import { useRecorder } from '../hooks/useRecorder'
 import { usePolling } from '../hooks/usePolling'
 import { useRecordingStore } from '../store/recordingStore'
 import type { Attempt, Part3Group, Question } from '../types'
 
-const PROCESSING_STATUSES = ['processing', 'transcribing', 'scoring']
 const COMPANION_MAX_AGE_MS = 5 * 60 * 1000 // ignore attempts older than 5 min
-const ERROR_MESSAGES: Record<string, string> = {
-  'failed:transcription': 'Could not transcribe audio',
-  'failed:empty_audio':   'Audio was too quiet or silent',
-  'failed:scoring':       'AI scoring unavailable - check your LLM API key',
-}
 
 export function QuestionDetail() {
   const { questionId: questionIdStr } = useParams<{ questionId: string }>()
@@ -206,28 +206,28 @@ export function QuestionDetail() {
       .catch((err: unknown) => { setError(err instanceof Error ? err.message : 'Upload failed') })
   }, [audioBlob, isRecording, status, questionId, setUploading, setPolling, setError])
 
-  // Polling result
+  // Applied once per distinct outcome, so a status arriving after a timeout replaces it
+  const appliedOutcomeRef = useRef<string | null>(null)
   useEffect(() => {
-    if (pollingTimedOut && status === 'polling') {
-      setError('Scoring timed out - the server is taking too long. Please try again.')
-      return
-    }
-    if (!polledAttempt) return
-    if (polledAttempt.status === 'ready') {
+    if (attemptId === null) return
+    const outcome = attemptOutcome(polledAttempt?.status, pollingTimedOut)
+    if (outcome.kind === 'pending') return
+    const signature = `${attemptId}:${outcome.kind === 'ready' ? 'ready' : outcome.message}`
+    if (appliedOutcomeRef.current === signature) return
+    appliedOutcomeRef.current = signature
+    queryClient.invalidateQueries({ queryKey: ['attempts', 'history', questionId] })
+    void refetchAttempts()
+    if (outcome.kind === 'ready') {
       setDone()
-      queryClient.invalidateQueries({ queryKey: ['attempts', 'history', questionId] })
       queryClient.invalidateQueries({ queryKey: ['questions', 'part1'] })
       queryClient.invalidateQueries({ queryKey: ['questions', 'part2'] })
       queryClient.invalidateQueries({ queryKey: ['questions', 'part3'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-      void refetchAttempts()
-    } else if (!PROCESSING_STATUSES.includes(polledAttempt.status)) {
-      setError(ERROR_MESSAGES[polledAttempt.status] ?? 'Scoring failed')
-      queryClient.invalidateQueries({ queryKey: ['attempts', 'history', questionId] })
-      void refetchAttempts()
+      return
     }
+    setError(outcome.message)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [polledAttempt, pollingTimedOut, status, setDone, setError, queryClient, questionId, refetchAttempts])
+  }, [polledAttempt, pollingTimedOut, attemptId, setDone, setError, queryClient, questionId, refetchAttempts])
 
   // Companion sync - pick up an in-progress attempt recorded on another device
   const { data: companionAttempt } = useQuery({
@@ -240,7 +240,7 @@ export function QuestionDetail() {
       return (
         data.find(
           (a) =>
-            PROCESSING_STATUSES.includes(a.status) &&
+            ATTEMPT_PROCESSING_STATUSES.includes(a.status) &&
             new Date(a.created_at).getTime() > cutoff,
         ) ?? null
       )

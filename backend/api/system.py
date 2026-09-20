@@ -9,7 +9,7 @@ import sys
 import httpx
 from fastapi import APIRouter, HTTPException
 
-from backend.config import get_active_model, get_settings, set_runtime_model, write_mode_file
+from backend.config import get_active_model, get_assist_model, get_settings, set_runtime_model, write_mode_file
 from backend.schemas import SetModelRequest, SetTranscriptionModeRequest, SystemInfoOut
 from backend.services.transcription import (
     has_nvidia_cuda_wheels,
@@ -73,6 +73,7 @@ async def system_info() -> SystemInfoOut:
         whisper_model=whisper_model,
         whisper_device=whisper_device,
         llm_model=model,
+        llm_assist_model=get_assist_model(),
         is_low_accuracy=is_low_accuracy,
         llm_reachable=llm_reachable,
         transcription_mode=settings.transcription_mode or "groq",
@@ -196,9 +197,7 @@ async def update_transcription_mode(body: SetTranscriptionModeRequest) -> System
     # That state happens when a user installed local-transcription before the
     # GPU group was split out, then gained a GPU-equipped machine. Without this
     # heal, toggling to local succeeds but transcription silently runs on CPU.
-    needs_install = not is_faster_whisper_installed() or (
-        has_nvidia_gpu_driver() and not has_nvidia_cuda_wheels()
-    )
+    needs_install = not is_faster_whisper_installed() or (has_nvidia_gpu_driver() and not has_nvidia_cuda_wheels())
 
     if needs_install:
         _set_op_status("installing")

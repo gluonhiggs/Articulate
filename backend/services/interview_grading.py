@@ -62,6 +62,10 @@ MAX_CONTENT_TIPS = 3
 # the request outright when the pair exceeds it, so a long transcript buys a shorter reply.
 GROQ_FREE_TIER_TOKENS_PER_MINUTE = 8000
 MIN_VERIFIER_MAX_TOKENS = 512
+# Four characters per token is an average rather than a worst case, and Groq also counts the
+# JSON schema and the message envelope, neither of which is part of the prompt string.
+VERIFIER_CHARS_PER_TOKEN = 3.5
+VERIFIER_REQUEST_OVERHEAD_TOKENS = 400
 GRADEABLE_STATUSES = frozenset({"needs_review", "graded", "pending_quota", "failed:grading"})
 RETRY_STATUSES = frozenset({"pending_quota", "failed:grading"})
 
@@ -290,10 +294,14 @@ async def _propose(
     )
 
 
+def estimated_request_tokens(prompt: str) -> int:
+    """Pessimistic token count for the whole verifier request, not just the prompt string."""
+    return int(len(prompt) / VERIFIER_CHARS_PER_TOKEN) + VERIFIER_REQUEST_OVERHEAD_TOKENS
+
+
 def verifier_max_tokens(prompt: str, configured_max: int) -> int:
-    """Reply budget that keeps the estimated prompt plus the reply inside the free tier's per-minute limit."""
-    estimated_prompt_tokens = len(prompt) // 4
-    remaining = GROQ_FREE_TIER_TOKENS_PER_MINUTE - estimated_prompt_tokens
+    """Reply budget that keeps the estimated request plus the reply inside the free tier's per-minute limit."""
+    remaining = GROQ_FREE_TIER_TOKENS_PER_MINUTE - estimated_request_tokens(prompt)
     return max(MIN_VERIFIER_MAX_TOKENS, min(configured_max, remaining))
 
 

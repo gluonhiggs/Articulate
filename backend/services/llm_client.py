@@ -22,6 +22,7 @@ _client: Optional[httpx.AsyncClient] = None
 
 _RETRY_BACKOFF_SECONDS = (2.0, 6.0)
 _MAX_RETRY_AFTER_SECONDS = 20.0
+_DAILY_QUOTA_RE = re.compile(r"per\s*day", re.IGNORECASE)
 
 
 class LLMRateLimitError(RuntimeError):
@@ -81,6 +82,7 @@ async def _post_chat_completion(url: str, payload: dict, api_key: str, timeout: 
     model = payload.get("model")
 
     connect_retried = False
+    dropped_reasoning_effort = False
     status_retries = 0
     while True:
         try:
@@ -97,6 +99,9 @@ async def _post_chat_completion(url: str, payload: dict, api_key: str, timeout: 
             raise RuntimeError(f"LLM request failed: {exc}") from exc
 
         status = response.status_code
+        # A per-day quota cannot recover within the retry window, unlike a per-minute rate limit.
+        if status == 429 and _DAILY_QUOTA_RE.search(response.text):
+            raise LLMRateLimitError(f"LLM daily free-tier quota exhausted for model {model}")
         if (status == 429 or status >= 500) and status_retries < len(_RETRY_BACKOFF_SECONDS):
             delay = _retry_delay(response, status_retries)
             status_retries += 1
@@ -105,6 +110,13 @@ async def _post_chat_completion(url: str, payload: dict, api_key: str, timeout: 
             continue
         if status == 429:
             raise LLMRateLimitError(f"LLM rate limit or free-tier quota exceeded for model {model}")
+        # Support for reasoning_effort varies per model (gemini-3.5-flash-lite rejects "none"
+        # with a 400 that gemini-3.6-flash accepts), so drop it rather than fail the request.
+        if status == 400 and "reasoning_effort" in payload and not dropped_reasoning_effort:
+            dropped_reasoning_effort = True
+            effort = payload.pop("reasoning_effort")
+            logger.warning("Model %s rejected reasoning_effort=%r; retrying without it", model, effort)
+            continue
         if status >= 400:
             raise RuntimeError(f"LLM request failed: HTTP {status}: {response.text[:500]}")
         try:

@@ -27,6 +27,7 @@ from backend.services import scoring as scoring_service
 from backend.services import transcription as transcription_service
 from backend.services.audio import EXT_TO_MIME
 from backend.services.grammar import get_lt_tool, is_speech_artifact
+from backend.services.llm_client import LLMRateLimitError
 from backend.services.vocab import compute_grammar_signals, compute_pronunciation_signal, compute_vocab_signal
 
 logger = logging.getLogger(__name__)
@@ -397,12 +398,13 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                 )
             except Exception as exc:
                 logger.exception("Pipeline %d: scoring failed: %s", attempt_id, exc)
+                failed_status = "failed:quota" if isinstance(exc, LLMRateLimitError) else "failed:scoring"
                 s2 = await session.execute(select(Attempt).where(Attempt.id == attempt_id))
                 a = s2.scalar_one_or_none()
                 if a is not None:
-                    a.status = "failed:scoring"
+                    a.status = failed_status
                     await session.commit()
-                    logger.info("Pipeline %d: failed:scoring", attempt_id)
+                    logger.info("Pipeline %d: %s", attempt_id, failed_status)
                 return
 
             _t_scoring = time.perf_counter() - _t0

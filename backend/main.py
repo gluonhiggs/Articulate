@@ -22,6 +22,7 @@ from backend.services.grammar import get_lt_tool
 from backend.services.transcription import is_faster_whisper_installed
 from backend.services.tts import _ensure_pipeline as _ensure_tts_pipeline
 from backend.services.tts import evict_tts_cache
+from backend.services.vocab import get_spacy
 
 logging.basicConfig(
     level=logging.INFO,
@@ -256,6 +257,13 @@ async def lifespan(app: FastAPI):
             "LanguageTool timed out after 30s (Java may be blocked by firewall). Grammar context will be skipped."
         )
 
+    logger.info("Loading spaCy model...")
+    try:
+        nlp = await asyncio.wait_for(loop.run_in_executor(None, get_spacy), timeout=60.0)
+        logger.info("spaCy ready." if nlp is not None else "spaCy unavailable - collocation signal will be skipped.")
+    except asyncio.TimeoutError:
+        logger.warning("spaCy load timed out after 60s; the first scored answer will load it instead.")
+
     yield  # Application runs here
 
     await llm_client.close_if_initialized()
@@ -296,8 +304,19 @@ _FRONTEND_DIST = (
     Path(_MEIPASS) / "frontend" / "dist" if _MEIPASS else Path(__file__).parent.parent / "frontend" / "dist"
 )
 
+
+class _SpaStaticFiles(StaticFiles):
+    """Static files with a revalidated index.html, so a rebuilt bundle is never served from cache."""
+
+    async def get_response(self, path: str, scope):
+        response = await super().get_response(path, scope)
+        if response.headers.get("content-type", "").startswith("text/html"):
+            response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
 if _FRONTEND_DIST.exists():
-    app.mount("/", StaticFiles(directory=str(_FRONTEND_DIST), html=True), name="frontend")
+    app.mount("/", _SpaStaticFiles(directory=str(_FRONTEND_DIST), html=True), name="frontend")
     logger.info("Serving frontend from %s", _FRONTEND_DIST)
 else:
     logger.warning(
@@ -313,5 +332,5 @@ async def spa_fallback(request, exc: StarletteHTTPException):
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
     idx = _FRONTEND_DIST / "index.html"
     if idx.exists():
-        return FileResponse(str(idx))
+        return FileResponse(str(idx), headers={"Cache-Control": "no-cache"})
     return JSONResponse(status_code=404, content={"detail": exc.detail})

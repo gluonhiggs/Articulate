@@ -213,26 +213,26 @@ class TestCollocationSignal:
 
     def test_common_pair_skipped(self):
         # "make a decision" is in _COMMON_NATURAL_PAIRS - should not appear in inventory
-        from backend.services.vocab import _compute_collocation_signal, _get_spacy
+        from backend.services.vocab import _compute_collocation_signal, get_spacy
 
         signal = _compute_collocation_signal("She made a decision to leave.")
-        if _get_spacy() is not None:
+        if get_spacy() is not None:
             assert "make->decision" not in signal
 
     def test_unusual_pair_reported_in_inventory(self):
         # "do a mistake" - verb->obj pair "do->mistake" should appear in inventory
-        from backend.services.vocab import _compute_collocation_signal, _get_spacy
+        from backend.services.vocab import _compute_collocation_signal, get_spacy
 
         signal = _compute_collocation_signal("He did a mistake in his work.")
-        if _get_spacy() is not None:
+        if get_spacy() is not None:
             assert "do->mistake" in signal
 
     def test_adj_noun_pair_extracted(self):
         # "delicious meal" - adj->noun pair should appear
-        from backend.services.vocab import _compute_collocation_signal, _get_spacy
+        from backend.services.vocab import _compute_collocation_signal, get_spacy
 
         signal = _compute_collocation_signal("She cooked a delicious meal.")
-        if _get_spacy() is not None:
+        if get_spacy() is not None:
             assert "delicious->meal" in signal
 
 

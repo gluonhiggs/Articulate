@@ -99,6 +99,25 @@ async def test_persistent_429_raises_rate_limit_error(provider):
     assert len(provider["requests"]) == 3
 
 
+async def test_daily_quota_429_fails_fast_without_retries(provider):
+    body = (
+        '{"error": {"code": 429, "status": "RESOURCE_EXHAUSTED", "message": "Quota exceeded for quota metric '
+        "'Generate requests per day' and limit 'GenerateRequestsPerDayPerProjectPerModel-FreeTier'\"}}"
+    )
+    provider["responses"] = [httpx.Response(429, text=body) for _ in range(3)]
+    with pytest.raises(LLMRateLimitError, match="daily"):
+        await _generate_json()
+    assert len(provider["requests"]) == 1
+    assert provider["sleeps"] == []
+
+
+async def test_per_minute_429_is_still_retried(provider):
+    body = '{"error": {"message": "Quota exceeded for GenerateRequestsPerMinutePerProjectPerModel-FreeTier"}}'
+    provider["responses"] = [httpx.Response(429, text=body), _completion('{"ok": true}')]
+    assert await _generate_json() == {"ok": True}
+    assert len(provider["requests"]) == 2
+
+
 async def test_persistent_5xx_raises_runtime_error_not_rate_limit(provider):
     provider["responses"] = [httpx.Response(500, text="boom") for _ in range(3)]
     with pytest.raises(RuntimeError) as excinfo:
@@ -138,6 +157,47 @@ async def test_connect_error_is_retried_once(provider):
     provider["responses"] = [httpx.ConnectError("offline"), _completion('{"ok": true}')]
     assert await _generate_json() == {"ok": True}
     assert len(provider["requests"]) == 2
+
+
+async def test_reasoning_effort_is_omitted_unless_configured(provider):
+    provider["responses"] = [_completion('{"ok": true}'), _completion("Band 6 feedback")]
+
+    await _generate_json()
+    await llm_client.generate("https://host/v1", "gemma", "prompt", api_key="k")
+
+    for request in provider["requests"]:
+        assert "reasoning_effort" not in json.loads(request.content)
+
+
+async def test_reasoning_effort_is_sent_when_configured(provider):
+    provider["responses"] = [_completion('{"ok": true}'), _completion("Band 6 feedback")]
+
+    await _generate_json(reasoning_effort="none")
+    await llm_client.generate("https://host/v1", "gemma", "prompt", api_key="k", reasoning_effort="minimal")
+
+    assert [json.loads(r.content)["reasoning_effort"] for r in provider["requests"]] == ["none", "minimal"]
+
+
+async def test_400_on_reasoning_effort_retries_without_it(provider):
+    provider["responses"] = [
+        httpx.Response(400, json={"error": {"message": "Request contains an invalid argument."}}),
+        _completion('{"ok": true}'),
+    ]
+
+    assert await _generate_json(reasoning_effort="none") == {"ok": True}
+
+    sent = [json.loads(r.content) for r in provider["requests"]]
+    assert sent[0]["reasoning_effort"] == "none"
+    assert "reasoning_effort" not in sent[1]
+
+
+async def test_400_without_reasoning_effort_still_raises(provider):
+    provider["responses"] = [httpx.Response(400, json={"error": {"message": "bad request"}})]
+
+    with pytest.raises(RuntimeError, match="HTTP 400"):
+        await _generate_json()
+
+    assert len(provider["requests"]) == 1
 
 
 async def test_generate_keeps_returning_plain_text(provider):

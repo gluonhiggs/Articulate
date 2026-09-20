@@ -182,6 +182,7 @@ class SystemInfoOut(BaseModel):
     whisper_model: str
     whisper_device: str
     llm_model: str
+    llm_assist_model: str = ""
     is_low_accuracy: bool = False
     llm_reachable: bool = False
     # --- Transcription mode ---

@@ -102,7 +102,9 @@ Edit `.env` to customise. All have defaults.
 | `GROQ_API_KEY` | *(required)* | Groq API key for Whisper transcription |
 | `GROQ_WHISPER_MODEL` | `whisper-large-v3-turbo` | Groq Whisper model |
 | `LLM_API_KEY` | *(required)* | API key for cloud LLM (Gemini, Groq, etc.) |
-| `LLM_MODEL` | `gemma-3-27b-it` | LLM model name (overridable at runtime via sidebar) |
+| `LLM_MODEL` | `gemma-3-27b-it` | Scoring model (overridable at runtime via sidebar) |
+| `LLM_ASSIST_MODEL` | `gemini-3.5-flash-lite` | Model for improve / sample answer / topic vocabulary; empty reuses `LLM_MODEL` |
+| `LLM_REASONING_EFFORT` | *(empty)* | `none` / `minimal` keeps a thinking model from spending its reply budget on thinking |
 | `LLM_BASE_URL` | Gemini API endpoint | LLM endpoint - swap to use a different provider |
 | `MAX_AUDIO_SIZE_MB` | `500` | Total audio storage cap |
 | `AUDIO_RETENTION_DAYS` | `90` | Delete audio older than N days |

@@ -27,3 +27,55 @@ export function tagClass(s: number) {
 export function cleanWord(s: string): string {
   return s.replace(/[.,!?;:'"()\-]/g, '').toLowerCase()
 }
+
+export const ATTEMPT_PROCESSING_STATUSES = ['processing', 'transcribing', 'scoring']
+
+export const ATTEMPT_ERROR_MESSAGES: Record<string, string> = {
+  'failed:transcription': 'Could not transcribe audio',
+  'failed:empty_audio': 'Audio was too quiet or silent',
+  'failed:scoring': 'AI scoring unavailable - check your LLM API key',
+  'failed:quota':
+    'Daily quota for the scoring model is used up (it resets at midnight US Pacific). Your recording and transcript are saved - switch the scoring model in the sidebar to keep practising.',
+}
+
+export const ATTEMPT_TIMEOUT_MESSAGE = 'Scoring timed out - the server is taking too long. Please try again.'
+
+export const ATTEMPT_PROCESSING_LABELS: Record<string, string> = {
+  processing: 'Processing...',
+  transcribing: 'Transcribing...',
+  scoring: 'Scoring...',
+}
+
+export const ATTEMPT_FAILURE_LABELS: Record<string, string> = {
+  'failed:transcription': 'Transcription failed',
+  'failed:empty_audio': 'No speech detected',
+  'failed:scoring': 'Scoring failed',
+  'failed:quota': 'Scoring quota reached - transcript saved',
+}
+
+export function isAttemptProcessing(status: string): boolean {
+  return ATTEMPT_PROCESSING_STATUSES.includes(status)
+}
+
+export function isAttemptFailed(status: string): boolean {
+  return status === 'failed' || status.startsWith('failed:')
+}
+
+export function attemptProcessingLabel(status: string): string {
+  return ATTEMPT_PROCESSING_LABELS[status] ?? 'Processing...'
+}
+
+export function attemptFailureLabel(status: string): string {
+  return ATTEMPT_FAILURE_LABELS[status] ?? 'Processing failed - please try recording again.'
+}
+
+export type AttemptOutcome = { kind: 'pending' } | { kind: 'ready' } | { kind: 'error'; message: string }
+
+export function attemptOutcome(status: string | undefined, timedOut: boolean): AttemptOutcome {
+  if (status === 'ready') return { kind: 'ready' }
+  if (status && !isAttemptProcessing(status)) {
+    return { kind: 'error', message: ATTEMPT_ERROR_MESSAGES[status] ?? 'Scoring failed' }
+  }
+  if (timedOut) return { kind: 'error', message: ATTEMPT_TIMEOUT_MESSAGE }
+  return { kind: 'pending' }
+}

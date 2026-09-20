@@ -14,7 +14,7 @@ import {
   suggestedOffset,
   undoGlossaryCorrection,
 } from '../components/interview/utils'
-import { nextPollingInterval, POLLING_INTERVAL_MS } from '../hooks/usePolling'
+import { nextPollingInterval, POLLING_INTERVAL_MS, POLLING_TIMEOUT_MS } from '../hooks/usePolling'
 import type { InterviewGlossaryCorrection, InterviewQuestion } from '../types/interview'
 
 function makeQuestion(overrides: Partial<InterviewQuestion> & { id: number }): InterviewQuestion {
@@ -191,18 +191,30 @@ describe('question navigation and grouping', () => {
 describe('answer polling', () => {
   it.each(['processing', 'transcribing', 'grading'] as const)('keeps polling while %s', (status) => {
     const setTimedOut = vi.fn()
-    expect(nextPollingInterval(status, { current: Date.now() }, setTimedOut, isAnswerInProgress)).toBe(
-      POLLING_INTERVAL_MS,
-    )
+    const startRef = { current: { key: 1, at: Date.now() } }
+    expect(
+      nextPollingInterval(status, startRef, setTimedOut, { key: 1, isInProgress: isAnswerInProgress }),
+    ).toBe(POLLING_INTERVAL_MS)
     expect(setTimedOut).not.toHaveBeenCalled()
   })
 
   it.each(['needs_review', 'graded', 'pending_quota', 'failed:grading'] as const)('stops polling at %s', (status) => {
-    const startedAtRef = { current: 123 }
+    const startRef = { current: { key: 1, at: 123 } }
     const setTimedOut = vi.fn()
-    expect(nextPollingInterval(status, startedAtRef, setTimedOut, isAnswerInProgress)).toBe(false)
-    expect(startedAtRef.current).toBeNull()
+    expect(
+      nextPollingInterval(status, startRef, setTimedOut, { key: 1, isInProgress: isAnswerInProgress }),
+    ).toBe(false)
+    expect(startRef.current).toBeNull()
     expect(setTimedOut).toHaveBeenCalledWith(false)
+  })
+
+  it('does not inherit the previous answer timeout window', () => {
+    const startRef = { current: { key: 1, at: Date.now() - POLLING_TIMEOUT_MS - 1 } }
+    const setTimedOut = vi.fn()
+    expect(
+      nextPollingInterval('grading', startRef, setTimedOut, { key: 2, isInProgress: isAnswerInProgress }),
+    ).toBe(POLLING_INTERVAL_MS)
+    expect(setTimedOut).not.toHaveBeenCalled()
   })
 })
 

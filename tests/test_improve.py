@@ -43,6 +43,15 @@ async def test_returns_improved_text_and_explanation(fake_llm):
     assert result == {"improved_text": "In my free time I play video games.", "explanation": "Fixed the noun."}
 
 
+async def test_uses_the_assist_model_not_the_scoring_model(fake_llm, monkeypatch):
+    monkeypatch.setattr(improve_service, "get_assist_model", lambda: "gemini-3.5-flash-lite", raising=True)
+    fake_llm["result"] = {"improved_text": "Better.", "explanation": ""}
+
+    await improve_service.generate_improvement(**ARGS)
+
+    assert fake_llm["kwargs"]["model"] == "gemini-3.5-flash-lite"
+
+
 async def test_request_leaves_room_for_a_thinking_model(fake_llm):
     fake_llm["result"] = {"improved_text": "Rewritten.", "explanation": ""}
 

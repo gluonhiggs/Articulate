@@ -32,8 +32,13 @@ class Settings(BaseSettings):
     llm_model: str = "gemma-3-27b-it"
     llm_base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai"
     llm_api_key: str = ""
+    # Model for the helper calls (improve, sample answer, topic vocabulary). They write text
+    # instead of grading, so a cheaper model keeps the scoring model's daily quota for scoring.
+    # Empty falls back to the scoring model. Set it when llm_base_url is not Google AI Studio.
+    llm_assist_model: str = "gemini-3.5-flash-lite"
     # Sent as reasoning_effort on the IELTS scoring/improve/ai_assist calls when non-empty.
-    # "none" or "minimal" stops a thinking model from spending the token budget before answering.
+    # "minimal" stops a thinking model from spending the token budget before answering and is
+    # accepted by both 3.x flash and flash-lite; gemini-3.5-flash-lite rejects "none" with a 400.
     llm_reasoning_effort: str = ""
     interview_grader_model: str = "gemini-3.5-flash-lite"
     interview_drafter_model: str = "gemini-3.5-flash-lite"
@@ -95,6 +100,11 @@ def get_active_model() -> str:
 def set_runtime_model(model: str) -> None:
     global _runtime_model
     _runtime_model = model
+
+
+def get_assist_model() -> str:
+    """Model for the non-scoring helper calls, falling back to the scoring model."""
+    return get_settings().llm_assist_model or get_active_model()
 
 
 # --- Transcription mode persistence ---

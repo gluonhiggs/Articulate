@@ -7,6 +7,7 @@ from typing import Any, Dict, Optional
 from backend.config import get_active_model, get_settings
 from backend.constants import PROJECT_ROOT, PROMPTS_DIR
 from backend.services import llm_client
+from backend.services.llm_client import LLMRateLimitError
 
 # Load at module level so a missing file raises FileNotFoundError at startup, not per-request
 _BAND_DESCRIPTORS = (PROJECT_ROOT / "BAND-SCORES.md").read_text(encoding="utf-8")
@@ -216,6 +217,10 @@ async def score_attempt(
             timeout=120.0,
             reasoning_effort=settings.llm_reasoning_effort,
         )
+    except LLMRateLimitError:
+        # The caller marks the attempt as quota-blocked; a generic scoring failure would
+        # tell the user to check an API key that is working.
+        raise
     except (RuntimeError, FileNotFoundError) as exc:
         logger.exception("Scoring failed: %s", exc)
         raw_text = ""

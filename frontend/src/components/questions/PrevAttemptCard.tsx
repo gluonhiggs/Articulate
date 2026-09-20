@@ -1,6 +1,7 @@
 import type { Attempt } from '../../types'
 import { ScoreCircle } from './ScoreCircle'
 import { ScoreTags } from './ScoreTags'
+import { attemptFailureLabel, attemptProcessingLabel, isAttemptFailed, isAttemptProcessing } from './utils'
 
 export function PrevAttemptCard({
   attempt,
@@ -13,24 +14,30 @@ export function PrevAttemptCard({
   isNew: boolean
   onSelect: () => void
 }) {
-  if (attempt.status === 'processing') {
+  if (isAttemptProcessing(attempt.status)) {
     return (
       <div className={`rounded-xl p-4 bg-card/60 border border-cardBorder ${isNew ? 'slide-in-top' : ''}`}>
         <div className="flex items-center gap-3">
           <span className="text-gray-500 text-xs font-mono">#{index + 1}</span>
           <div className="animate-spin h-3 w-3 border-2 border-teal-400 border-t-transparent rounded-full" />
-          <span className="text-gray-500 text-sm">Processing...</span>
+          <span className="text-gray-500 text-sm">{attemptProcessingLabel(attempt.status)}</span>
         </div>
       </div>
     )
   }
 
-  if (attempt.status === 'failed') {
+  if (isAttemptFailed(attempt.status)) {
     return (
-      <div className={`rounded-xl p-4 bg-card/60 border border-red-500/20 ${isNew ? 'slide-in-top' : ''}`}>
+      <button
+        onClick={onSelect}
+        className={`w-full text-left rounded-xl p-4 bg-card/60 border border-red-500/20 opacity-70 hover:opacity-100 transition-all ${isNew ? 'slide-in-top' : ''}`}
+      >
         <span className="text-gray-500 text-xs font-mono">#{index + 1}</span>
-        <p className="text-red-400/60 text-sm mt-1">Failed</p>
-      </div>
+        <p className="text-red-400/60 text-sm mt-1">{attemptFailureLabel(attempt.status)}</p>
+        {attempt.transcript && (
+          <p className="text-sm leading-relaxed text-gray-300 line-clamp-2 mt-2">{attempt.transcript}</p>
+        )}
+      </button>
     )
   }
 

@@ -23,7 +23,7 @@ import {
   topicLabel,
 } from '../../components/interview/utils'
 import { useBlobAudio } from '../../hooks/useBlobAudio'
-import { nextPollingInterval } from '../../hooks/usePolling'
+import { nextPollingInterval, type PollingStart } from '../../hooks/usePolling'
 import { useRecorder } from '../../hooks/useRecorder'
 import type {
   InterviewAnswer,
@@ -84,12 +84,11 @@ function PracticeSession({ questionId }: { questionId: number }) {
   }, [questionLoaded, playQuestion])
 
   const [activeAnswerId, setActiveAnswerId] = useState<number | null>(null)
-  const pollStartedRef = useRef<number | null>(null)
-  const [pollTimedOut, setPollTimedOut] = useState(false)
+  const pollStartRef = useRef<PollingStart | null>(null)
+  const [timedOutAnswerId, setTimedOutAnswerId] = useState<number | null>(null)
+  const pollTimedOut = activeAnswerId !== null && timedOutAnswerId === activeAnswerId
 
   const showAnswer = useCallback((answerId: number | null) => {
-    pollStartedRef.current = null
-    setPollTimedOut(false)
     setActiveAnswerId(answerId)
   }, [])
 
@@ -101,7 +100,13 @@ function PracticeSession({ questionId }: { questionId: number }) {
     refetchInterval: (query) =>
       activeAnswerId === null
         ? false
-        : nextPollingInterval(query.state.data?.status, pollStartedRef, setPollTimedOut, isAnswerInProgress),
+        : nextPollingInterval(
+            query.state.data?.status,
+            pollStartRef,
+            (timedOut) => setTimedOutAnswerId(timedOut ? activeAnswerId : null),
+            { key: activeAnswerId, isInProgress: isAnswerInProgress },
+          ),
+    refetchIntervalInBackground: true,
   })
 
   const activeStatus = activeAnswer?.status
@@ -122,8 +127,8 @@ function PracticeSession({ questionId }: { questionId: number }) {
     mutationFn: ({ answerId, transcript }: { answerId: number; transcript: string }) =>
       gradeInterviewAnswer(answerId, transcript),
     onSuccess: (answer) => {
-      pollStartedRef.current = null
-      setPollTimedOut(false)
+      pollStartRef.current = null
+      setTimedOutAnswerId(null)
       queryClient.setQueryData(['interview', 'answer', answer.id], answer)
       void queryClient.invalidateQueries({ queryKey: ['interview', 'answers', questionId] })
     },

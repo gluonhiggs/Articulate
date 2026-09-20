@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict
 
-from backend.config import get_settings
+from backend.config import get_assist_model, get_settings
 from backend.constants import PROMPTS_DIR
 from backend.services import llm_client
 
@@ -61,7 +61,7 @@ async def generate_improvement(
     try:
         data = await llm_client.generate_json(
             base_url=settings.llm_base_url,
-            model=settings.llm_model,
+            model=get_assist_model(),
             prompt=prompt,
             api_key=settings.llm_api_key,
             schema=IMPROVE_SCHEMA,

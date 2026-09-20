@@ -357,7 +357,9 @@ Set in `.env` (copy from `.env.example`), loaded by `run.ps1`/`run.sh`. All have
 | `GROQ_API_KEY` | *(required)* | Groq API key for Whisper transcription |
 | `GROQ_WHISPER_MODEL` | `whisper-large-v3-turbo` | Groq Whisper model |
 | `LLM_API_KEY` | *(required)* | API key for cloud LLM |
-| `LLM_MODEL` | `gemma-3-27b-it` | Default LLM model; overridable at runtime via PATCH /model |
+| `LLM_MODEL` | `gemma-3-27b-it` | Scoring model; overridable at runtime via PATCH /model |
+| `LLM_ASSIST_MODEL` | `gemini-3.5-flash-lite` | Model for improve / sample answer / topic vocabulary; empty falls back to `LLM_MODEL` |
+| `LLM_REASONING_EFFORT` | *(empty)* | Sent as `reasoning_effort` when set; `none`/`minimal` stops a thinking model from burning its output budget |
 | `LLM_BASE_URL` | Gemini endpoint | LLM base URL - swap to use a different provider |
 | `MAX_AUDIO_SIZE_MB` | `300` | Total audio directory size cap |
 | `AUDIO_RETENTION_DAYS` | `60` | Delete audio older than N days |

@@ -328,11 +328,19 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
                     className="group flex items-center gap-1 text-xs text-textSecondary hover:text-textPrimary w-full text-left"
                     title="Click to change model"
                   >
-                    <span className="truncate">LLM: {systemInfo.llm_model}</span>
+                    <span className="truncate">Scoring: {systemInfo.llm_model}</span>
                     <span className="shrink-0 opacity-0 group-hover:opacity-60 transition-opacity">
                       {modelMutation.isPending ? <SpinnerIcon /> : <PencilIcon />}
                     </span>
                   </button>
+                )}
+                {systemInfo.llm_assist_model && systemInfo.llm_assist_model !== systemInfo.llm_model && (
+                  <span
+                    className="block truncate text-xs text-textSecondary/70"
+                    title="Model used for improve, sample answers and topic vocabulary"
+                  >
+                    Assist: {systemInfo.llm_assist_model}
+                  </span>
                 )}
                 {systemInfo.is_low_accuracy && (
                   <span className="mt-1.5 inline-block text-xs text-amber-400 border border-amber-400/30 rounded px-1.5 py-0.5">

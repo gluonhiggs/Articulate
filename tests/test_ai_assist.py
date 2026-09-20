@@ -61,6 +61,24 @@ class TestSampleAnswer:
         assert (await ai_assist.generate_sample_answer("City or countryside?", "1"))["key_phrases"] == []
 
 
+class TestAssistModel:
+    async def test_sample_answer_uses_the_assist_model(self, fake_llm, monkeypatch):
+        monkeypatch.setattr(ai_assist, "get_assist_model", lambda: "gemini-3.5-flash-lite", raising=True)
+        fake_llm["result"] = {"sample_answer": "The city.", "key_phrases": []}
+
+        await ai_assist.generate_sample_answer("City or countryside?", "1")
+
+        assert fake_llm["kwargs"]["model"] == "gemini-3.5-flash-lite"
+
+    async def test_topic_vocab_uses_the_assist_model(self, fake_llm, monkeypatch):
+        monkeypatch.setattr(ai_assist, "get_assist_model", lambda: "gemini-3.5-flash-lite", raising=True)
+        fake_llm["result"] = {"vocabulary": [VOCAB_ITEM]}
+
+        await ai_assist.generate_topic_vocab("Do you like travelling?")
+
+        assert fake_llm["kwargs"]["model"] == "gemini-3.5-flash-lite"
+
+
 class TestTopicVocab:
     async def test_returns_vocabulary_items(self, fake_llm):
         fake_llm["result"] = {"vocabulary": [VOCAB_ITEM]}

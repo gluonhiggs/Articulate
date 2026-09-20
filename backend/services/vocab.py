@@ -237,7 +237,7 @@ _STOP_WORDS: frozenset[str] = frozenset(
 _spacy_nlp = None
 
 
-def _get_spacy() -> Optional[Any]:
+def get_spacy() -> Optional[Any]:
     """Return the spaCy en_core_web_sm model, loading it once on first call."""
     global _spacy_nlp
     if _spacy_nlp is None:
@@ -395,7 +395,7 @@ def compute_grammar_signals(
             "do NOT assume high grammar band from a small error-free sample)",
         )
 
-    nlp = _get_spacy()
+    nlp = get_spacy()
     if nlp is None:
         return _degraded_grammar_result(n_sentences, "spaCy unavailable")
 
@@ -852,7 +852,7 @@ def _compute_collocation_signal(transcript: str) -> str:
        adj->noun: [creative->person, daily->problem]"
     or a skip message if spaCy is unavailable or parsing fails.
     """
-    nlp = _get_spacy()
+    nlp = get_spacy()
     if nlp is None:
         return "collocation pairs: unavailable (spaCy not loaded)"
 

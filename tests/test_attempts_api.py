@@ -15,7 +15,7 @@ from backend.api import attempts as attempts_module
 from backend.api.attempts import router as attempts_router
 from backend.database import get_db
 from backend.models import Attempt, Base, Question
-from backend.services.llm_client import LLMOutputError
+from backend.services.llm_client import LLMOutputError, LLMRateLimitError
 
 TEST_DB_URL = "sqlite+aiosqlite:///:memory:"
 
@@ -249,6 +249,26 @@ class TestPipelineTranscriptPersistence:
             assert row.status == "failed:scoring"
             assert row.transcript == TRANSCRIPT
             assert row.score is None
+
+    async def test_quota_exhaustion_gets_its_own_status(self, pipeline_db, monkeypatch) -> None:
+        """A 429 from the scoring model must not read as a broken API key."""
+        attempt_id = await _seeded_attempt(pipeline_db)
+
+        async def fake_transcribe(_path: str) -> dict:
+            return {"transcript": TRANSCRIPT, "words": WORDS}
+
+        async def rate_limited_score(**_kwargs) -> dict:
+            raise LLMRateLimitError("free-tier quota exceeded for model gemini-3.6-flash")
+
+        monkeypatch.setattr(attempts_module.transcription_service, "transcribe", fake_transcribe)
+        monkeypatch.setattr(attempts_module.scoring_service, "score_attempt", rate_limited_score)
+
+        await attempts_module._run_pipeline(attempt_id, 1, "unused.webm")
+
+        async with pipeline_db() as session:
+            row = (await session.execute(select(Attempt).where(Attempt.id == attempt_id))).scalar_one()
+            assert row.status == "failed:quota"
+            assert row.transcript == TRANSCRIPT
 
 
 class TestImproveEndpoint:
