@@ -1,19 +1,8 @@
+import { scoreGradient } from './utils'
+
 interface ScoreBadgeProps {
   score: number | null
   size?: 'sm' | 'md' | 'lg'
-}
-
-function getScoreStyle(score: number): string {
-  if (score >= 7) {
-    return 'bg-gradient-to-br from-cyan-500 to-cyan-400 text-white'
-  }
-  if (score >= 6) {
-    return 'bg-gradient-to-br from-purple-500 to-purple-400 text-white'
-  }
-  if (score >= 5.5) {
-    return 'bg-gradient-to-br from-yellow-500 to-yellow-400 text-white'
-  }
-  return 'bg-gradient-to-br from-red-600 to-red-500 text-white'
 }
 
 const sizeClasses = {
@@ -37,7 +26,7 @@ export function ScoreBadge({ score, size = 'md' }: ScoreBadgeProps) {
 
   return (
     <div
-      className={`${sizeClass} rounded-full ${getScoreStyle(score)} flex items-center justify-center font-semibold shadow-lg`}
+      className={`${sizeClass} rounded-full ${scoreGradient(score)} flex items-center justify-center font-semibold shadow-lg`}
       title={`Band ${score}`}
     >
       {score % 1 === 0 ? score.toFixed(0) : score.toFixed(1)}

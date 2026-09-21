@@ -9,11 +9,12 @@ import time
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
-from typing import List
+from typing import Any, List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
-from sqlalchemy import select
+from sqlalchemy import case, func, select, update
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.config import get_settings
@@ -56,6 +57,59 @@ def _sentence_spans(text: str) -> list[tuple[int, int]]:
     if start < len(text):  # trailing text with no terminal punctuation
         spans.append((start, len(text)))
     return spans or [(0, len(text))]
+
+
+def _intensity(count) -> Any:
+    """Heatmap intensity 0-4 for a day's attempt count, as a SQL expression."""
+    return case((count >= 7, 4), (count >= 4, 3), (count >= 2, 2), (count >= 1, 1), else_=0)
+
+
+async def _record_daily_activity(session: AsyncSession, day: date) -> None:
+    """Count one attempt against a day. Upserted in SQL: two pipelines finishing together
+    would otherwise both insert the unique date, and the loser's scored attempt would fail."""
+    incremented = DailyActivity.attempts_count + 1
+    await session.execute(
+        sqlite_insert(DailyActivity)
+        .values(date=day, attempts_count=1, intensity=1)
+        .on_conflict_do_update(
+            index_elements=[DailyActivity.date],
+            set_={"attempts_count": incremented, "intensity": _intensity(incremented)},
+        )
+    )
+
+
+async def _update_user_stats(session: AsyncSession, day: date, score: Optional[float]) -> None:
+    """Add this attempt to the totals and recompute the streak and rolling band."""
+    await session.execute(sqlite_insert(UserStats).values(id=1).on_conflict_do_nothing(index_elements=[UserStats.id]))
+
+    recent = await session.execute(
+        select(DailyActivity.date, DailyActivity.attempts_count).order_by(DailyActivity.date.desc()).limit(1000)
+    )
+    streak = 0
+    expected = day
+    for row_date, count in recent.all():
+        if row_date != expected or count <= 0:
+            break
+        streak += 1
+        expected = date.fromordinal(expected.toordinal() - 1)
+
+    values: dict[str, Any] = {
+        "total_attempts": UserStats.total_attempts + 1,
+        "current_streak": streak,
+        "longest_streak": func.max(UserStats.longest_streak, streak),
+    }
+    if score is not None:
+        recent_scores = await session.execute(
+            select(Attempt.score)
+            .where(Attempt.status == AttemptStatus.READY, Attempt.score.isnot(None))
+            .order_by(Attempt.created_at.desc())
+            .limit(BAND_ROLLING_WINDOW)
+        )
+        scores = list(recent_scores.scalars().all())
+        if scores:
+            values["estimated_band"] = round(sum(scores) / len(scores) * 2) / 2
+
+    await session.execute(update(UserStats).where(UserStats.id == 1).values(**values))
 
 
 async def _set_status(session: AsyncSession, attempt_id: int, status: AttemptStatus) -> bool:
@@ -459,68 +513,13 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             # 6. Update DailyActivity
             # ----------------------------------------------------------------
             today = date.today()
-            da_result = await session.execute(select(DailyActivity).where(DailyActivity.date == today))
-            daily = da_result.scalar_one_or_none()
-            if daily is None:
-                daily = DailyActivity(date=today, attempts_count=1)
-                session.add(daily)
-                await session.flush()
-            else:
-                daily.attempts_count += 1
-
-            count = daily.attempts_count
-            if count == 0:
-                daily.intensity = 0
-            elif count == 1:
-                daily.intensity = 1
-            elif count <= 3:
-                daily.intensity = 2
-            elif count <= 6:
-                daily.intensity = 3
-            else:
-                daily.intensity = 4
+            await session.flush()
+            await _record_daily_activity(session, today)
 
             # ----------------------------------------------------------------
             # 7. Update UserStats streak
             # ----------------------------------------------------------------
-            stats_result = await session.execute(select(UserStats).where(UserStats.id == 1))
-            stats = stats_result.scalar_one_or_none()
-            if stats is None:
-                stats = UserStats(id=1, current_streak=0, longest_streak=0, total_attempts=0)
-                session.add(stats)
-                await session.flush()
-
-            stats.total_attempts += 1
-
-            # Recalculate streak: single bulk fetch, count consecutive days ending today
-            recent = await session.execute(
-                select(DailyActivity.date, DailyActivity.attempts_count).order_by(DailyActivity.date.desc()).limit(1000)
-            )
-            rows = recent.all()
-            streak = 0
-            expected = today
-            for row_date, count in rows:
-                if row_date == expected and count > 0:
-                    streak += 1
-                    expected = date.fromordinal(expected.toordinal() - 1)
-                else:
-                    break
-
-            stats.current_streak = streak
-            if streak > stats.longest_streak:
-                stats.longest_streak = streak
-
-            # Update estimated_band as rolling average of recent scores
-            if score is not None:
-                recent_result = await session.execute(
-                    select(Attempt.score)
-                    .where(Attempt.status == AttemptStatus.READY, Attempt.score.isnot(None))
-                    .order_by(Attempt.created_at.desc())
-                    .limit(BAND_ROLLING_WINDOW)
-                )
-                recent_scores = [r for r in recent_result.scalars().all()]
-                if recent_scores:
-                    stats.estimated_band = round(sum(recent_scores) / len(recent_scores) * 2) / 2
+            await _update_user_stats(session, today, score)
 
             await session.commit()
             _t_total = time.perf_counter() - _t_start

@@ -19,17 +19,40 @@ export function partRoute(part: string, id?: number): string {
   return id !== undefined ? `${base}/questions/${id}` : base
 }
 
-export function scoreColor(s: number) {
-  if (s >= 7) return { ring: 'border-teal-400', text: 'text-teal-400', glow: 'glow-circle' }
-  if (s >= 6) return { ring: 'border-purple-400', text: 'text-purple-400', glow: '' }
-  if (s >= 5) return { ring: 'border-yellow-400', text: 'text-yellow-400', glow: '' }
-  return { ring: 'border-red-400', text: 'text-red-400', glow: '' }
+/** IELTS band bands: 7+ good user, 6+ competent, 5+ modest, below that limited. */
+export type BandTier = 'high' | 'good' | 'fair' | 'low'
+
+export function bandTier(score: number): BandTier {
+  if (score >= 7) return 'high'
+  if (score >= 6) return 'good'
+  if (score >= 5) return 'fair'
+  return 'low'
 }
 
-export function tagClass(s: number) {
-  if (s >= 7) return 'tag-high'
-  if (s >= 5) return 'tag-mid'
-  return 'tag-low'
+const BAND_CIRCLE: Record<BandTier, { ring: string; text: string; glow: string }> = {
+  high: { ring: 'border-teal-400', text: 'text-teal-400', glow: 'glow-circle' },
+  good: { ring: 'border-purple-400', text: 'text-purple-400', glow: '' },
+  fair: { ring: 'border-yellow-400', text: 'text-yellow-400', glow: '' },
+  low: { ring: 'border-red-400', text: 'text-red-400', glow: '' },
+}
+
+const BAND_GRADIENT: Record<BandTier, string> = {
+  high: 'bg-gradient-to-br from-cyan-500 to-cyan-400 text-white',
+  good: 'bg-gradient-to-br from-purple-500 to-purple-400 text-white',
+  fair: 'bg-gradient-to-br from-yellow-500 to-yellow-400 text-white',
+  low: 'bg-gradient-to-br from-red-600 to-red-500 text-white',
+}
+
+export function scoreColor(s: number) {
+  return BAND_CIRCLE[bandTier(s)]
+}
+
+export function scoreGradient(s: number): string {
+  return BAND_GRADIENT[bandTier(s)]
+}
+
+export function tagClass(s: number): string {
+  return `tag-${bandTier(s)}`
 }
 
 export function cleanWord(s: string): string {
