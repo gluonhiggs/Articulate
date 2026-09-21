@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useId, useState } from 'react'
 import { draftInterviewQuestions } from '../../../api/interview'
+import { createLogger, errorData } from '../../../lib/log'
 import type { InterviewDraftRequest, InterviewPackDetail } from '../../../types/interview'
 import {
   DRAFT_TIMEOUT_MINUTES,
@@ -23,6 +24,7 @@ import {
 } from './studioUi'
 
 const LATE_DRAFT_REFRESH_DELAYS_MS = [60_000, 180_000]
+const log = createLogger('interview/studio')
 
 interface DraftTabProps {
   pack: InterviewPackDetail
@@ -39,16 +41,27 @@ export function DraftTab({ pack, onDrafted, onOpenTab }: DraftTabProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
 
   const draftMutation = useMutation({
-    mutationFn: (request: InterviewDraftRequest) => draftInterviewQuestions(pack.id, request),
+    mutationFn: (request: InterviewDraftRequest) => {
+      log.info('draft start', {
+        packId: pack.id,
+        topic: request.topic,
+        count: request.count,
+        sources: request.source_ids.length,
+      })
+      return draftInterviewQuestions(pack.id, request)
+    },
     onSuccess: async (questions) => {
+      log.info('draft ok', { packId: pack.id, drafted: questions.length, ids: questions.map((q) => q.id) })
       await queryClient.invalidateQueries({ queryKey: ['interview'] })
       onDrafted(questions.map((question) => question.id))
     },
     onError: (error) => {
+      const timedOut = isTimeoutError(error)
+      log.error(`draft failed for pack ${pack.id} (timeout=${timedOut})`, errorData(error))
       const refresh = () => void queryClient.invalidateQueries({ queryKey: ['interview', 'pack', pack.id] })
       refresh()
       // The backend keeps drafting after the browser gives up and saves the questions when it finishes.
-      if (isTimeoutError(error)) LATE_DRAFT_REFRESH_DELAYS_MS.forEach((delay) => setTimeout(refresh, delay))
+      if (timedOut) LATE_DRAFT_REFRESH_DELAYS_MS.forEach((delay) => setTimeout(refresh, delay))
     },
   })
 

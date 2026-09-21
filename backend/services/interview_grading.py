@@ -7,6 +7,7 @@ import hashlib
 import json
 import logging
 import random
+import time
 from collections import Counter
 from datetime import datetime, timedelta
 from typing import Callable, Iterable, Optional, Sequence
@@ -129,6 +130,13 @@ def mark_stale(answers: Iterable[InterviewAnswer], now: datetime) -> bool:
         else:
             continue
         if started is not None and now - started > STALE_AFTER:
+            logger.warning(
+                "Interview answer %d: no progress since %s (over %s), marking %s",
+                answer.id,
+                started,
+                STALE_AFTER,
+                failed_status,
+            )
             answer.status = failed_status
             answer.error_message = "Processing did not finish (the app may have been closed). Please try again."
             changed = True
@@ -173,9 +181,17 @@ async def process_recording(answer_id: int) -> None:
         if answer is None:
             logger.error("Interview answer %d not found for processing", answer_id)
             return
+        t_start = time.perf_counter()
+        logger.info(
+            "\n\n========== INTERVIEW PIPELINE START answer_id=%d ==========\n  question_id=%d\n  audio=%s",
+            answer_id,
+            answer.question_id,
+            answer.audio_path,
+        )
         try:
             answer.status = "transcribing"
             await session.commit()
+            logger.info("Interview %d: transcribing", answer_id)
             try:
                 result = await asyncio.wait_for(
                     transcription_service.transcribe(answer.audio_path), timeout=TRANSCRIPTION_TIMEOUT_SECONDS
@@ -189,6 +205,12 @@ async def process_recording(answer_id: int) -> None:
             raw_transcript = (result.get("transcript") or "").strip()
             words = result.get("words") or []
             if not raw_transcript:
+                logger.warning(
+                    "Interview %d: empty transcript from %s (%d timed words) - failed:empty_audio",
+                    answer_id,
+                    answer.audio_path,
+                    len(words),
+                )
                 await _mark_failed(session, answer_id, "failed:empty_audio", "No speech was detected in the recording.")
                 return
 
@@ -201,6 +223,26 @@ async def process_recording(answer_id: int) -> None:
             ignore_terms = [entry.term for entry in entries] + [alias for entry in entries for alias in entry.aliases]
             delivery = compute_delivery(
                 words, await _check_grammar(raw_transcript, ignore_terms), get_settings().gap_threshold
+            )
+
+            logger.info(
+                "\n\n========== INTERVIEW SIGNALS answer_id=%d ==========\n"
+                "  transcript : %d words, %d chars\n"
+                "  glossary   : %d term(s) loaded, %d correction(s) %s\n"
+                "  delivery   : score=%s wpm=%s long_pauses=%s grammar=%s lexical=%s\n"
+                "  components : %s",
+                answer_id,
+                len(words),
+                len(transcript),
+                len(entries),
+                len(corrections),
+                [(c.get("original"), c.get("replacement")) for c in corrections[:10]],
+                delivery.get("score"),
+                delivery.get("words_per_minute"),
+                delivery.get("long_pauses"),
+                "available" if delivery.get("grammar_available") else "unavailable",
+                delivery.get("lexical_diversity"),
+                delivery.get("components"),
             )
 
             answer.raw_transcript = raw_transcript
@@ -216,8 +258,9 @@ async def process_recording(answer_id: int) -> None:
             answer.error_message = None
             await session.commit()
             logger.info(
-                "Interview answer %d ready for review: %d words, %d glossary corrections, delivery=%s",
+                "Interview %d: needs_review after %.1fs (%d words, %d glossary corrections, delivery=%s)",
                 answer_id,
+                time.perf_counter() - t_start,
                 len(words),
                 len(corrections),
                 delivery["score"],
@@ -516,8 +559,28 @@ async def _grade(session: AsyncSession, answer_id: int, run_token: datetime, set
     question = next(q for q in family if q.id == answer.question_id)
     transcript = (answer.transcript or "").strip()
     approved = [kp for kp in sorted(question.key_points, key=lambda kp: kp.position) if kp.approved]
+    t_start = time.perf_counter()
+    logger.info(
+        "\n\n========== INTERVIEW GRADE START answer_id=%d ==========\n"
+        "  question_id : %d (%d approved key point(s), %d misconception(s))\n"
+        "  transcript  : %d words, edited=%s\n"
+        "  grader      : %s\n  verifier    : %s",
+        answer_id,
+        answer.question_id,
+        len(approved),
+        len(question.misconceptions),
+        len(transcript.split()),
+        answer.transcript_edited,
+        settings.interview_grader_model,
+        settings.interview_verifier_model,
+    )
 
     if not approved or len(transcript.split()) < MIN_WORDS_TO_GRADE:
+        logger.info(
+            "Interview %d: ungraded (%s)",
+            answer_id,
+            "no approved key points" if not approved else f"transcript under {MIN_WORDS_TO_GRADE} words",
+        )
         await _write_run(
             session,
             answer_id,
@@ -528,6 +591,7 @@ async def _grade(session: AsyncSession, answer_id: int, run_token: datetime, set
     missing_keys = _missing_api_keys(settings)
     if missing_keys:
         message = f"Grading needs {' and '.join(missing_keys)} to be set. Add the key and retry grading."
+        logger.error("Interview %d: %s is not set - failed:grading", answer_id, " and ".join(missing_keys))
         await _write_run(session, answer_id, run_token, {"status": "failed:grading", "error_message": message})
         return
 
@@ -536,14 +600,23 @@ async def _grade(session: AsyncSession, answer_id: int, run_token: datetime, set
     transcript_sha = sha256_text(transcript)
     answer_key_sha = _answer_key_digest(approved, question)
     proposal = _reusable_proposer_output(answer, transcript_sha, answer_key_sha, key_point_uids, misconception_uids)
+    if proposal is not None:
+        logger.info("Interview %d: reusing the stored grader output (retry without a new grader call)", answer_id)
     if proposal is None:
         pack = await session.get(InterviewPack, question.pack_id)
+        t_grader = time.perf_counter()
         try:
             proposal = await _propose(settings, pack, question, approved, transcript)
         except LLMRateLimitError:
+            logger.warning(
+                "Interview %d: grader %s is out of free-tier quota - pending_quota",
+                answer_id,
+                settings.interview_grader_model,
+            )
             quota = {"status": "pending_quota", "error_message": GRADER_QUOTA_MESSAGE}
             await _write_run(session, answer_id, run_token, quota)
             return
+        logger.info("Interview %d: grader answered in %.1fs", answer_id, time.perf_counter() - t_grader)
         if not proposal_is_complete(proposal, key_point_uids, misconception_uids):
             raise LLMOutputError("the grader did not judge every key point and misconception exactly once")
         stored = {"transcript_sha256": transcript_sha, "answer_key_sha256": answer_key_sha, "output": proposal}
@@ -562,14 +635,27 @@ async def _grade(session: AsyncSession, answer_id: int, run_token: datetime, set
     verifier_verdicts = None
     verifier_confirmed: dict[str, bool] = {}
     if key_point_claims or stated:
+        logger.info(
+            "Interview %d: verifying %d key point claim(s) and %d stated misconception(s)",
+            answer_id,
+            len(key_point_claims),
+            len(stated),
+        )
+        t_verifier = time.perf_counter()
         try:
             verification = await _verify(
                 settings, question, transcript, key_point_claims, [(m.uid, m.text, quote) for m, quote in stated]
             )
         except LLMRateLimitError:
+            logger.warning(
+                "Interview %d: verifier %s is out of free-tier quota - pending_quota (grader output kept for retry)",
+                answer_id,
+                settings.interview_verifier_model,
+            )
             quota = {"status": "pending_quota", "error_message": VERIFIER_QUOTA_MESSAGE}
             await _write_run(session, answer_id, run_token, quota)
             return
+        logger.info("Interview %d: verifier answered in %.1fs", answer_id, time.perf_counter() - t_verifier)
         values["verifier_model"] = settings.interview_verifier_model
         verifier_verdicts = {
             uid: str(item.get("verdict")) for uid, item in _items_by_id(verification, "key_points").items()
@@ -606,7 +692,20 @@ async def _grade(session: AsyncSession, answer_id: int, run_token: datetime, set
         graded_at=utc_now(),
     )
     if await _write_run(session, answer_id, run_token, values):
-        logger.info("Interview answer %d graded: content=%s (%s) follow_up=%s", answer_id, score, band, next_follow_up)
+        logger.info(
+            "\n\n========== INTERVIEW GRADE DONE answer_id=%d ==========\n"
+            "  content     : %s (%s) in %.1fs\n"
+            "  key points  : %s\n"
+            "  misconceptions found : %d\n"
+            "  follow_up   : %s",
+            answer_id,
+            score,
+            band,
+            time.perf_counter() - t_start,
+            dict(Counter(r["verdict"] for r in results)),
+            len(misconceptions_found),
+            next_follow_up,
+        )
 
 
 async def _fail_run(answer_id: int, run_token: datetime, message: str) -> None:

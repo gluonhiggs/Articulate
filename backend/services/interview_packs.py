@@ -99,6 +99,7 @@ def aliases_of(term: InterviewGlossaryTerm) -> list[str]:
     try:
         aliases = json.loads(term.aliases or "[]")
     except json.JSONDecodeError:
+        logger.warning("Glossary term %r has unreadable aliases; ignoring them", term.term)
         return []
     return [str(alias) for alias in aliases if str(alias).strip()] if isinstance(aliases, list) else []
 
@@ -119,6 +120,7 @@ def json_or(raw: Optional[str], default: Any) -> Any:
     try:
         return json.loads(raw)
     except json.JSONDecodeError:
+        logger.warning("Unreadable JSON column (%d chars); falling back to %r", len(raw), default)
         return default
 
 

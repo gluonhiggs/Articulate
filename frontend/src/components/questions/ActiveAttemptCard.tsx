@@ -5,7 +5,8 @@ import { ImproveSection } from './ImproveSection'
 import { InlineCorrectedText } from './InlineCorrectedText'
 import { ScoreCircle } from './ScoreCircle'
 import { ScoreTags } from './ScoreTags'
-import { attemptFailureLabel, attemptProcessingLabel, isAttemptFailed, isAttemptProcessing } from './utils'
+import { isAttemptFailed, isAttemptProcessing } from '../../types/attemptStatus'
+import { attemptFailureLabel, attemptProcessingLabel } from './utils'
 
 export function ActiveAttemptCard({
   attempt,

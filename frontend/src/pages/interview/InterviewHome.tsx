@@ -6,7 +6,10 @@ import { NewPackForm } from '../../components/interview/NewPackForm'
 import { PackCard } from '../../components/interview/PackCard'
 import { outlineButtonClass } from '../../components/interview/ui'
 import { apiErrorDetail } from '../../components/interview/utils'
+import { createLogger, errorData } from '../../lib/log'
 import type { InterviewPackSummary } from '../../types/interview'
+
+const log = createLogger('interview/home')
 
 export function InterviewHome() {
   const navigate = useNavigate()
@@ -21,11 +24,22 @@ export function InterviewHome() {
   })
 
   const importMutation = useMutation({
-    mutationFn: importInterviewPack,
+    mutationFn: (file: File) => {
+      log.info('pack import start', { name: file.name, bytes: file.size })
+      return importInterviewPack(file)
+    },
     onSuccess: (pack) => {
+      log.info('pack import ok', {
+        packId: pack.id,
+        title: pack.title,
+        version: pack.version,
+        questions: pack.questions.length,
+        glossary: pack.glossary.length,
+      })
       void queryClient.invalidateQueries({ queryKey: ['interview'] })
       navigate(`/interview/packs/${pack.id}`)
     },
+    onError: (err) => log.error('pack import failed', errorData(err)),
   })
 
   const createMutation = useMutation({

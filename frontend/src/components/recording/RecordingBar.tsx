@@ -1,4 +1,6 @@
 import type { RecordingStatus } from '../../store/recordingStore'
+import type { AttemptStatus } from '../../types/attemptStatus'
+import { attemptStepLabel } from '../questions/utils'
 import { CountdownTimer } from './CountdownTimer'
 
 interface RecordingBarProps {
@@ -9,16 +11,8 @@ interface RecordingBarProps {
   onStop: () => void
   onRetry?: () => void
   errorMessage?: string | null
-  backendStatus?: string | null
+  backendStatus?: AttemptStatus | null
   transcript?: string | null
-}
-
-const BACKEND_STEP_LABELS: Record<string, string> = {
-  transcribing:             'Scoring...',
-  scoring:                  'Scoring...',
-  'failed:transcription':   'Could not transcribe audio',
-  'failed:empty_audio':     'Audio was too quiet or silent',
-  'failed:scoring':         'AI scoring unavailable - check your LLM API key',
 }
 
 function formatTime(seconds: number): string {
@@ -154,7 +148,7 @@ export function RecordingBar({
             <p className="text-textSecondary text-sm">
               {status === 'uploading'
                 ? 'Uploading...'
-                : (BACKEND_STEP_LABELS[backendStatus ?? ''] ?? 'Scoring...')}
+                : attemptStepLabel(backendStatus)}
             </p>
           </div>
         )}

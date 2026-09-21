@@ -2,11 +2,11 @@ import { useQuery } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 import { fetchAttemptStatus } from '../api/client'
 import type { Attempt } from '../types'
+import { isAttemptProcessing } from '../types/attemptStatus'
 
 export const POLLING_TIMEOUT_MS = 6 * 60 * 1000 // Part 2 worst case ~270s: transcription (120s) + signals (30s) + LLM (120s)
 export const POLLING_INTERVAL_MS = 1500
 export const POLLING_SLOW_INTERVAL_MS = 15 * 1000
-const PROCESSING_STATUSES = ['processing', 'transcribing', 'scoring']
 
 export interface PollingStart {
   key: number | null
@@ -28,7 +28,7 @@ export function nextPollingInterval<S extends string>(
   setIsTimedOut: (timedOut: boolean) => void,
   {
     key = null,
-    isInProgress = (value: S) => PROCESSING_STATUSES.includes(value),
+    isInProgress = (value: S) => isAttemptProcessing(value),
   }: PollingOptions<S> = {},
 ): number | false {
   if (status && !isInProgress(status)) {

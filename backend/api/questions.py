@@ -12,6 +12,7 @@ from backend.database import get_db
 from backend.models import Attempt, Question
 from backend.schemas import ForecastEntry, Part3GroupOut, QuestionCreateIn, QuestionOut
 from backend.services import ai_assist as ai_assist_service
+from backend.statuses import AttemptStatus
 
 router = APIRouter(prefix="/api/v1/questions", tags=["questions"])
 
@@ -20,7 +21,7 @@ def _latest_score_subquery():
     """Correlated scalar subquery: latest score for Question.id."""
     return (
         select(Attempt.score)
-        .where(Attempt.question_id == Question.id, Attempt.status == "ready")
+        .where(Attempt.question_id == Question.id, Attempt.status == AttemptStatus.READY)
         .order_by(Attempt.created_at.desc())
         .limit(1)
         .correlate(Question)
@@ -32,7 +33,7 @@ def _has_ready_subquery():
     """Correlated scalar subquery: count of ready attempts for Question.id."""
     return (
         select(func.count(Attempt.id))
-        .where(Attempt.question_id == Question.id, Attempt.status == "ready")
+        .where(Attempt.question_id == Question.id, Attempt.status == AttemptStatus.READY)
         .correlate(Question)
         .scalar_subquery()
     )
@@ -60,7 +61,7 @@ async def _latest_score(session: AsyncSession, question_id: int) -> Optional[flo
     """Return the score of the most recent 'ready' attempt for a question."""
     result = await session.execute(
         select(Attempt.score)
-        .where(Attempt.question_id == question_id, Attempt.status == "ready")
+        .where(Attempt.question_id == question_id, Attempt.status == AttemptStatus.READY)
         .order_by(Attempt.created_at.desc())
         .limit(1)
     )

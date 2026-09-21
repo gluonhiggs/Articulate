@@ -1,15 +1,23 @@
 import type { Attempt, DashboardData, ForecastEntry, ImproveResponse, Part3Group, PronunciationWord, Question, SampleAnswerResponse, SystemInfo, TopicVocabResponse } from '../types'
 
+import { createLogger, errorData } from '../lib/log'
+
 const BASE = '/api/v1'
+const log = createLogger('api')
 
 export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+  const method = options?.method ?? 'GET'
+  const startedAt = performance.now()
+  const elapsed = () => Math.round(performance.now() - startedAt)
   let response: Response
+  log.debug(`${method} ${path}`)
   try {
     response = await fetch(`${BASE}${path}`, {
       ...options,
       signal: options?.signal ?? AbortSignal.timeout(10_000),
     })
   } catch (err) {
+    log.error(`${method} ${path} did not reach the server after ${elapsed()}ms`, errorData(err))
     if (err instanceof DOMException && err.name === 'TimeoutError') {
       throw new Error('Cannot connect to server (timeout). Make sure the backend is running.')
     }
@@ -17,8 +25,10 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
   }
   if (!response.ok) {
     const text = await response.text().catch(() => response.statusText)
+    log.error(`${method} ${path} -> ${response.status} in ${elapsed()}ms`, { body: text.slice(0, 500) })
     throw new Error(`API error ${response.status}: ${text}`)
   }
+  log.debug(`${method} ${path} -> ${response.status} in ${elapsed()}ms`)
   return response.json() as Promise<T>
 }
 

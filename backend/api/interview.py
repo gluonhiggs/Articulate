@@ -110,6 +110,7 @@ async def create_pack(body: InterviewPackCreate, db: AsyncSession = Depends(get_
     )
     db.add(pack)
     await db.commit()
+    logger.info("Interview pack %d created: %r (%s/%s) by %s", pack.id, pack.title, pack.role, pack.level, pack.author)
     return await _detail(db, pack.id)
 
 
@@ -119,9 +120,25 @@ async def import_pack(file: UploadFile, db: AsyncSession = Depends(get_db)) -> I
     try:
         pack_file = interview_packs.parse_pack_bytes(data)
     except InterviewPackError as exc:
+        # The read stops one byte past the limit, so an oversize file's real size is unknown here.
+        read = (
+            f"over {interview_packs.MAX_PACK_FILE_BYTES}"
+            if len(data) > interview_packs.MAX_PACK_FILE_BYTES
+            else len(data)
+        )
+        logger.warning("Interview pack import rejected (%s, %s bytes): %s", file.filename, read, exc)
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     pack_id = await interview_packs.import_pack(db, pack_file)
     await db.commit()
+    logger.info(
+        "Interview pack %d imported from %s: %r v%s, %d question(s), %d glossary term(s)",
+        pack_id,
+        file.filename,
+        pack_file.pack.title,
+        pack_file.pack.version,
+        len(pack_file.questions),
+        len(pack_file.glossary),
+    )
     return await _detail(db, pack_id)
 
 
@@ -166,6 +183,13 @@ async def delete_pack(pack_id: int, db: AsyncSession = Depends(get_db)) -> dict:
     await db.execute(delete(InterviewSource).where(InterviewSource.pack_id == pack_id))
     await db.execute(delete(InterviewPack).where(InterviewPack.id == pack_id))
     await db.commit()
+    logger.info(
+        "Interview pack %d deleted: %r, %d question(s), %d recording(s)",
+        pack_id,
+        pack.title,
+        len(question_ids),
+        len(audio_paths),
+    )
 
     for audio_path in audio_paths:
         try:
@@ -203,6 +227,7 @@ async def replace_glossary(
         )
     interview_packs.touch(pack)
     await db.commit()
+    logger.info("Interview pack %d glossary replaced: %d term(s)", pack_id, len(pack.glossary_terms))
     return interview_packs.glossary_out(pack.glossary_terms)
 
 
@@ -216,6 +241,9 @@ async def add_source(pack_id: int, body: InterviewSourceIn, db: AsyncSession = D
     await interview_packs.refresh_quote_verification(pack)
     interview_packs.touch(pack)
     await db.commit()
+    logger.info(
+        "Interview pack %d source %d added: %r (%d chars)", pack_id, source.id, source.title, len(source.content or "")
+    )
     return interview_packs.source_out(source)
 
 
@@ -229,6 +257,7 @@ async def delete_source(pack_id: int, source_id: int, db: AsyncSession = Depends
     await interview_packs.refresh_quote_verification(pack)
     interview_packs.touch(pack)
     await db.commit()
+    logger.info("Interview pack %d source %d deleted", pack_id, source_id)
     return DELETED
 
 
@@ -237,20 +266,32 @@ async def draft_questions(
     pack_id: int, body: InterviewDraftRequest, db: AsyncSession = Depends(get_db)
 ) -> List[InterviewQuestionOut]:
     pack = await _pack_or_404(db, pack_id)
+    logger.info(
+        "Interview pack %d: drafting %d question(s) on %r from %d source(s) with %s",
+        pack_id,
+        body.count,
+        body.topic,
+        len(body.source_ids),
+        get_settings().interview_drafter_model,
+    )
     try:
         question_ids = await interview_packs.draft_questions(db, pack, body)
     except InterviewPackError as exc:
+        logger.warning("Interview pack %d: drafting rejected: %s", pack_id, exc)
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except LLMRateLimitError as exc:
+        logger.warning("Interview pack %d: the drafter is out of free-tier quota", pack_id)
         await db.rollback()
         raise HTTPException(
             status_code=429,
             detail="The Gemini drafter's free-tier quota is reached for now. Please try again later.",
         ) from exc
     except RuntimeError as exc:
+        logger.exception("Interview pack %d: drafting failed", pack_id)
         await db.rollback()
         raise HTTPException(status_code=502, detail=f"Drafting failed: {exc}") from exc
     await db.commit()
+    logger.info("Interview pack %d: drafted question id(s) %s", pack_id, question_ids)
     return [await _question_out(db, question_id) for question_id in question_ids]
 
 
@@ -290,6 +331,7 @@ async def retire_question(question_id: int, db: AsyncSession = Depends(get_db)) 
     pack = await _pack_or_404(db, question.pack_id)
     interview_packs.retire_question(pack, question)
     await db.commit()
+    logger.info("Interview question %d retired (pack %d)", question_id, pack.id)
     return DELETED
 
 
@@ -350,12 +392,27 @@ async def submit_answer(
             filename_stem=f"interview_{answer.id}",
         )
     except Exception as exc:
+        logger.exception(
+            "Interview answer %d: saving audio failed (question_id=%d, content_type=%s)",
+            answer.id,
+            question_id,
+            audio.content_type,
+        )
         answer.status = "failed:transcription"
         answer.error_message = f"Failed to save audio: {exc}"
         await db.commit()
         raise HTTPException(status_code=500, detail=f"Failed to save audio: {exc}") from exc
     await db.commit()
 
+    logger.info(
+        "\n\n========== INTERVIEW SUBMIT answer_id=%d question_id=%d ==========\n"
+        "  pack_id      : %s\n  audio saved  : %s\n  content_type : %s",
+        answer.id,
+        question_id,
+        question.pack_id,
+        answer.audio_path,
+        audio.content_type,
+    )
     background_tasks.add_task(interview_grading.process_recording, answer.id)
     return interview_grading.answer_out(answer)
 
@@ -386,6 +443,12 @@ async def grade_answer(
     if not await interview_grading.claim_for_grading(db, answer, transcript, run_token):
         raise HTTPException(status_code=409, detail=f"Answer cannot be graded while its status is {answer.status}")
 
+    logger.info(
+        "Interview answer %d: grading requested (%d words, edited=%s)",
+        answer.id,
+        len(transcript.split()),
+        answer.transcript_edited,
+    )
     background_tasks.add_task(interview_grading.grade_answer, answer.id, run_token)
     return interview_grading.answer_out(answer)
 

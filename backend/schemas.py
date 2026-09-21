@@ -106,7 +106,7 @@ class AttemptOut(BaseModel):
     usage_errors: Optional[List[Any]] = None
     word_timestamps: Optional[List[Any]] = None
     duration_seconds: Optional[int] = None
-    status: str
+    status: str  # AttemptStatus on the write side; permissive here so an unknown value still serializes
     created_at: datetime
 
     @field_validator("usage_errors", "word_timestamps", mode="before")

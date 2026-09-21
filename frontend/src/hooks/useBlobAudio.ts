@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createLogger, errorData } from '../lib/log'
+
+const log = createLogger('audio')
 
 export function useBlobAudio(): { playing: boolean; play: (url: string) => Promise<boolean>; stop: () => void } {
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -40,9 +43,12 @@ export function useBlobAudio(): { playing: boolean; play: (url: string) => Promi
           await audio.play()
           return true
         })
-        .catch(() => {
+        .catch((err: unknown) => {
           // A request superseded by stop() or a newer play() did not fail on its own.
           if (request !== requestRef.current) return true
+          // NotAllowedError is the browser's autoplay policy before a user gesture, not a bug.
+          if (err instanceof Error && err.name === 'NotAllowedError') log.debug(`autoplay blocked: ${url}`)
+          else log.error(`playback failed: ${url}`, errorData(err))
           stop()
           return false
         })

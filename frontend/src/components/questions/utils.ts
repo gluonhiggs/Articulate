@@ -1,3 +1,11 @@
+import {
+  isAttemptFailed,
+  isAttemptProcessing,
+  isAttemptReady,
+  type AttemptFailedStatus,
+  type AttemptProcessingStatus,
+} from '../../types/attemptStatus'
+
 export function partMaxSeconds(part: string): number {
   return part === '2' ? 120 : part === '3' ? 60 : 45
 }
@@ -28,9 +36,8 @@ export function cleanWord(s: string): string {
   return s.replace(/[.,!?;:'"()\-]/g, '').toLowerCase()
 }
 
-export const ATTEMPT_PROCESSING_STATUSES = ['processing', 'transcribing', 'scoring']
-
-export const ATTEMPT_ERROR_MESSAGES: Record<string, string> = {
+export const ATTEMPT_ERROR_MESSAGES: Record<AttemptFailedStatus, string> = {
+  failed: 'Scoring failed',
   'failed:transcription': 'Could not transcribe audio',
   'failed:empty_audio': 'Audio was too quiet or silent',
   'failed:scoring': 'AI scoring unavailable - check your LLM API key',
@@ -40,42 +47,43 @@ export const ATTEMPT_ERROR_MESSAGES: Record<string, string> = {
 
 export const ATTEMPT_TIMEOUT_MESSAGE = 'Scoring timed out - the server is taking too long. Please try again.'
 
-export const ATTEMPT_PROCESSING_LABELS: Record<string, string> = {
+export const ATTEMPT_PROCESSING_LABELS: Record<AttemptProcessingStatus, string> = {
   processing: 'Processing...',
   transcribing: 'Transcribing...',
   scoring: 'Scoring...',
 }
 
-export const ATTEMPT_FAILURE_LABELS: Record<string, string> = {
+export const ATTEMPT_FAILURE_LABELS: Record<AttemptFailedStatus, string> = {
+  failed: 'Processing failed - please try recording again.',
   'failed:transcription': 'Transcription failed',
   'failed:empty_audio': 'No speech detected',
   'failed:scoring': 'Scoring failed',
   'failed:quota': 'Scoring quota reached - transcript saved',
 }
 
-export function isAttemptProcessing(status: string): boolean {
-  return ATTEMPT_PROCESSING_STATUSES.includes(status)
-}
-
-export function isAttemptFailed(status: string): boolean {
-  return status === 'failed' || status.startsWith('failed:')
-}
-
 export function attemptProcessingLabel(status: string): string {
-  return ATTEMPT_PROCESSING_LABELS[status] ?? 'Processing...'
+  return ATTEMPT_PROCESSING_LABELS[status as AttemptProcessingStatus] ?? 'Processing...'
 }
 
 export function attemptFailureLabel(status: string): string {
-  return ATTEMPT_FAILURE_LABELS[status] ?? 'Processing failed - please try recording again.'
+  return ATTEMPT_FAILURE_LABELS[status as AttemptFailedStatus] ?? ATTEMPT_FAILURE_LABELS.failed
+}
+
+export function attemptErrorMessage(status: string): string {
+  return ATTEMPT_ERROR_MESSAGES[status as AttemptFailedStatus] ?? ATTEMPT_ERROR_MESSAGES.failed
+}
+
+export function attemptStepLabel(status: string | null | undefined): string {
+  if (!status) return 'Scoring...'
+  if (isAttemptFailed(status)) return attemptFailureLabel(status)
+  return attemptProcessingLabel(status)
 }
 
 export type AttemptOutcome = { kind: 'pending' } | { kind: 'ready' } | { kind: 'error'; message: string }
 
 export function attemptOutcome(status: string | undefined, timedOut: boolean): AttemptOutcome {
-  if (status === 'ready') return { kind: 'ready' }
-  if (status && !isAttemptProcessing(status)) {
-    return { kind: 'error', message: ATTEMPT_ERROR_MESSAGES[status] ?? 'Scoring failed' }
-  }
+  if (status && isAttemptReady(status)) return { kind: 'ready' }
+  if (status && !isAttemptProcessing(status)) return { kind: 'error', message: attemptErrorMessage(status) }
   if (timedOut) return { kind: 'error', message: ATTEMPT_TIMEOUT_MESSAGE }
   return { kind: 'pending' }
 }

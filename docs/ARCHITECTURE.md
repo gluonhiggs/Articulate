@@ -63,6 +63,7 @@ processing -> transcribing -> scoring -> ready
                                     ↘ failed:transcription
                                     ↘ failed:empty_audio
                                     ↘ failed:scoring
+                                    ↘ failed:quota
                                     ↘ failed (generic)
 ```
 
@@ -81,6 +82,7 @@ Articulate/
 │   ├── models.py                # ORM tables: Question, Attempt, DailyActivity, UserStats
 │   ├── schemas.py               # Pydantic I/O models: QuestionOut, AttemptOut, SystemInfoOut, SetModelRequest…
 │   ├── constants.py             # PROMPTS_DIR, PROJECT_ROOT, BAND_ROLLING_WINDOW, HEATMAP_DAYS
+│   ├── statuses.py              # AttemptStatus enum - the attempt lifecycle vocabulary, mirrored by frontend/src/types/attemptStatus.ts (tests/test_attempt_status.py fails if they drift)
 │   │
 │   ├── api/
 │   │   ├── attempts.py          # /submit, /status, /history, /improve, /pronunciation, /audio

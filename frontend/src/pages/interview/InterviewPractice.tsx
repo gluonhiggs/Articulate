@@ -24,6 +24,7 @@ import {
 } from '../../components/interview/utils'
 import { useBlobAudio } from '../../hooks/useBlobAudio'
 import { nextPollingInterval, type PollingStart } from '../../hooks/usePolling'
+import { createLogger, errorData } from '../../lib/log'
 import { useRecorder } from '../../hooks/useRecorder'
 import type {
   InterviewAnswer,
@@ -31,6 +32,8 @@ import type {
   InterviewPackDetail,
   InterviewQuestion,
 } from '../../types/interview'
+
+const log = createLogger('interview/practice')
 
 export function InterviewPractice() {
   const { questionId } = useParams<{ questionId: string }>()
@@ -111,9 +114,19 @@ function PracticeSession({ questionId }: { questionId: number }) {
 
   const activeStatus = activeAnswer?.status
   const previousStatusRef = useRef<InterviewAnswerStatus | undefined>(undefined)
+  const loggedStatusRef = useRef<{ id: number | null; status: InterviewAnswerStatus | undefined }>({
+    id: null,
+    status: undefined,
+  })
   useEffect(() => {
     const previous = previousStatusRef.current
     previousStatusRef.current = activeStatus
+    const logged = loggedStatusRef.current
+    if (activeAnswerId !== null && (logged.id !== activeAnswerId || logged.status !== activeStatus)) {
+      const from = logged.id === activeAnswerId ? (logged.status ?? 'none') : 'opened'
+      log.info(`answer ${activeAnswerId}: ${from} -> ${activeStatus ?? 'none'}`)
+    }
+    loggedStatusRef.current = { id: activeAnswerId, status: activeStatus }
     if (!isAnswerInProgress(previous) || activeStatus === undefined || isAnswerInProgress(activeStatus)) return
     void queryClient.invalidateQueries({ queryKey: ['interview', 'answers', questionId] })
     if (activeStatus === 'graded') {
@@ -121,18 +134,22 @@ function PracticeSession({ questionId }: { questionId: number }) {
       void queryClient.invalidateQueries({ queryKey: ['interview', 'pack'] })
       void queryClient.invalidateQueries({ queryKey: ['interview', 'question', questionId] })
     }
-  }, [activeStatus, questionId, queryClient])
+  }, [activeStatus, activeAnswerId, questionId, queryClient])
 
   const gradeMutation = useMutation({
-    mutationFn: ({ answerId, transcript }: { answerId: number; transcript: string }) =>
-      gradeInterviewAnswer(answerId, transcript),
+    mutationFn: ({ answerId, transcript }: { answerId: number; transcript: string }) => {
+      log.info('grade start', { answerId, words: transcript.trim().split(/\s+/).length, chars: transcript.length })
+      return gradeInterviewAnswer(answerId, transcript)
+    },
     onSuccess: (answer) => {
+      log.info('grade accepted', { answerId: answer.id, status: answer.status })
       pollStartRef.current = null
       setTimedOutAnswerId(null)
       queryClient.setQueryData(['interview', 'answer', answer.id], answer)
       void queryClient.invalidateQueries({ queryKey: ['interview', 'answers', questionId] })
     },
-    onError: (_err, { answerId }) => {
+    onError: (err, { answerId }) => {
+      log.error(`grade request failed for answer ${answerId}`, errorData(err))
       void queryClient.invalidateQueries({ queryKey: ['interview', 'answer', answerId] })
     },
   })
@@ -172,8 +189,10 @@ function PracticeSession({ questionId }: { questionId: number }) {
     (blob: Blob) => {
       setRecorderState('uploading')
       setRecorderError(null)
+      log.info('upload start', { questionId, bytes: blob.size, type: blob.type || 'unknown' })
       submitInterviewAnswer(questionId, blob)
         .then((answer) => {
+          log.info('upload ok', { questionId, answerId: answer.id, status: answer.status })
           setFailedUpload(null)
           queryClient.setQueryData(['interview', 'answer', answer.id], answer)
           void queryClient.invalidateQueries({ queryKey: ['interview', 'answers', questionId] })
@@ -181,6 +200,7 @@ function PracticeSession({ questionId }: { questionId: number }) {
           showAnswer(answer.id)
         })
         .catch((err: unknown) => {
+          log.error(`upload failed for question ${questionId}`, errorData(err))
           setFailedUpload(blob)
           setRecorderState('idle')
           setRecorderError(apiErrorDetail(err))
@@ -213,19 +233,24 @@ function PracticeSession({ questionId }: { questionId: number }) {
     setRecorderError(null)
     setElapsed(0)
     setRecorderState('recording')
+    log.info('record pressed', { questionId, maxSeconds })
     startRecording()
       .then(() => {
         // The page can close while the microphone permission prompt is still open.
         if (!mountedRef.current) stopRecording()
       })
       .catch((err: unknown) => {
+        log.error('recorder could not start', errorData(err))
         setRecorderState('idle')
         setRecorderError(err instanceof Error ? err.message : 'Microphone access denied')
       })
   }
 
   function handleRetryUpload() {
-    if (failedUpload) uploadAnswer(failedUpload)
+    if (failedUpload) {
+      log.info('retrying upload', { questionId, bytes: failedUpload.size })
+      uploadAnswer(failedUpload)
+    }
   }
 
   function handleStop() {

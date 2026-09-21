@@ -1,7 +1,8 @@
 import type { Attempt } from '../../types'
 import { ScoreCircle } from './ScoreCircle'
 import { ScoreTags } from './ScoreTags'
-import { attemptFailureLabel, attemptProcessingLabel, isAttemptFailed, isAttemptProcessing } from './utils'
+import { isAttemptFailed, isAttemptProcessing } from '../../types/attemptStatus'
+import { attemptFailureLabel, attemptProcessingLabel } from './utils'
 
 export function PrevAttemptCard({
   attempt,

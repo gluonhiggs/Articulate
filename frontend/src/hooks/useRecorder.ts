@@ -1,4 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
+import { createLogger, errorData } from '../lib/log'
+
+const log = createLogger('recorder')
 
 interface UseRecorderReturn {
   isRecording: boolean
@@ -46,6 +49,7 @@ export function useRecorder(maxSeconds: number): UseRecorderReturn {
         },
       })
     } catch (err) {
+      log.error('microphone access denied', errorData(err))
       throw new Error(`Microphone access denied - check browser permissions and try again. (${String(err)})`)
     }
 
@@ -65,6 +69,7 @@ export function useRecorder(maxSeconds: number): UseRecorderReturn {
 
     recorder.onstop = () => {
       const blob = new Blob(chunksRef.current, { type: mimeType })
+      log.info('recording stopped', { bytes: blob.size, chunks: chunksRef.current.length, mimeType: mimeType || 'browser default' })
       setAudioBlob(blob)
       setIsRecording(false)
 
@@ -75,9 +80,11 @@ export function useRecorder(maxSeconds: number): UseRecorderReturn {
 
     recorder.start(100) // collect data every 100ms
     setIsRecording(true)
+    log.info('recording started', { mimeType: mimeType || 'browser default', maxSeconds })
 
     autoStopTimerRef.current = setTimeout(() => {
       if (recorder.state !== 'inactive') {
+        log.info(`auto-stop after ${maxSeconds}s`)
         recorder.stop()
       }
     }, maxSeconds * 1000)

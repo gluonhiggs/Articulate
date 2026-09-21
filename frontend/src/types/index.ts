@@ -1,3 +1,7 @@
+import type { AttemptStatus } from './attemptStatus'
+
+export type { AttemptStatus } from './attemptStatus'
+
 export interface Question {
   id: number
   part: '1' | '2' | '3' | 'custom'
@@ -29,7 +33,7 @@ export interface Attempt {
   feedback_text: string | null
   usage_errors: UsageError[] | null
   duration_seconds: number | null
-  status: 'processing' | 'transcribing' | 'scoring' | 'ready' | 'failed' | 'failed:transcription' | 'failed:empty_audio' | 'failed:scoring' | 'failed:quota'
+  status: AttemptStatus
   created_at: string
 }
 

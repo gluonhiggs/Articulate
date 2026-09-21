@@ -12,13 +12,8 @@ import {
 import { RightPanel } from '../components/ai-panel/RightPanel'
 import { ActiveAttemptCard } from '../components/questions/ActiveAttemptCard'
 import { PrevAttemptCard } from '../components/questions/PrevAttemptCard'
-import {
-  ATTEMPT_PROCESSING_STATUSES,
-  attemptOutcome,
-  partLabel,
-  partMaxSeconds,
-  partRoute,
-} from '../components/questions/utils'
+import { attemptOutcome, partLabel, partMaxSeconds, partRoute } from '../components/questions/utils'
+import { isAttemptProcessing, isAttemptReady } from '../types/attemptStatus'
 import { RecordingBar } from '../components/recording/RecordingBar'
 import { useRecorder } from '../hooks/useRecorder'
 import { usePolling } from '../hooks/usePolling'
@@ -240,7 +235,7 @@ export function QuestionDetail() {
       return (
         data.find(
           (a) =>
-            ATTEMPT_PROCESSING_STATUSES.includes(a.status) &&
+            isAttemptProcessing(a.status) &&
             new Date(a.created_at).getTime() > cutoff,
         ) ?? null
       )
@@ -313,7 +308,7 @@ export function QuestionDetail() {
 
   // Expanded attempt: explicit selection, else the latest ready one
   const activeAttemptId = selectedAttemptId
-    ?? [...sortedAttempts].reverse().find((a: Attempt) => a.status === 'ready')?.id
+    ?? [...sortedAttempts].reverse().find((a: Attempt) => isAttemptReady(a.status))?.id
     ?? null
 
   return (

@@ -16,6 +16,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
+from backend.statuses import STATUS_MAX_LENGTH, AttemptStatus
+
 
 class Base(DeclarativeBase):
     pass
@@ -63,7 +65,7 @@ class Attempt(Base):
     usage_errors: Mapped[Optional[str]] = mapped_column("error_highlights", Text, nullable=True)  # JSON
     word_timestamps: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON
     duration_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    status: Mapped[str] = mapped_column(String(20), default="processing", index=True)  # processing | ready | failed
+    status: Mapped[str] = mapped_column(String(STATUS_MAX_LENGTH), default=AttemptStatus.PROCESSING, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), index=True)
 
     question: Mapped["Question"] = relationship(back_populates="attempts")

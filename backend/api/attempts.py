@@ -29,6 +29,7 @@ from backend.services.audio import EXT_TO_MIME
 from backend.services.grammar import get_lt_tool, is_speech_artifact
 from backend.services.llm_client import LLMRateLimitError
 from backend.services.vocab import compute_grammar_signals, compute_pronunciation_signal, compute_vocab_signal
+from backend.statuses import AttemptStatus, is_processing
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +58,19 @@ def _sentence_spans(text: str) -> list[tuple[int, int]]:
     return spans or [(0, len(text))]
 
 
+async def _set_status(session: AsyncSession, attempt_id: int, status: AttemptStatus) -> bool:
+    """Write the attempt's status and log the transition; False when the attempt has gone."""
+    result = await session.execute(select(Attempt).where(Attempt.id == attempt_id))
+    attempt = result.scalar_one_or_none()
+    if attempt is None:
+        logger.error("Pipeline %d: attempt not found while setting %s", attempt_id, status)
+        return False
+    attempt.status = status
+    await session.commit()
+    logger.info("Pipeline %d: %s", attempt_id, status)
+    return True
+
+
 async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> None:
     """Background task: transcribe -> score -> update attempt + stats."""
     logger.info(
@@ -78,12 +92,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             if question is None:
                 raise ValueError(f"Question {question_id} not found")
 
-            t_result = await session.execute(select(Attempt).where(Attempt.id == attempt_id))
-            attempt_pre = t_result.scalar_one_or_none()
-            if attempt_pre is not None:
-                attempt_pre.status = "transcribing"
-                await session.commit()
-                logger.info("Pipeline %d: transcribing", attempt_id)
+            await _set_status(session, attempt_id, AttemptStatus.TRANSCRIBING)
 
             # ----------------------------------------------------------------
             # 1. Transcription
@@ -96,20 +105,11 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                 )
             except asyncio.TimeoutError:
                 logger.error("Pipeline %d: transcription timed out after 120s", attempt_id)
-                t2 = await session.execute(select(Attempt).where(Attempt.id == attempt_id))
-                a = t2.scalar_one_or_none()
-                if a is not None:
-                    a.status = "failed:transcription"
-                    await session.commit()
+                await _set_status(session, attempt_id, AttemptStatus.FAILED_TRANSCRIPTION)
                 return
             except Exception as exc:
                 logger.exception("Pipeline %d: transcription failed: %s", attempt_id, exc)
-                t2 = await session.execute(select(Attempt).where(Attempt.id == attempt_id))
-                a = t2.scalar_one_or_none()
-                if a is not None:
-                    a.status = "failed:transcription"
-                    await session.commit()
-                    logger.info("Pipeline %d: failed:transcription", attempt_id)
+                await _set_status(session, attempt_id, AttemptStatus.FAILED_TRANSCRIPTION)
                 return
 
             _t_transcription = time.perf_counter() - _t0
@@ -138,12 +138,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                     audio_path,
                     file_size / 1024,
                 )
-                t2 = await session.execute(select(Attempt).where(Attempt.id == attempt_id))
-                a = t2.scalar_one_or_none()
-                if a is not None:
-                    a.status = "failed:empty_audio"
-                    await session.commit()
-                    logger.info("Pipeline %d: failed:empty_audio", attempt_id)
+                await _set_status(session, attempt_id, AttemptStatus.FAILED_EMPTY_AUDIO)
                 return
             word_timestamps_json = json.dumps(words)
 
@@ -377,12 +372,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             # ----------------------------------------------------------------
             # 4. Score
             # ----------------------------------------------------------------
-            s_result = await session.execute(select(Attempt).where(Attempt.id == attempt_id))
-            attempt_scoring = s_result.scalar_one_or_none()
-            if attempt_scoring is not None:
-                attempt_scoring.status = "scoring"
-                await session.commit()
-                logger.info("Pipeline %d: scoring", attempt_id)
+            await _set_status(session, attempt_id, AttemptStatus.SCORING)
 
             _t_signals = time.perf_counter() - _t0
             _t0 = time.perf_counter()
@@ -398,13 +388,10 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                 )
             except Exception as exc:
                 logger.exception("Pipeline %d: scoring failed: %s", attempt_id, exc)
-                failed_status = "failed:quota" if isinstance(exc, LLMRateLimitError) else "failed:scoring"
-                s2 = await session.execute(select(Attempt).where(Attempt.id == attempt_id))
-                a = s2.scalar_one_or_none()
-                if a is not None:
-                    a.status = failed_status
-                    await session.commit()
-                    logger.info("Pipeline %d: %s", attempt_id, failed_status)
+                failed_status = (
+                    AttemptStatus.FAILED_QUOTA if isinstance(exc, LLMRateLimitError) else AttemptStatus.FAILED_SCORING
+                )
+                await _set_status(session, attempt_id, failed_status)
                 return
 
             _t_scoring = time.perf_counter() - _t0
@@ -455,7 +442,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                     attempt_id,
                     list(scoring_result.keys()),
                 )
-                attempt.status = "failed:scoring"
+                attempt.status = AttemptStatus.FAILED_SCORING
                 await session.commit()
                 return
 
@@ -466,7 +453,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             attempt.score = score
             attempt.feedback_text = feedback_text
             attempt.usage_errors = usage_errors
-            attempt.status = "ready"
+            attempt.status = AttemptStatus.READY
 
             # ----------------------------------------------------------------
             # 6. Update DailyActivity
@@ -527,7 +514,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
             if score is not None:
                 recent_result = await session.execute(
                     select(Attempt.score)
-                    .where(Attempt.status == "ready", Attempt.score.isnot(None))
+                    .where(Attempt.status == AttemptStatus.READY, Attempt.score.isnot(None))
                     .order_by(Attempt.created_at.desc())
                     .limit(BAND_ROLLING_WINDOW)
                 )
@@ -553,12 +540,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
         except Exception as exc:
             logger.exception("Pipeline failed for attempt %d: %s", attempt_id, exc)
             try:
-                result = await session.execute(select(Attempt).where(Attempt.id == attempt_id))
-                attempt = result.scalar_one_or_none()
-                if attempt is not None:
-                    attempt.status = "failed"
-                    await session.commit()
-                    logger.info("Pipeline %d: failed (unknown)", attempt_id)
+                await _set_status(session, attempt_id, AttemptStatus.FAILED)
             except Exception:
                 logger.exception("Failed to mark attempt %d as failed", attempt_id)
 
@@ -578,7 +560,7 @@ async def submit_attempt(
         raise HTTPException(status_code=404, detail="Question not found")
 
     # Commit first: save_audio names the file after attempt.id.
-    attempt = Attempt(question_id=question_id, status="processing")
+    attempt = Attempt(question_id=question_id, status=AttemptStatus.PROCESSING)
     db.add(attempt)
     await db.commit()
     await db.refresh(attempt)
@@ -604,7 +586,7 @@ async def submit_attempt(
             audio.content_type,
         )
     except Exception as exc:
-        attempt.status = "failed"
+        attempt.status = AttemptStatus.FAILED
         await db.commit()
         raise HTTPException(status_code=500, detail=f"Failed to save audio: {exc}") from exc
 
@@ -675,11 +657,11 @@ async def get_attempt_history(
     stale_found = False
     for attempt in attempts:
         if (
-            attempt.status in ("processing", "transcribing", "scoring")
+            is_processing(attempt.status)
             and attempt.created_at is not None
             and now - attempt.created_at > _STALE_PROCESSING_THRESHOLD
         ):
-            attempt.status = "failed"
+            attempt.status = AttemptStatus.FAILED
             stale_found = True
             logger.warning("Marked stale attempt %d as failed (created_at=%s)", attempt.id, attempt.created_at)
     if stale_found:
@@ -699,7 +681,7 @@ async def improve_attempt(
     if attempt is None:
         raise HTTPException(status_code=404, detail="Attempt not found")
 
-    if attempt.status != "ready" or attempt.transcript is None or attempt.score is None:
+    if attempt.status != AttemptStatus.READY or attempt.transcript is None or attempt.score is None:
         raise HTTPException(
             status_code=400,
             detail="Attempt is not ready or has no transcript/score",
@@ -742,7 +724,7 @@ async def get_pronunciation(
     if attempt is None:
         raise HTTPException(status_code=404, detail="Attempt not found")
 
-    if attempt.status != "ready" or attempt.word_timestamps is None:
+    if attempt.status != AttemptStatus.READY or attempt.word_timestamps is None:
         raise HTTPException(
             status_code=400,
             detail="Attempt is not ready or has no word timestamps",
