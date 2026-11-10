@@ -118,6 +118,13 @@ export function gradeInterviewAnswer(answerId: number, transcript: string): Prom
   return apiFetch<InterviewAnswer>(`/interview/answers/${answerId}/grade`, jsonBody('POST', { transcript }))
 }
 
+export function improveInterviewSentences(answerId: number): Promise<InterviewAnswer> {
+  return apiFetch<InterviewAnswer>(`/interview/answers/${answerId}/sentence-fixes`, {
+    method: 'POST',
+    signal: AbortSignal.timeout(LLM_TIMEOUT_MS),
+  })
+}
+
 export function interviewAnswerAudioUrl(answerId: number): string {
   return `${API_BASE}/interview/answers/${answerId}/audio`
 }

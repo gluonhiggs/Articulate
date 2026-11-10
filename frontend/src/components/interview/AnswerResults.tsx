@@ -1,31 +1,64 @@
 import { Link } from 'react-router-dom'
 import type { InterviewAnswer, InterviewKeyPointResult } from '../../types/interview'
 import { AnswerAudioButton } from './AnswerAudioButton'
-import { DeliveryCard } from './DeliveryCard'
+import { DeliveryDetails, deliverySummary } from './DeliveryCard'
+import { Disclosure } from './Disclosure'
+import { HighlightedTranscript } from './HighlightedTranscript'
 import { ScoreRing } from './ScoreRing'
+import { SentenceFixes, sentenceFixSummary } from './SentenceFixes'
 import { outlineButtonClass } from './ui'
-import { bandStyle, INCORRECT_SCORE_CAP, scoreBand, VERDICT_STYLES, WEIGHT_LABELS } from './utils'
+import {
+  bandStyle,
+  byNeed,
+  countWords,
+  coverageHeadline,
+  INCORRECT_SCORE_CAP,
+  needsWork,
+  plural,
+  scoreBand,
+  VERDICT_STYLES,
+  WEIGHT_LABELS,
+} from './utils'
 
 function KeyPointRow({ result }: { result: InterviewKeyPointResult }) {
   const verdict = VERDICT_STYLES[result.verdict]
+  // A reason for a missing point only restates the point, so it earns no line.
+  const reason = result.verdict === 'missing' ? null : result.reason
+
   return (
-    <li className={`flex gap-3 rounded-lg border bg-background/60 px-3 py-2.5 ${verdict.border}`}>
-      <span className={`w-5 shrink-0 text-center font-bold ${verdict.text}`} title={verdict.label}>
+    <li className={`flex gap-3 rounded-lg border bg-background/40 px-4 py-3 ${verdict.border}`}>
+      <span className={`mt-0.5 w-4 shrink-0 text-center font-bold ${verdict.text}`} title={verdict.label}>
         {verdict.icon}
       </span>
       <div className="flex-1 min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className={`text-xs font-medium ${verdict.text}`}>{verdict.label}</span>
-          <span className="text-[11px] text-textSecondary border border-white/10 rounded px-1.5 py-0.5">
+        <p className="text-sm text-textPrimary leading-snug">{result.text}</p>
+        <p className="text-[11px] mt-1.5">
+          <span className={`font-medium ${verdict.text}`}>{verdict.label}</span>
+          <span className="text-gray-500">
+            {' · '}
             {WEIGHT_LABELS[result.weight]}
           </span>
-        </div>
-        <p className="text-sm text-textPrimary mt-1 leading-snug">{result.text}</p>
+        </p>
         {result.quote && (
-          <p className="text-xs text-gray-400 mt-1 italic">you said: &ldquo;{result.quote}&rdquo;</p>
+          <p className="mt-2 border-l-2 border-white/10 pl-2.5 text-xs text-gray-400">
+            <span className="text-gray-500">you said </span>
+            <span className="italic">&ldquo;{result.quote}&rdquo;</span>
+          </p>
         )}
-        {result.reason && <p className="text-xs text-textSecondary mt-1">{result.reason}</p>}
+        {reason && <p className="text-xs text-textSecondary mt-2">{reason}</p>}
       </div>
+    </li>
+  )
+}
+
+function FocusItem({ text, tag }: { text: string; tag?: string }) {
+  return (
+    <li className="flex items-start gap-2.5 text-sm text-gray-200">
+      <span className="text-accent mt-0.5 shrink-0">{'→'}</span>
+      <span>
+        {tag && <span className="text-[10px] uppercase tracking-wider text-accent/70 mr-1.5">{tag}</span>}
+        {text}
+      </span>
     </li>
   )
 }
@@ -46,53 +79,45 @@ export function AnswerResults({
   const delivery = bandStyle(scoreBand(deliveryScore))
   const tips = answer.feedback?.content_tips ?? []
   const englishTip = answer.feedback?.english_tip ?? null
+  const results = answer.key_point_results
+  const gaps = results.filter(needsWork).sort(byNeed)
+  const covered = results.filter((result) => !needsWork(result))
+  const ungraded = answer.content_band === 'ungraded' || answer.content_score === null
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-card border border-cardBorder rounded-xl p-5 flex items-center gap-4">
+    <div className="space-y-3">
+      <div className="bg-card border border-cardBorder rounded-xl p-5">
+        <div className="flex items-center gap-5">
           <ScoreRing score={answer.content_score} band={answer.content_band} />
           <div className="min-w-0">
-            <p className="text-textSecondary text-xs uppercase tracking-wider">Content accuracy</p>
-            <p className={`text-lg font-semibold mt-0.5 ${content.text}`}>{content.label}</p>
-            {answer.content_band === 'ungraded' || answer.content_score === null ? (
-              <p className="text-xs text-textSecondary mt-1">
-                {answer.error_message ?? 'This answer was not graded for content.'}
+            <p className="text-textSecondary text-[11px] uppercase tracking-wider">Content accuracy</p>
+            <p className={`text-2xl font-semibold leading-tight mt-0.5 ${content.text}`}>{content.label}</p>
+            <p className="text-sm text-textSecondary mt-1">
+              {ungraded
+                ? (answer.error_message ?? 'This answer was not graded for content.')
+                : coverageHeadline(results)}
+            </p>
+            {answer.content_band === 'incorrect' && (
+              <p className="text-xs text-red-400/90 mt-1.5">
+                Something stated is technically wrong, which caps the score at {INCORRECT_SCORE_CAP}.
               </p>
-            ) : answer.content_band === 'incorrect' ? (
-              <p className="text-xs text-textSecondary mt-1">
-                The answer states something technically wrong, so it cannot score above {INCORRECT_SCORE_CAP}.
-              </p>
-            ) : null}
+            )}
           </div>
         </div>
 
-        <div className="bg-card border border-cardBorder rounded-xl p-5 flex items-center gap-4">
-          <ScoreRing score={deliveryScore} band={scoreBand(deliveryScore)} />
-          <div className="min-w-0">
-            <p className="text-textSecondary text-xs uppercase tracking-wider">English delivery</p>
-            <p className={`text-lg font-semibold mt-0.5 ${delivery.text}`}>
-              {deliveryScore === null ? 'Not scored' : delivery.label}
-            </p>
-            <p className="text-xs text-textSecondary mt-1">Pace, pauses, grammar and word variety. Does not affect content.</p>
-          </div>
+        <div className="mt-4 pt-3 border-t border-white/5 flex items-baseline gap-2.5">
+          <span className={`text-base font-semibold ${delivery.text}`}>{deliveryScore ?? '--'}</span>
+          <span className="text-sm text-textSecondary">
+            English delivery
+            {deliveryScore !== null && ` · ${delivery.label}`}
+          </span>
+          <span className="ml-auto text-[11px] text-gray-500 shrink-0">does not affect content</span>
         </div>
       </div>
 
-      {answer.key_point_results.length > 0 && (
-        <div className="bg-card border border-cardBorder rounded-xl p-5">
-          <p className="text-textPrimary font-semibold text-sm mb-3">Key points</p>
-          <ul className="space-y-2">
-            {answer.key_point_results.map((result) => (
-              <KeyPointRow key={result.uid} result={result} />
-            ))}
-          </ul>
-        </div>
-      )}
-
       {answer.misconceptions_found.length > 0 && (
         <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-5">
-          <p className="text-red-400 font-semibold text-sm mb-3">Misconceptions you stated</p>
+          <p className="text-red-400 font-semibold text-sm mb-3">Fix this first</p>
           <ul className="space-y-3">
             {answer.misconceptions_found.map((m) => (
               <li key={m.uid} className="text-sm">
@@ -109,42 +134,65 @@ export function AnswerResults({
         </div>
       )}
 
-      {answer.delivery && <DeliveryCard delivery={answer.delivery} />}
-
       {(tips.length > 0 || englishTip) && (
-        <div className="bg-card border border-cardBorder rounded-xl p-5 space-y-3">
-          {tips.length > 0 && (
-            <div>
-              <p className="text-textPrimary font-semibold text-sm mb-2">How to improve the content</p>
-              <ul className="space-y-1.5">
-                {tips.map((tip, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-gray-300">
-                    <span className="text-teal-400 mt-0.5">{'\u2022'}</span>
-                    <span>{tip}</span>
-                  </li>
+        <div className="rounded-xl border border-accent/25 bg-accent/5 p-5">
+          <p className="text-accent font-semibold text-sm mb-2.5">Say this next time</p>
+          <ul className="space-y-2">
+            {tips.map((tip, i) => (
+              <FocusItem key={i} text={tip} />
+            ))}
+            {englishTip && <FocusItem text={englishTip} tag="Structure" />}
+          </ul>
+        </div>
+      )}
+
+      {results.length > 0 && (
+        <section className="space-y-2">
+          <div className="flex items-baseline gap-2 px-1 pt-2">
+            <h2 className="text-textPrimary font-semibold text-sm">Answer key</h2>
+            <span className="text-xs text-textSecondary">{plural(results.length, 'point')}</span>
+          </div>
+          {gaps.length > 0 && (
+            <ul className="space-y-2">
+              {gaps.map((result) => (
+                <KeyPointRow key={result.uid} result={result} />
+              ))}
+            </ul>
+          )}
+          {covered.length > 0 && (
+            <Disclosure title={`${covered.length} covered`} summary="what you already got right">
+              <ul className="space-y-2">
+                {covered.map((result) => (
+                  <KeyPointRow key={result.uid} result={result} />
                 ))}
               </ul>
-            </div>
+            </Disclosure>
           )}
-          {englishTip && (
-            <div>
-              <p className="text-textPrimary font-semibold text-sm mb-1">English tip</p>
-              <p className="text-sm text-gray-300">{englishTip}</p>
-            </div>
-          )}
-        </div>
+        </section>
+      )}
+
+      {answer.sentence_fixes.length > 0 && (
+        <Disclosure title="Sentence by sentence" summary={sentenceFixSummary(answer.sentence_fixes)}>
+          <SentenceFixes answer={answer} />
+        </Disclosure>
+      )}
+
+      {answer.delivery && (
+        <Disclosure title="English delivery details" summary={deliverySummary(answer.delivery)}>
+          <DeliveryDetails delivery={answer.delivery} />
+        </Disclosure>
       )}
 
       {answer.transcript && (
-        <div className="bg-card/50 border border-white/5 rounded-xl p-5">
-          <p className="text-xs text-textSecondary mb-1">
-            Graded transcript{answer.transcript_edited ? ' (edited by you)' : ''}
-          </p>
-          <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">{answer.transcript}</p>
-        </div>
+        <Disclosure
+          title={answer.transcript_edited ? 'Graded transcript (edited by you)' : 'Graded transcript'}
+          summary={plural(countWords(answer.transcript), 'word')}
+        >
+          <HighlightedTranscript text={answer.transcript} issues={answer.delivery?.grammar_issues ?? []} />
+        </Disclosure>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 pt-2">
         <AnswerAudioButton answerId={answer.id} />
         <div className="flex-1" />
         <button onClick={onTryAgain} className={outlineButtonClass}>

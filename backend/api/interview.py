@@ -37,7 +37,7 @@ from backend.schemas import (
     InterviewSourceOut,
 )
 from backend.services import audio as audio_service
-from backend.services import interview_grading, interview_packs
+from backend.services import interview_grading, interview_packs, interview_sentences
 from backend.services.audio import EXT_TO_MIME
 from backend.services.interview_packs import InterviewPackError, utc_now
 from backend.services.llm_client import LLMRateLimitError
@@ -450,6 +450,44 @@ async def grade_answer(
         answer.transcript_edited,
     )
     background_tasks.add_task(interview_grading.grade_answer, answer.id, run_token)
+    return interview_grading.answer_out(answer)
+
+
+@router.post("/answers/{answer_id}/sentence-fixes", response_model=InterviewAnswerOut)
+async def improve_sentences(answer_id: int, db: AsyncSession = Depends(get_db)) -> InterviewAnswerOut:
+    """Fill in the better version of each sentence already flagged as reading badly."""
+    answer = await _answer_or_404(db, answer_id)
+    rows = interview_grading.sentence_fixes_for(answer)
+    pending = [row for row in rows if isinstance(row, dict) and not row.get("improved")]
+    if not pending:
+        return interview_grading.answer_out(answer)
+
+    question = await _question_or_404(db, answer.question_id)
+    logger.info("Interview answer %d: rewriting %d sentence(s)", answer_id, len(pending))
+    try:
+        fixes = await interview_sentences.generate_sentence_fixes(
+            question.text,
+            [{"text": row["original"], "reasons": row.get("reasons", [])} for row in pending],
+        )
+    except LLMRateLimitError as exc:
+        logger.warning("Interview answer %d: the assist model is out of free-tier quota", answer_id)
+        raise HTTPException(
+            status_code=429,
+            detail="The free-tier quota for sentence rewrites is reached for now. Please try again later.",
+        ) from exc
+    except (RuntimeError, ValueError) as exc:
+        logger.exception("Interview answer %d: rewriting sentences failed", answer_id)
+        raise HTTPException(status_code=502, detail=f"Rewriting failed: {exc}") from exc
+
+    improved = {fix["original"]: fix for fix in fixes}
+    for row in rows:
+        fix = improved.get(row.get("original")) if isinstance(row, dict) else None
+        if fix is not None:
+            row["improved"] = fix["improved"]
+            row["note"] = fix["note"]
+    answer.sentence_fixes = json.dumps(rows)
+    await db.commit()
+    logger.info("Interview answer %d: %d of %d sentence(s) rewritten", answer_id, len(fixes), len(pending))
     return interview_grading.answer_out(answer)
 
 

@@ -4,7 +4,6 @@ import asyncio
 import json
 import logging
 import os
-import re
 import time
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
@@ -29,34 +28,13 @@ from backend.services import transcription as transcription_service
 from backend.services.audio import EXT_TO_MIME
 from backend.services.grammar import get_lt_tool, is_speech_artifact
 from backend.services.llm_client import LLMRateLimitError
+from backend.services.sentences import sentence_spans
 from backend.services.vocab import compute_grammar_signals, compute_pronunciation_signal, compute_vocab_signal
 from backend.statuses import AttemptStatus, is_processing
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/attempts", tags=["attempts"])
-
-
-def _sentence_spans(text: str) -> list[tuple[int, int]]:
-    """Return (start, end) character offsets for each sentence in *text*.
-
-    Splits on terminal punctuation (. ! ?) followed by whitespace or end of
-    string. Whisper transcripts include punctuation, making this reliable.
-    Falls back to the whole text as a single span when no boundary is found
-    (e.g. very short responses without punctuation).
-    """
-    spans: list[tuple[int, int]] = []
-    start = 0
-    for m in re.finditer(r"[.!?]+", text):
-        end = m.end()
-        spans.append((start, end))
-        nxt = end
-        while nxt < len(text) and text[nxt].isspace():
-            nxt += 1
-        start = nxt
-    if start < len(text):  # trailing text with no terminal punctuation
-        spans.append((start, len(text)))
-    return spans or [(0, len(text))]
 
 
 def _intensity(count) -> Any:
@@ -298,7 +276,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                             ],
                         )
                         # --- Sentence segmentation & error attribution ---
-                        sent_spans = _sentence_spans(transcript)
+                        sent_spans = sentence_spans(transcript)
                         n_sentences = len(sent_spans)
 
                         def _sent_idx(offset: int) -> int | None:
@@ -386,7 +364,7 @@ async def _run_pipeline(attempt_id: int, question_id: int, audio_path: str) -> N
                         None,
                         compute_grammar_signals,
                         transcript,
-                        _sentence_spans(transcript),
+                        sentence_spans(transcript),
                         filtered_matches,
                     ),
                     timeout=30.0,

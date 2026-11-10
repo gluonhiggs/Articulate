@@ -487,6 +487,9 @@ class InterviewGrammarIssueOut(BaseModel):
     text: str
     message: str
     replacements: List[str] = Field(default_factory=list)
+    # Character offset into the answer's transcript, re-anchored on read; null when the
+    # phrase can no longer be located because the candidate edited the transcript.
+    offset: Optional[int] = None
 
 
 class InterviewDeliveryOut(BaseModel):
@@ -501,6 +504,13 @@ class InterviewDeliveryOut(BaseModel):
     grammar_issues: List[InterviewGrammarIssueOut] = Field(default_factory=list)
     lexical_diversity: Optional[float] = None
     components: dict[str, int] = Field(default_factory=dict)
+
+
+class InterviewSentenceFixOut(BaseModel):
+    original: str
+    improved: str
+    note: str = ""
+    reasons: List[str] = Field(default_factory=list)
 
 
 class InterviewFeedbackOut(BaseModel):
@@ -525,6 +535,7 @@ class InterviewAnswerOut(BaseModel):
     key_point_results: List[InterviewKeyPointResultOut] = Field(default_factory=list)
     misconceptions_found: List[InterviewMisconceptionResultOut] = Field(default_factory=list)
     feedback: Optional[InterviewFeedbackOut] = None
+    sentence_fixes: List[InterviewSentenceFixOut] = Field(default_factory=list)
     next_follow_up_question_id: Optional[int] = None
     error_message: Optional[str] = None
 

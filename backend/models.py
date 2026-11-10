@@ -222,6 +222,7 @@ class InterviewAnswer(Base):
     misconceptions_found: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON
     proposer_output: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON
     feedback: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON
+    sentence_fixes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON
     next_follow_up_question_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("interview_questions.id"), nullable=True
     )

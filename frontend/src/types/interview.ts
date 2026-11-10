@@ -173,6 +173,18 @@ export interface InterviewGrammarIssue {
   text: string
   message: string
   replacements: string[]
+  // Character offset into `transcript`, or null when the phrase can no longer be found there.
+  offset: number | null
+}
+
+export type SentenceReason = 'run_on' | 'chained' | 'grammar'
+
+export interface InterviewSentenceFix {
+  original: string
+  // Empty until the candidate asks for the rewrite.
+  improved: string
+  note: string
+  reasons: SentenceReason[]
 }
 
 export interface InterviewDelivery {
@@ -211,6 +223,7 @@ export interface InterviewAnswer {
   key_point_results: InterviewKeyPointResult[]
   misconceptions_found: InterviewMisconceptionResult[]
   feedback: InterviewFeedback | null
+  sentence_fixes: InterviewSentenceFix[]
   next_follow_up_question_id: number | null
   error_message: string | null
 }

@@ -1,6 +1,7 @@
 import type {
   ContentBand,
   InterviewAnswerStatus,
+  InterviewKeyPointResult,
   InterviewGlossaryCorrection,
   InterviewLevel,
   InterviewQuestion,
@@ -100,6 +101,29 @@ export const VERDICT_STYLES: Record<KeyPointVerdict, { label: string; icon: stri
   incorrect: { label: 'Incorrect', icon: '\u2717', text: 'text-red-400', border: 'border-red-500/30' },
 }
 
+// Worst first, so the rows a candidate must act on are never below the ones they got right.
+const VERDICT_NEED: Record<KeyPointVerdict, number> = { incorrect: 0, missing: 1, partial: 2, covered: 3 }
+
+export function needsWork(result: InterviewKeyPointResult): boolean {
+  return result.verdict !== 'covered'
+}
+
+export function byNeed(a: InterviewKeyPointResult, b: InterviewKeyPointResult): number {
+  return VERDICT_NEED[a.verdict] - VERDICT_NEED[b.verdict] || b.weight - a.weight
+}
+
+// The headline the score alone cannot give: what share of the points that matter was reached.
+export function coverageHeadline(results: InterviewKeyPointResult[]): string {
+  if (results.length === 0) return ''
+  const core = results.filter((r) => r.weight === 3)
+  const scope = core.length > 0 ? core : results
+  const noun = core.length > 0 ? 'core point' : 'point'
+  const covered = scope.filter((r) => r.verdict === 'covered').length
+  const partial = scope.filter((r) => r.verdict === 'partial').length
+  const headline = `${covered} of ${plural(scope.length, noun)} covered`
+  return partial > 0 ? `${headline}, ${partial} partly` : headline
+}
+
 export const ANSWER_STATUS_LABELS: Record<InterviewAnswerStatus, string> = {
   processing: 'Processing',
   transcribing: 'Transcribing',
@@ -116,6 +140,13 @@ const IN_PROGRESS_STATUSES: InterviewAnswerStatus[] = ['processing', 'transcribi
 
 export function isAnswerInProgress(status: InterviewAnswerStatus | undefined): boolean {
   return status !== undefined && IN_PROGRESS_STATUSES.includes(status)
+}
+
+// LanguageTool explains the rule as well as the fix; the list only needs the fix,
+// and the full message stays available on hover.
+export function firstSentence(message: string): string {
+  const end = message.search(/[.!?](\s|$)/)
+  return end === -1 ? message : message.slice(0, end + 1)
 }
 
 export function plural(count: number, noun: string): string {

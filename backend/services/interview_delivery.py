@@ -91,7 +91,12 @@ def compute_delivery(
         "grammar_available": grammar_issues is not None,
         "grammar_errors_per_100_words": round(grammar_per_100, 1) if grammar_per_100 is not None else None,
         "grammar_issues": [
-            {"text": issue["text"], "message": issue["message"], "replacements": list(issue.get("replacements", []))}
+            {
+                "text": issue["text"],
+                "message": issue["message"],
+                "replacements": list(issue.get("replacements", [])),
+                "offset": issue.get("offset"),
+            }
             for issue in grammar_issues or []
         ],
         "lexical_diversity": round(lexical_diversity, 1) if lexical_diversity is not None else None,

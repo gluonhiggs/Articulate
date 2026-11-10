@@ -105,7 +105,13 @@ def test_grammar_issues_reduce_score_and_are_listed():
     delivery = compute_delivery(_words(30, 0.4), grammar_issues=issues, gap_threshold=GAP)
     assert delivery["grammar_errors_per_100_words"] == 10.0
     assert delivery["components"]["grammar"] == 0
-    assert delivery["grammar_issues"][0] == {"text": "he go", "message": "Agreement", "replacements": ["he goes"]}
+    # The offset travels with the issue so the UI can highlight the phrase in the transcript.
+    assert delivery["grammar_issues"][0] == {
+        "text": "he go",
+        "message": "Agreement",
+        "replacements": ["he goes"],
+        "offset": 0,
+    }
     assert delivery["score"] == round((0.30 * 100 + 0.30 * 100 + 0.25 * 0) / 0.85)
 
 

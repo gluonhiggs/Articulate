@@ -169,8 +169,24 @@ function SpinnerIcon() {
   )
 }
 
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className={`h-3 w-3 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.5}
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M18 15l-6-6-6 6" />
+    </svg>
+  )
+}
+
 export function Sidebar({ onClose }: { onClose?: () => void }) {
   const queryClient = useQueryClient()
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -297,21 +313,54 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         ))}
       </nav>
 
-      {/* System Info */}
-      <div className="px-4 py-4 border-t border-cardBorder">
-        <div className="flex items-start gap-2">
-          <div className="text-textSecondary mt-0.5">
-            <CpuIcon />
-          </div>
-          <div className="flex-1 min-w-0">
-            {systemInfo ? (
-              <>
+      {/* Engine settings. Collapsed by default: the model names and the transcription switch are
+          settings, not something to read on every page. Only alarms stay visible. */}
+      <div className="px-4 py-3 border-t border-cardBorder">
+        {systemInfo ? (
+          <>
+            <button
+              onClick={() => setSettingsOpen((open) => !open)}
+              aria-expanded={settingsOpen}
+              className="w-full flex items-center gap-2 text-left text-textSecondary hover:text-textPrimary transition-colors"
+              title="Engine settings"
+            >
+              <CpuIcon />
+              <span className="flex-1 min-w-0 truncate text-xs">
+                <span className="text-textPrimary font-medium">
+                  {systemInfo.transcription_mode === 'local' ? 'Local' : 'Cloud'}
+                </span>
+                {' · '}
+                {systemInfo.llm_model}
+              </span>
+              <ChevronIcon open={settingsOpen} />
+            </button>
+
+            {!systemInfo.llm_reachable && (
+              <p className="mt-2 text-xs text-red-400">{'⚠'} LLM unreachable</p>
+            )}
+
+            {(systemInfo.op_status === 'installing' || systemInfo.op_status === 'loading') && (
+              <div className="mt-2">
+                <div className="flex items-center gap-1.5 text-[11px] text-sky-400">
+                  <SpinnerIcon />
+                  {systemInfo.op_status === 'installing' ? 'Installing faster-whisper...' : 'Loading model...'}
+                </div>
+                <div className="mt-1.5 h-0.5 w-full overflow-hidden rounded bg-cardBorder">
+                  <div className="h-full bg-sky-500 rounded [animation:progress_2s_ease-in-out_infinite_alternate]" />
+                </div>
+              </div>
+            )}
+
+            {systemInfo.op_status === 'failed' && (
+              <p className="mt-2 text-[10px] text-red-400">{'⚠'} Operation failed - check server logs.</p>
+            )}
+
+            {settingsOpen && (
+              <div className="mt-3 space-y-0.5">
                 <p className="text-xs text-textSecondary truncate">
-                  <span className="text-textPrimary font-medium">{systemInfo.profile}</span>
+                  Profile: <span className="text-textPrimary">{systemInfo.profile}</span>
                 </p>
-                <p className="text-xs text-textSecondary truncate mt-0.5">
-                  Whisper: {systemInfo.whisper_model}
-                </p>
+                <p className="text-xs text-textSecondary truncate">Whisper: {systemInfo.whisper_model}</p>
                 {editing ? (
                   <input
                     ref={inputRef}
@@ -347,118 +396,86 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
                     Low-accuracy mode
                   </span>
                 )}
-                {!systemInfo.llm_reachable && (
-                  <span className="mt-1.5 inline-block text-xs text-red-400 border border-red-400/30 rounded px-1.5 py-0.5">
-                    {'\u26A0'} LLM unreachable
-                  </span>
-                )}
 
                 {/* Transcription mode switcher. Shown when faster-whisper is bundled OR can be
                     auto-installed (source installs). Both CPU and GPU installer variants ship
                     faster-whisper, so packaged users always see it. */}
-                {(systemInfo.faster_whisper_installed || !systemInfo.is_desktop) && <div className="mt-3 rounded-lg border border-cardBorder bg-card p-2.5">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-textSecondary mb-2">
-                    Transcription
-                  </p>
-                  <div className="flex gap-1.5">
-                    <button
-                      onClick={() => modeMutation.mutate('groq')}
-                      disabled={
-                        systemInfo.transcription_mode === 'groq' ||
-                        (!!systemInfo.op_status && systemInfo.op_status !== 'failed')
-                      }
-                      className={[
-                        'flex-1 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors',
-                        systemInfo.transcription_mode === 'groq'
-                          ? 'border-accent/40 bg-accent/10 text-accent'
-                          : 'border-cardBorder text-textSecondary hover:text-textPrimary hover:border-slate-500 disabled:opacity-40 disabled:cursor-not-allowed',
-                      ].join(' ')}
-                    >
-                      {'\u2601'} Cloud
-                    </button>
-                    <button
-                      onClick={() => modeMutation.mutate('local')}
-                      disabled={
-                        systemInfo.transcription_mode === 'local' ||
-                        (!!systemInfo.op_status && systemInfo.op_status !== 'failed')
-                      }
-                      className={[
-                        'flex-1 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors',
-                        systemInfo.transcription_mode === 'local'
-                          ? 'border-accent/40 bg-accent/10 text-accent'
-                          : 'border-cardBorder text-textSecondary hover:text-textPrimary hover:border-slate-500 disabled:opacity-40 disabled:cursor-not-allowed',
-                      ].join(' ')}
-                    >
-                      {'\u26A1'} Local
-                    </button>
-                  </div>
+                {(systemInfo.faster_whisper_installed || !systemInfo.is_desktop) && (
+                  <div className="mt-3 rounded-lg border border-cardBorder bg-card p-2.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-textSecondary mb-2">
+                      Transcription
+                    </p>
+                    <div className="flex gap-1.5">
+                      <button
+                        onClick={() => modeMutation.mutate('groq')}
+                        disabled={
+                          systemInfo.transcription_mode === 'groq' ||
+                          (!!systemInfo.op_status && systemInfo.op_status !== 'failed')
+                        }
+                        className={[
+                          'flex-1 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors',
+                          systemInfo.transcription_mode === 'groq'
+                            ? 'border-accent/40 bg-accent/10 text-accent'
+                            : 'border-cardBorder text-textSecondary hover:text-textPrimary hover:border-slate-500 disabled:opacity-40 disabled:cursor-not-allowed',
+                        ].join(' ')}
+                      >
+                        {'☁'} Cloud
+                      </button>
+                      <button
+                        onClick={() => modeMutation.mutate('local')}
+                        disabled={
+                          systemInfo.transcription_mode === 'local' ||
+                          (!!systemInfo.op_status && systemInfo.op_status !== 'failed')
+                        }
+                        className={[
+                          'flex-1 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors',
+                          systemInfo.transcription_mode === 'local'
+                            ? 'border-accent/40 bg-accent/10 text-accent'
+                            : 'border-cardBorder text-textSecondary hover:text-textPrimary hover:border-slate-500 disabled:opacity-40 disabled:cursor-not-allowed',
+                        ].join(' ')}
+                      >
+                        {'⚡'} Local
+                      </button>
+                    </div>
 
-                  {!systemInfo.faster_whisper_installed &&
-                    !systemInfo.op_status &&
-                    systemInfo.transcription_mode === 'groq' && (
-                      <p className="mt-2 text-[10px] text-amber-400/80">
-                        Click {'\u26A1'} Local to auto-install faster-whisper.
-                      </p>
+                    {!systemInfo.faster_whisper_installed &&
+                      !systemInfo.op_status &&
+                      systemInfo.transcription_mode === 'groq' && (
+                        <p className="mt-2 text-[10px] text-amber-400/80">
+                          Click {'⚡'} Local to auto-install faster-whisper.
+                        </p>
+                      )}
+
+                    {systemInfo.transcription_mode === 'local' && !systemInfo.op_status && (
+                      <span
+                        className={[
+                          'mt-2 inline-block text-[10px] rounded px-1.5 py-0.5 border font-medium',
+                          systemInfo.whisper_device === 'cuda'
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                            : 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+                        ].join(' ')}
+                      >
+                        {systemInfo.whisper_device === 'cuda'
+                          ? `GPU | ${systemInfo.whisper_model}`
+                          : `CPU | ~40-60s/answer`}
+                      </span>
                     )}
 
-                  {systemInfo.op_status === 'installing' && (
-                    <div className="mt-2">
-                      <div className="flex items-center gap-1.5 text-[11px] text-sky-400">
-                        <SpinnerIcon />
-                        Installing faster-whisper...
-                      </div>
-                      <div className="mt-1.5 h-0.5 w-full overflow-hidden rounded bg-cardBorder">
-                        <div className="h-full bg-sky-500 rounded [animation:progress_2s_ease-in-out_infinite_alternate]" />
-                      </div>
-                    </div>
-                  )}
-
-                  {systemInfo.op_status === 'loading' && (
-                    <div className="mt-2">
-                      <div className="flex items-center gap-1.5 text-[11px] text-sky-400">
-                        <SpinnerIcon />
-                        Loading model...
-                      </div>
-                      <div className="mt-1.5 h-0.5 w-full overflow-hidden rounded bg-cardBorder">
-                        <div className="h-full bg-sky-500 rounded [animation:progress_2s_ease-in-out_infinite_alternate]" />
-                      </div>
-                    </div>
-                  )}
-
-                  {systemInfo.transcription_mode === 'local' && !systemInfo.op_status && (
-                    <span className={[
-                      'mt-2 inline-block text-[10px] rounded px-1.5 py-0.5 border font-medium',
-                      systemInfo.whisper_device === 'cuda'
-                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                        : 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-                    ].join(' ')}>
-                      {systemInfo.whisper_device === 'cuda'
-                        ? `GPU | ${systemInfo.whisper_model}`
-                        : `CPU | ~40-60s/answer`}
-                    </span>
-                  )}
-
-                  {systemInfo.transcription_mode === 'groq' &&
-                    !systemInfo.op_status && (
+                    {systemInfo.transcription_mode === 'groq' && !systemInfo.op_status && (
                       <span className="mt-2 inline-block text-[10px] rounded px-1.5 py-0.5 border font-medium bg-amber-500/10 text-amber-400 border-amber-500/30">
                         Pronunciation accuracy limited
                       </span>
                     )}
-
-                  {systemInfo.op_status === 'failed' && (
-                    <p className="mt-2 text-[10px] text-red-400">
-                      {'\u26A0'} Operation failed - check server logs.
-                    </p>
-                  )}
-                </div>}
-              </>
-            ) : systemInfoError ? (
-              <p className="text-xs text-red-400">Backend offline</p>
-            ) : (
-              <p className="text-xs text-textSecondary">Loading...</p>
+                  </div>
+                )}
+              </div>
             )}
-          </div>
-        </div>
+          </>
+        ) : systemInfoError ? (
+          <p className="text-xs text-red-400">Backend offline</p>
+        ) : (
+          <p className="text-xs text-textSecondary">Loading...</p>
+        )}
       </div>
     </aside>
   )

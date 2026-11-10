@@ -32,6 +32,7 @@ from backend.schemas import (
     InterviewGlossaryCorrectionOut,
     InterviewKeyPointResultOut,
     InterviewMisconceptionResultOut,
+    InterviewSentenceFixOut,
 )
 from backend.services import grammar as grammar_service
 from backend.services import interview_prompts, llm_client
@@ -49,6 +50,7 @@ from backend.services.interview_scoring import (
     merge_verdict,
 )
 from backend.services.llm_client import LLMOutputError, LLMRateLimitError
+from backend.services.sentences import find_span, weak_sentences
 
 logger = logging.getLogger(__name__)
 
@@ -90,9 +92,68 @@ def sha256_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def _anchor_grammar_issues(delivery: dict, transcript: Optional[str]) -> None:
+    """Re-point each grammar issue at the transcript the UI will display.
+
+    Grammar runs on the raw transcript, which glossary corrections and the candidate's
+    own edits then change, so a stored offset can land mid-word or past the end. Each
+    issue is relocated to the occurrence of its own phrase nearest the stored offset;
+    one that no longer appears gets a null offset and simply is not highlighted.
+    """
+    issues = delivery.get("grammar_issues")
+    if not transcript or not isinstance(issues, list):
+        return
+    for issue in issues:
+        if not isinstance(issue, dict):
+            continue
+        span = find_span(transcript, str(issue.get("text") or ""), issue.get("offset"))
+        issue["offset"] = span[0] if span else None
+
+
+def _grammar_offsets(delivery: object, transcript: str) -> list[int]:
+    issues = delivery.get("grammar_issues") if isinstance(delivery, dict) else None
+    offsets = []
+    for issue in issues or []:
+        if not isinstance(issue, dict):
+            continue
+        span = find_span(transcript, str(issue.get("text") or ""), issue.get("offset"))
+        if span is not None:
+            offsets.append(span[0])
+    return offsets
+
+
+def sentence_fix_rows(answer: InterviewAnswer, transcript: str) -> list[dict]:
+    """The sentences worth rewriting, with an empty rewrite until one is asked for.
+
+    Picking them is free and deterministic, so it happens on every grade; only filling
+    in `improved` costs a model call, which the candidate triggers themselves.
+    """
+    offsets = _grammar_offsets(json_or(answer.delivery_details, None), transcript)
+    return [
+        {"original": sentence["text"], "improved": "", "note": "", "reasons": sentence["reasons"]}
+        for sentence in weak_sentences(transcript, offsets)
+    ]
+
+
+def sentence_fixes_for(answer: InterviewAnswer) -> list[dict]:
+    """Stored rows, or freshly picked ones for an answer graded before this existed.
+
+    A null column means the sentences were never picked, which is not the same as an
+    answer with nothing to tighten, so it is recomputed rather than read as empty.
+    """
+    if answer.sentence_fixes is not None:
+        return json_or(answer.sentence_fixes, [])
+    transcript = (answer.transcript or "").strip()
+    if not transcript:
+        return []
+    return sentence_fix_rows(answer, transcript)
+
+
 def answer_out(answer: InterviewAnswer) -> InterviewAnswerOut:
     delivery = json_or(answer.delivery_details, None)
     feedback = json_or(answer.feedback, None)
+    if isinstance(delivery, dict):
+        _anchor_grammar_issues(delivery, answer.transcript)
     return InterviewAnswerOut(
         id=answer.id,
         question_id=answer.question_id,
@@ -114,6 +175,7 @@ def answer_out(answer: InterviewAnswer) -> InterviewAnswerOut:
             InterviewMisconceptionResultOut(**item) for item in json_or(answer.misconceptions_found, [])
         ],
         feedback=InterviewFeedbackOut(**feedback) if isinstance(feedback, dict) else None,
+        sentence_fixes=[InterviewSentenceFixOut(**item) for item in sentence_fixes_for(answer)],
         next_follow_up_question_id=answer.next_follow_up_question_id,
         error_message=answer.error_message,
     )
@@ -686,6 +748,7 @@ async def _grade(session: AsyncSession, answer_id: int, run_token: datetime, set
         key_point_results=json.dumps(results),
         misconceptions_found=json.dumps(misconceptions_found),
         feedback=json.dumps(_feedback(proposal)),
+        sentence_fixes=json.dumps(sentence_fix_rows(answer, transcript)),
         next_follow_up_question_id=next_follow_up,
         error_message=None,
         status="graded",
