@@ -66,3 +66,33 @@ def test_ignore_terms_respect_word_boundaries(monkeypatch):
     matches = [_match(text, "sparkle", "SOME_RULE")]
     monkeypatch.setattr(grammar, "get_lt_tool", lambda: _FakeTool(matches))
     assert len(grammar.check_grammar(text, ["spark"])) == 1
+
+
+def test_advice_without_a_correction_is_not_a_grammar_error(monkeypatch):
+    """Dialect preferences and repetition advice used to count as errors.
+
+    Both lowered the delivery score and buried the real mistakes, and REP_PASSIVE_VOICE
+    arrives with no replacement at all - there is nothing for the candidate to change.
+    """
+    text = "the plan is built afterwards and the data is usually read by the executors"
+    matches = [
+        _match(text, "is built", "REP_PASSIVE_VOICE", "REPETITIONS_STYLE"),
+        _match(text, "afterwards", "AFTERWARDS_US", "BRITISH_ENGLISH"),
+        _match(text, "usually", "EN_REPEATEDWORDS_USUALLY", "REPETITIONS_STYLE"),
+        _match(text, "data is", "SUBJECT_VERB_AGREEMENT"),
+    ]
+    monkeypatch.setattr(grammar, "get_lt_tool", lambda: _FakeTool(matches))
+
+    issues = grammar.check_grammar(text, [])
+
+    assert [issue["rule_id"] for issue in issues] == ["SUBJECT_VERB_AGREEMENT"]
+
+
+def test_a_kept_issue_carries_the_offset_for_highlighting(monkeypatch):
+    text = "yesterday he go to work"
+    monkeypatch.setattr(grammar, "get_lt_tool", lambda: _FakeTool([_match(text, "he go", "HE_VERB_AGR")]))
+
+    (issue,) = grammar.check_grammar(text, [])
+
+    assert issue["offset"] == text.index("he go")
+    assert text[issue["offset"] : issue["offset"] + len(issue["text"])] == "he go"

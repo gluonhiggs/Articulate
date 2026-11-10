@@ -69,6 +69,13 @@ _LT_FILTERED_CATEGORIES: frozenset[str] = frozenset(
         "PUNCTUATION",  # missing / wrong punctuation - transcription artefact
         "STYLE",  # subjective style - not an IELTS speaking criterion
         "REDUNDANCY",  # wordy phrasing - not penalised in IELTS speaking
+        # Word repetition and REP_PASSIVE_VOICE: advice with no correction to make, and
+        # word variety is already measured separately by MTLD. Counting these as errors
+        # both buried the real mistakes and lowered the delivery score for no fault.
+        "REPETITIONS_STYLE",
+        # Dialect preference ("afterwards" -> "afterward"), never a mistake either way.
+        "BRITISH_ENGLISH",
+        "AMERICAN_ENGLISH",
     }
 )
 
