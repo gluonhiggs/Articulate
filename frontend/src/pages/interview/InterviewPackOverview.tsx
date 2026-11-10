@@ -12,6 +12,7 @@ import {
   pickPracticeQuestion,
   ROLE_LABELS,
 } from '../../components/interview/utils'
+import { PACK_FILE_ACCEPT, useImportPack } from '../../hooks/useImportPack'
 import type { InterviewPackDetail } from '../../types/interview'
 
 export function InterviewPackOverview() {
@@ -19,6 +20,7 @@ export function InterviewPackOverview() {
   const packId = Number(packIdStr)
   const navigate = useNavigate()
   const [showJobDescription, setShowJobDescription] = useState(false)
+  const importPack = useImportPack()
 
   const { data: pack, isLoading, isError, error } = useQuery<InterviewPackDetail>({
     queryKey: ['interview', 'pack', packId],
@@ -95,6 +97,22 @@ export function InterviewPackOverview() {
                   <a href={interviewPackReportUrl(pack.id)} download className={outlineButtonClass}>
                     Export report
                   </a>
+                  {/* Beside the exports, because a download and its matching upload belong together. */}
+                  <input
+                    ref={importPack.inputRef}
+                    type="file"
+                    accept={PACK_FILE_ACCEPT}
+                    onChange={importPack.onFileChange}
+                    className="hidden"
+                  />
+                  <button
+                    onClick={importPack.open}
+                    disabled={importPack.pending}
+                    title="Add another pack from a pack file"
+                    className={outlineButtonClass}
+                  >
+                    {importPack.pending ? 'Importing...' : 'Import pack'}
+                  </button>
                 </div>
               </div>
 
@@ -115,6 +133,20 @@ export function InterviewPackOverview() {
                 </div>
               )}
             </div>
+
+            {importPack.error && (
+              <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-4 flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-red-400 text-sm font-medium">Could not import this pack file</p>
+                  <p className="text-red-400/80 text-xs mt-1 whitespace-pre-line break-words">
+                    {apiErrorDetail(importPack.error)}
+                  </p>
+                </div>
+                <button onClick={importPack.reset} className="text-xs text-red-400/80 hover:text-red-300 shrink-0">
+                  Dismiss
+                </button>
+              </div>
+            )}
 
             <TopicReadiness topics={pack.topics} />
 

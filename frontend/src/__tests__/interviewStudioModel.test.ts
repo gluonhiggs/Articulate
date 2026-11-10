@@ -1,3 +1,4 @@
+import { titleFromFilename } from '../components/interview/studio/SourcesTab'
 import {
   approveAllKeyPoints,
   describeDraftError,
@@ -306,5 +307,27 @@ describe('misc helpers', () => {
     expect(isRateLimitError(timeout)).toBe(false)
     expect(describeDraftError(timeout)).toContain('longer than 3 minutes')
     expect(describeDraftError(timeout)).toContain('may still be saved')
+  })
+})
+
+describe('titleFromFilename', () => {
+  it('drops the extension and reads underscores and dashes as spaces', () => {
+    expect(titleFromFilename('postgres_indexes-v2.md')).toBe('postgres indexes v2')
+  })
+
+  it('keeps a name that has no extension', () => {
+    expect(titleFromFilename('README')).toBe('README')
+  })
+
+  it('drops only the last extension, so a dotted name survives', () => {
+    expect(titleFromFilename('spark.sql.notes.txt')).toBe('spark.sql.notes')
+  })
+
+  it('stays within the title field\u2019s own limit', () => {
+    expect(titleFromFilename(`${'a'.repeat(400)}.txt`)).toHaveLength(200)
+  })
+
+  it('returns nothing usable for a dotfile, so the caller keeps asking for a title', () => {
+    expect(titleFromFilename('.gitignore')).toBe('')
   })
 })

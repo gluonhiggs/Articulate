@@ -1,45 +1,24 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { createInterviewPack, fetchInterviewPacks, importInterviewPack } from '../../api/interview'
+import { createInterviewPack, fetchInterviewPacks } from '../../api/interview'
 import { NewPackForm } from '../../components/interview/NewPackForm'
 import { PackCard } from '../../components/interview/PackCard'
 import { outlineButtonClass } from '../../components/interview/ui'
 import { apiErrorDetail } from '../../components/interview/utils'
-import { createLogger, errorData } from '../../lib/log'
+import { PACK_FILE_ACCEPT, useImportPack } from '../../hooks/useImportPack'
 import type { InterviewPackSummary } from '../../types/interview'
-
-const log = createLogger('interview/home')
 
 export function InterviewHome() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const [showNewPack, setShowNewPack] = useState(false)
+  const importPack = useImportPack()
 
   const { data: packs, isLoading, isError, error } = useQuery<InterviewPackSummary[]>({
     queryKey: ['interview', 'packs'],
     queryFn: fetchInterviewPacks,
     staleTime: 0,
-  })
-
-  const importMutation = useMutation({
-    mutationFn: (file: File) => {
-      log.info('pack import start', { name: file.name, bytes: file.size })
-      return importInterviewPack(file)
-    },
-    onSuccess: (pack) => {
-      log.info('pack import ok', {
-        packId: pack.id,
-        title: pack.title,
-        version: pack.version,
-        questions: pack.questions.length,
-        glossary: pack.glossary.length,
-      })
-      void queryClient.invalidateQueries({ queryKey: ['interview'] })
-      navigate(`/interview/packs/${pack.id}`)
-    },
-    onError: (err) => log.error('pack import failed', errorData(err)),
   })
 
   const createMutation = useMutation({
@@ -50,12 +29,6 @@ export function InterviewHome() {
     },
   })
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    e.target.value = ''
-    if (file) importMutation.mutate(file)
-  }
-
   return (
     <div className="flex flex-col min-h-screen">
       <div className="bg-sidebar border-b border-cardBorder px-6 py-4 sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3">
@@ -65,18 +38,14 @@ export function InterviewHome() {
         </div>
         <div className="flex items-center gap-2">
           <input
-            ref={fileInputRef}
+            ref={importPack.inputRef}
             type="file"
-            accept=".json,application/json"
-            onChange={handleFileChange}
+            accept={PACK_FILE_ACCEPT}
+            onChange={importPack.onFileChange}
             className="hidden"
           />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={importMutation.isPending}
-            className={outlineButtonClass}
-          >
-            {importMutation.isPending ? 'Importing...' : 'Import pack'}
+          <button onClick={importPack.open} disabled={importPack.pending} className={outlineButtonClass}>
+            {importPack.pending ? 'Importing...' : 'Import pack'}
           </button>
           <button
             onClick={() => setShowNewPack(true)}
@@ -88,18 +57,15 @@ export function InterviewHome() {
       </div>
 
       <div className="p-6 flex-1 space-y-6">
-        {importMutation.isError && (
+        {importPack.error && (
           <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-4 flex items-start justify-between gap-4">
             <div>
               <p className="text-red-400 text-sm font-medium">Could not import this pack file</p>
               <p className="text-red-400/80 text-xs mt-1 whitespace-pre-line break-words">
-                {apiErrorDetail(importMutation.error)}
+                {apiErrorDetail(importPack.error)}
               </p>
             </div>
-            <button
-              onClick={() => importMutation.reset()}
-              className="text-xs text-red-400/80 hover:text-red-300 shrink-0"
-            >
+            <button onClick={importPack.reset} className="text-xs text-red-400/80 hover:text-red-300 shrink-0">
               Dismiss
             </button>
           </div>
@@ -137,11 +103,8 @@ export function InterviewHome() {
               file they shared with you, or create a new pack and build it in Pack Studio.
             </p>
             <div className="mt-5 flex items-center justify-center gap-2">
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className={outlineButtonClass}
-              >
-                Import pack
+              <button onClick={importPack.open} disabled={importPack.pending} className={outlineButtonClass}>
+                {importPack.pending ? 'Importing...' : 'Import pack'}
               </button>
               <button
                 onClick={() => setShowNewPack(true)}

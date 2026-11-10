@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { addInterviewSource, deleteInterviewSource } from '../../../api/interview'
 import type { InterviewPackDetail, InterviewSourceInput } from '../../../types/interview'
 import { apiErrorDetail } from '../utils'
@@ -22,9 +22,18 @@ interface SourcesTabProps {
 
 const EMPTY_FORM = { title: '', url: '', content: '' }
 
+// Plain text only: anything the browser cannot read as text would arrive as binary noise.
+const TEXT_FILE_ACCEPT = '.txt,.md,.markdown,.csv,.rst,text/plain,text/markdown'
+
+export function titleFromFilename(name: string): string {
+  return name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim().slice(0, 200)
+}
+
 export function SourcesTab({ pack, onDirtyChange }: SourcesTabProps) {
   const queryClient = useQueryClient()
   const [form, setForm] = useState(EMPTY_FORM)
+  const [fileError, setFileError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const dirty = Object.values(form).some((value) => value.trim() !== '')
 
   useEffect(() => onDirtyChange(dirty), [dirty, onDirtyChange])
@@ -44,6 +53,31 @@ export function SourcesTab({ pack, onDirtyChange }: SourcesTabProps) {
 
   function handleAdd() {
     addMutation.mutate({ title: form.title.trim(), url: form.url.trim() || null, content: form.content.trim() })
+  }
+
+  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    setFileError(null)
+    const text = await file.text().catch(() => null)
+    if (text === null) {
+      setFileError(`Could not read ${file.name}.`)
+      return
+    }
+    if (text.trim() === '') {
+      setFileError(`${file.name} has no text in it. A PDF or Word file has to be copied in by hand.`)
+      return
+    }
+    setForm((current) => ({
+      ...current,
+      title: current.title.trim() || titleFromFilename(file.name),
+      // Truncated rather than refused, so a long document still gets most of its text in.
+      content: text.slice(0, MAX_SOURCE_CHARS),
+    }))
+    if (text.length > MAX_SOURCE_CHARS) {
+      setFileError(`${file.name} was cut to the first ${MAX_SOURCE_CHARS.toLocaleString()} characters.`)
+    }
   }
 
   function handleDelete(sourceId: number, title: string) {
@@ -114,7 +148,24 @@ export function SourcesTab({ pack, onDirtyChange }: SourcesTabProps) {
       </section>
 
       <section className={cardClass}>
-        <h3 className="text-sm font-semibold text-textPrimary mb-3">Add source</h3>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <h3 className="text-sm font-semibold text-textPrimary">Add source</h3>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={TEXT_FILE_ACCEPT}
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={addMutation.isPending}
+            className="text-xs text-accent hover:underline disabled:opacity-50"
+          >
+            Load from a text file
+          </button>
+        </div>
         <fieldset disabled={addMutation.isPending} className="space-y-3 min-w-0">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <Field label="Title">
@@ -147,10 +198,11 @@ export function SourcesTab({ pack, onDirtyChange }: SourcesTabProps) {
               maxLength={MAX_SOURCE_CHARS}
               value={form.content}
               onChange={(e) => setForm({ ...form, content: e.target.value })}
-              placeholder="Paste the source text"
+              placeholder="Paste the source text, or load it from a text file"
               className={`${inputClass} font-mono text-xs`}
             />
           </Field>
+          {fileError && <Notice tone="warning">{fileError}</Notice>}
           {addMutation.isError && <Notice tone="error">Could not add source: {apiErrorDetail(addMutation.error)}</Notice>}
           <button type="button" className={primaryButtonClass} disabled={!canAdd} onClick={handleAdd}>
             {addMutation.isPending ? <Spinner /> : <PlusIcon />}
