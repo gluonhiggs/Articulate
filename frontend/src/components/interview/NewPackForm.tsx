@@ -38,7 +38,7 @@ export function NewPackForm({
       <div>
         <p className="text-textPrimary font-semibold text-sm">New interview pack</p>
         <p className="text-textSecondary text-xs mt-1">
-          You can add sources, questions and the approved answer key in Pack Studio next.
+          You can add sources, questions and the approved answer key next, in the pack editor.
         </p>
       </div>
 

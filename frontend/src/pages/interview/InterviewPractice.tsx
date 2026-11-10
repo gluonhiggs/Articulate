@@ -378,7 +378,8 @@ function PracticeSession({ questionId }: { questionId: number }) {
               <div className="rounded-xl border border-amber-500/30 bg-amber-900/20 px-4 py-3">
                 <p className="text-amber-400 text-sm">This question has no approved key points yet.</p>
                 <p className="text-amber-300/70 text-xs mt-1">
-                  Content cannot be graded until the answer key is approved in Pack Studio. Delivery is still measured.
+                  Content cannot be graded until the answer key is approved in the pack editor. Delivery is still
+                  measured.
                 </p>
               </div>
             )}

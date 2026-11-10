@@ -88,14 +88,28 @@ export function InterviewPackOverview() {
                   >
                     Practice
                   </button>
-                  <Link to={`/interview/packs/${pack.id}/studio`} className={outlineButtonClass}>
-                    Pack Studio
+                  <Link
+                    to={`/interview/packs/${pack.id}/studio`}
+                    title="Write questions, approve the answer key, add sources and the glossary"
+                    className={outlineButtonClass}
+                  >
+                    Edit pack
                   </Link>
-                  <a href={interviewPackExportUrl(pack.id)} download className={outlineButtonClass}>
-                    Export pack
+                  <a
+                    href={interviewPackExportUrl(pack.id)}
+                    download
+                    title="Save the questions and answer key as a file you can share"
+                    className={outlineButtonClass}
+                  >
+                    Download pack
                   </a>
-                  <a href={interviewPackReportUrl(pack.id)} download className={outlineButtonClass}>
-                    Export report
+                  <a
+                    href={interviewPackReportUrl(pack.id)}
+                    download
+                    title="Save your transcripts and scores for every answer in this pack"
+                    className={outlineButtonClass}
+                  >
+                    Download my results
                   </a>
                   {/* Beside the exports, because a download and its matching upload belong together. */}
                   <input
@@ -108,10 +122,10 @@ export function InterviewPackOverview() {
                   <button
                     onClick={importPack.open}
                     disabled={importPack.pending}
-                    title="Add another pack from a pack file"
+                    title="Add a different pack from a pack file someone shared with you"
                     className={outlineButtonClass}
                   >
-                    {importPack.pending ? 'Importing...' : 'Import pack'}
+                    {importPack.pending ? 'Uploading...' : 'Upload another pack'}
                   </button>
                 </div>
               </div>
@@ -153,7 +167,7 @@ export function InterviewPackOverview() {
             {pack.questions.length === 0 ? (
               <div className="bg-card/50 border border-dashed border-white/10 rounded-xl p-8 text-center">
                 <p className="text-gray-400 text-sm">No questions in this pack yet</p>
-                <p className="text-gray-500 text-xs mt-1">Open Pack Studio to write or draft questions.</p>
+                <p className="text-gray-500 text-xs mt-1">Use Edit pack to write or draft questions.</p>
               </div>
             ) : (
               <div className="space-y-6">

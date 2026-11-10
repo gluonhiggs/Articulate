@@ -44,8 +44,13 @@ export function InterviewHome() {
             onChange={importPack.onFileChange}
             className="hidden"
           />
-          <button onClick={importPack.open} disabled={importPack.pending} className={outlineButtonClass}>
-            {importPack.pending ? 'Importing...' : 'Import pack'}
+          <button
+            onClick={importPack.open}
+            disabled={importPack.pending}
+            title="Add a pack from a pack file someone shared with you"
+            className={outlineButtonClass}
+          >
+            {importPack.pending ? 'Uploading...' : 'Upload pack'}
           </button>
           <button
             onClick={() => setShowNewPack(true)}
@@ -60,7 +65,7 @@ export function InterviewHome() {
         {importPack.error && (
           <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-4 flex items-start justify-between gap-4">
             <div>
-              <p className="text-red-400 text-sm font-medium">Could not import this pack file</p>
+              <p className="text-red-400 text-sm font-medium">Could not read this pack file</p>
               <p className="text-red-400/80 text-xs mt-1 whitespace-pre-line break-words">
                 {apiErrorDetail(importPack.error)}
               </p>
@@ -99,12 +104,12 @@ export function InterviewHome() {
             <p className="text-textPrimary font-medium">No interview packs yet</p>
             <p className="text-textSecondary text-sm mt-2 leading-relaxed">
               A senior developer or coach prepares a pack for a client interview: the questions, the approved
-              key points a good answer must cover, common misconceptions and follow-up questions. Import the pack
-              file they shared with you, or create a new pack and build it in Pack Studio.
+              key points a good answer must cover, common misconceptions and follow-up questions. Upload the pack
+              file they shared with you, or create a new pack and build it yourself.
             </p>
             <div className="mt-5 flex items-center justify-center gap-2">
               <button onClick={importPack.open} disabled={importPack.pending} className={outlineButtonClass}>
-                {importPack.pending ? 'Importing...' : 'Import pack'}
+                {importPack.pending ? 'Uploading...' : 'Upload pack'}
               </button>
               <button
                 onClick={() => setShowNewPack(true)}

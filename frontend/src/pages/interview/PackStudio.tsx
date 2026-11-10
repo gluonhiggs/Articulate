@@ -20,7 +20,7 @@ const TABS: { id: StudioTab; label: string }[] = [
   { id: 'draft', label: 'Draft with AI' },
   { id: 'questions', label: 'Questions' },
   { id: 'glossary', label: 'Glossary' },
-  { id: 'export', label: 'Export' },
+  { id: 'export', label: 'Download' },
 ]
 
 function isStudioTab(value: string | null): value is StudioTab {
@@ -63,7 +63,7 @@ export function PackStudio() {
   )
 
   const hasUnsavedChanges = Object.values(dirtyTabs).some(Boolean)
-  useUnsavedChangesGuard(hasUnsavedChanges, 'Pack Studio has unsaved changes. Leave without saving them?')
+  useUnsavedChangesGuard(hasUnsavedChanges, 'The pack editor has unsaved changes. Leave without saving them?')
 
   function panelClass(tab: StudioTab): string {
     return activeTab === tab ? '' : 'hidden'
@@ -88,7 +88,7 @@ export function PackStudio() {
             <span className="line-clamp-1">{isLoading ? 'Loading...' : 'Pack'}</span>
           )}
           <span className="text-[10px]">/</span>
-          <span className="text-textPrimary font-medium shrink-0">Pack Studio</span>
+          <span className="text-textPrimary font-medium shrink-0">Edit pack</span>
           {hasUnsavedChanges && (
             <span className="ml-auto text-xs text-amber-300 border border-amber-500/30 bg-amber-500/10 rounded-full px-2 py-0.5 shrink-0">
               Unsaved changes
@@ -99,7 +99,7 @@ export function PackStudio() {
         {pack && (
           <div
             role="tablist"
-            aria-label="Pack Studio sections"
+            aria-label="Pack editor sections"
             className="flex items-center gap-1 bg-background rounded-lg p-1 w-fit max-w-full overflow-x-auto"
           >
             {TABS.map((tab) => (
