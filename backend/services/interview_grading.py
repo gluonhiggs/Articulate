@@ -106,7 +106,7 @@ def _anchor_grammar_issues(delivery: dict, transcript: Optional[str]) -> None:
     for issue in issues:
         if not isinstance(issue, dict):
             continue
-        span = find_span(transcript, str(issue.get("text") or ""), issue.get("offset"))
+        span = find_span(transcript, str(issue.get("text") or ""), issue.get("offset"), whole_word=True)
         issue["offset"] = span[0] if span else None
 
 
@@ -116,7 +116,7 @@ def _grammar_offsets(delivery: object, transcript: str) -> list[int]:
     for issue in issues or []:
         if not isinstance(issue, dict):
             continue
-        span = find_span(transcript, str(issue.get("text") or ""), issue.get("offset"))
+        span = find_span(transcript, str(issue.get("text") or ""), issue.get("offset"), whole_word=True)
         if span is not None:
             offsets.append(span[0])
     return offsets

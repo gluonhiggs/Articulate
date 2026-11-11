@@ -90,20 +90,34 @@ def weak_sentences(
     return sorted(picked[:limit], key=lambda item: item["index"])
 
 
-def find_span(haystack: str, needle: str, expected: Optional[int] = None) -> Optional[tuple[int, int]]:
+def _on_word_boundary(haystack: str, start: int, end: int) -> bool:
+    before_ok = start == 0 or not (haystack[start - 1].isalnum() and haystack[start].isalnum())
+    after_ok = end == len(haystack) or not (haystack[end].isalnum() and haystack[end - 1].isalnum())
+    return before_ok and after_ok
+
+
+def find_span(
+    haystack: str, needle: str, expected: Optional[int] = None, whole_word: bool = False
+) -> Optional[tuple[int, int]]:
     """Locate *needle* in *haystack*, preferring the occurrence nearest *expected*.
 
     Grammar offsets are measured against the raw transcript, which the candidate may
     have edited since, so an offset alone cannot be trusted to still point at the text.
+
+    whole_word rejects an occurrence buried inside a longer word. Without it, a flagged
+    "make" that the candidate has since corrected to "makes" relocates onto the first
+    four letters of the fix, and the correction is then struck through as the mistake.
     """
     if not needle:
         return None
     best: Optional[int] = None
     position = haystack.find(needle)
     while position != -1:
-        if expected is None:
-            return (position, position + len(needle))
-        if best is None or abs(position - expected) < abs(best - expected):
-            best = position
+        end = position + len(needle)
+        if not whole_word or _on_word_boundary(haystack, position, end):
+            if expected is None:
+                return (position, end)
+            if best is None or abs(position - expected) < abs(best - expected):
+                best = position
         position = haystack.find(needle, position + 1)
     return None if best is None else (best, best + len(needle))

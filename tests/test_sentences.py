@@ -99,3 +99,13 @@ class TestFindSpan:
     @pytest.mark.parametrize("needle", ["", "absent"])
     def test_missing_phrases_have_no_span(self, needle: str) -> None:
         assert find_span("the plan is lazy", needle) is None
+
+    def test_whole_word_ignores_a_match_inside_a_longer_word(self) -> None:
+        assert find_span("it makes a plan", "make", 3, whole_word=True) is None
+        assert find_span("it makes a plan", "make", 3) == (3, 7)
+
+    def test_whole_word_keeps_a_match_the_punctuation_touches(self) -> None:
+        assert find_span("a plan, optimized", "plan,", whole_word=True) == (2, 7)
+
+    def test_whole_word_skips_to_a_standalone_occurrence(self) -> None:
+        assert find_span("it makes a plan and i make it", "make", 0, whole_word=True) == (22, 26)

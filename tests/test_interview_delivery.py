@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import pytest
 
+from backend.services.interview_grading import _anchor_grammar_issues
+
 from backend.services.interview_delivery import (
     GRAMMAR_ANCHORS,
     LEXICAL_ANCHORS,
@@ -128,3 +130,28 @@ def test_no_words():
     assert delivery["words"] == 0
     assert delivery["words_per_minute"] is None
     assert delivery["components"] == {}
+
+
+class TestGrammarAnchoring:
+    """
+    Answers graded before the offset field existed are stored without one, and the
+    transcript shown is not the one grammar ran on, so the UI can only highlight what
+    this re-anchoring places.
+    """
+
+    def test_legacy_issue_without_an_offset_is_placed(self):
+        transcript = "right away it make a plan optimize the instruction"
+        delivery = {"grammar_issues": [{"text": "make", "message": "Use makes.", "replacements": ["makes"]}]}
+        _anchor_grammar_issues(delivery, transcript)
+        assert delivery["grammar_issues"][0]["offset"] == transcript.index("make")
+
+    def test_stale_offset_moves_to_the_phrase(self):
+        transcript = "the plan is called lazy"
+        delivery = {"grammar_issues": [{"text": "is called", "offset": 999, "replacements": []}]}
+        _anchor_grammar_issues(delivery, transcript)
+        assert delivery["grammar_issues"][0]["offset"] == 9
+
+    def test_phrase_the_candidate_edited_away_is_not_placed(self):
+        delivery = {"grammar_issues": [{"text": "make", "offset": 14, "replacements": ["makes"]}]}
+        _anchor_grammar_issues(delivery, "right away it makes a plan")
+        assert delivery["grammar_issues"][0]["offset"] is None
