@@ -1,4 +1,7 @@
 import type {
+  CandidateProfile,
+  CandidateProfileInput,
+  CvFile,
   InterviewAnswer,
   InterviewDraftRequest,
   InterviewGlossaryTerm,
@@ -72,6 +75,31 @@ export function deleteInterviewSource(packId: number, sourceId: number): Promise
 export function draftInterviewQuestions(packId: number, request: InterviewDraftRequest): Promise<InterviewQuestion[]> {
   return apiFetch<InterviewQuestion[]>(`/interview/packs/${packId}/draft`, {
     ...jsonBody('POST', request),
+    signal: AbortSignal.timeout(LLM_TIMEOUT_MS),
+  })
+}
+
+export function fetchCandidateProfile(): Promise<CandidateProfile> {
+  return apiFetch<CandidateProfile>('/interview/profile')
+}
+
+export function saveCandidateProfile(input: CandidateProfileInput): Promise<CandidateProfile> {
+  return apiFetch<CandidateProfile>('/interview/profile', jsonBody('PUT', input))
+}
+
+export function readCvFile(file: File): Promise<CvFile> {
+  const formData = new FormData()
+  formData.append('file', file)
+  return apiFetch<CvFile>('/interview/profile/cv-file', {
+    method: 'POST',
+    body: formData,
+    signal: AbortSignal.timeout(60_000),
+  })
+}
+
+export function draftIntroductionQuestion(packId: number): Promise<InterviewQuestion[]> {
+  return apiFetch<InterviewQuestion[]>(`/interview/packs/${packId}/introduction`, {
+    method: 'POST',
     signal: AbortSignal.timeout(LLM_TIMEOUT_MS),
   })
 }

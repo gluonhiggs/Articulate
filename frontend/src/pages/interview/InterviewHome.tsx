@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { createInterviewPack, fetchInterviewPacks } from '../../api/interview'
 import { NewPackForm } from '../../components/interview/NewPackForm'
 import { PackCard } from '../../components/interview/PackCard'
@@ -44,6 +44,13 @@ export function InterviewHome() {
             onChange={importPack.onFileChange}
             className="hidden"
           />
+          <Link
+            to="/interview/cv"
+            title="Your CV, used to write the introduction question about your own projects"
+            className={outlineButtonClass}
+          >
+            My CV
+          </Link>
           <button
             onClick={importPack.open}
             disabled={importPack.pending}

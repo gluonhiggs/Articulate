@@ -108,6 +108,7 @@ export function newFollowUpInput(): InterviewFollowUpInput {
 export function newQuestionInput(topic = ''): InterviewQuestionInput {
   return {
     topic,
+    kind: 'technical',
     text: '',
     answer_seconds: 120,
     key_points: [newKeyPointInput()],
@@ -129,6 +130,7 @@ function keyPointToInput(keyPoint: InterviewKeyPoint): InterviewKeyPointInput {
 export function questionToInput(question: InterviewQuestion): InterviewQuestionInput {
   return {
     topic: question.topic,
+    kind: question.kind,
     text: question.text,
     answer_seconds: question.answer_seconds,
     key_points: question.key_points.map(keyPointToInput),
@@ -167,6 +169,7 @@ export function toQuestionPayload(input: InterviewQuestionInput): InterviewQuest
   const keyPointUids = new Set(keyPoints.map((keyPoint) => keyPoint.uid))
   return {
     topic: input.topic.trim(),
+    kind: input.kind,
     text: input.text.trim(),
     answer_seconds: input.answer_seconds,
     key_points: keyPoints,

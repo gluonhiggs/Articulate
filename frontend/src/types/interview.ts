@@ -42,6 +42,8 @@ export interface InterviewPackSummary {
   updated_at: string
 }
 
+export type InterviewQuestionKind = 'technical' | 'behavioural'
+
 export interface InterviewKeyPointInput {
   uid?: string | null
   text: string
@@ -84,6 +86,7 @@ export interface InterviewFollowUpInput {
 
 export interface InterviewQuestionInput {
   topic: string
+  kind: InterviewQuestionKind
   text: string
   answer_seconds: number
   key_points: InterviewKeyPointInput[]
@@ -98,6 +101,7 @@ export interface InterviewQuestion {
   parent_question_id: number | null
   trigger_key_point_uid: string | null
   topic: string
+  kind: InterviewQuestionKind
   text: string
   answer_seconds: number
   retired: boolean
@@ -226,4 +230,26 @@ export interface InterviewAnswer {
   sentence_fixes: InterviewSentenceFix[]
   next_follow_up_question_id: number | null
   error_message: string | null
+}
+
+export interface CandidateProfile {
+  full_name: string
+  target_role: string
+  cv_text: string
+  cv_filename: string
+  has_cv: boolean
+}
+
+export interface CandidateProfileInput {
+  full_name: string
+  target_role: string
+  cv_text: string
+  cv_filename: string
+}
+
+export interface CvFile {
+  filename: string
+  text: string
+  characters: number
+  truncated: boolean
 }
