@@ -21,7 +21,7 @@ Requirements:
 - Never require anything the CV does not support. A key point the candidate has no way to satisfy is a wrong key point.
 - Where the job description asks for something the CV also shows, make one key point ask the candidate to connect the two.
 - importance is "core" for what the answer fails without (at least one per question), "supporting" for what a good answer includes, "detail" for extra depth.
-- answer_seconds: 90 to 180.
+- answer_seconds: 150 to 180. An introduction that names a project, the decision behind it and a number cannot be said in less.
 - Use plain, clear English.
 
 Return only JSON that matches the schema.

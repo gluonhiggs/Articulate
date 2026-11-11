@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { createInterviewPack, fetchInterviewPacks } from '../../api/interview'
+import { AboutYouSection } from '../../components/interview/AboutYouSection'
 import { NewPackForm } from '../../components/interview/NewPackForm'
 import { PackCard } from '../../components/interview/PackCard'
 import { outlineButtonClass } from '../../components/interview/ui'
@@ -127,11 +128,17 @@ export function InterviewHome() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {packs.map((pack) => (
-              <PackCard key={pack.id} pack={pack} />
-            ))}
-          </div>
+          <>
+            <AboutYouSection jobs={packs} />
+            <section className="space-y-2">
+              <h2 className="text-textPrimary font-semibold">Questionnaires</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {packs.map((pack) => (
+                  <PackCard key={pack.id} pack={pack} />
+                ))}
+              </div>
+            </section>
+          </>
         )}
       </div>
     </div>

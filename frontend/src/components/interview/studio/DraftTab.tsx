@@ -1,11 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useId, useState } from 'react'
-import { Link } from 'react-router-dom'
-import {
-  draftInterviewQuestions,
-  draftIntroductionQuestion,
-  fetchCandidateProfile,
-} from '../../../api/interview'
+import { draftInterviewQuestions } from '../../../api/interview'
 import { createLogger, errorData } from '../../../lib/log'
 import type { InterviewDraftRequest, InterviewPackDetail } from '../../../types/interview'
 import {
@@ -39,20 +34,6 @@ interface DraftTabProps {
 
 export function DraftTab({ pack, onDrafted, onOpenTab }: DraftTabProps) {
   const queryClient = useQueryClient()
-  const { data: profile } = useQuery({ queryKey: ['interview', 'profile'], queryFn: fetchCandidateProfile })
-
-  const introductionMutation = useMutation({
-    mutationFn: () => {
-      log.info('introduction start', { packId: pack.id })
-      return draftIntroductionQuestion(pack.id)
-    },
-    onSuccess: async (questions) => {
-      log.info('introduction ok', { packId: pack.id, ids: questions.map((q) => q.id) })
-      await queryClient.invalidateQueries({ queryKey: ['interview'] })
-      onDrafted(questions.map((question) => question.id))
-    },
-    onError: (error) => log.error(`introduction failed for pack ${pack.id}`, errorData(error)),
-  })
   const topicsListId = useId()
   const [topic, setTopic] = useState('')
   const [count, setCount] = useState(3)
@@ -121,53 +102,6 @@ export function DraftTab({ pack, onDrafted, onOpenTab }: DraftTabProps) {
           This questionnaire has no job description. Add one in Details so the questions match the client role.
         </Notice>
       )}
-
-      <div className={cardClass}>
-        <h3 className="text-sm font-semibold text-textPrimary">Introduce yourself, from your CV</h3>
-        <p className="text-sm text-textSecondary mt-1">
-          Every interview opens with it, and the answer key can only be written from your own history. The AI reads
-          the CV saved on this computer and writes one behavioural question whose key points name your projects. Your
-          CV is not stored in the questionnaire and does not travel with the downloaded file.
-        </p>
-        <div className="flex flex-wrap items-center gap-3 mt-4">
-          <button
-            type="button"
-            className={secondaryButtonClass}
-            disabled={!profile?.has_cv || introductionMutation.isPending || draftMutation.isPending}
-            onClick={() => introductionMutation.mutate()}
-          >
-            {introductionMutation.isPending && <Spinner />}
-            {introductionMutation.isPending ? 'Writing...' : 'Add the introduction question'}
-          </button>
-          {!profile?.has_cv && (
-            <Link to="/interview/cv" className="text-xs text-accent hover:underline">
-              Add your CV first
-            </Link>
-          )}
-        </div>
-        {introductionMutation.isError && (
-          <div className="mt-3">
-            <Notice tone={isRateLimitError(introductionMutation.error) ? 'warning' : 'error'}>
-              {describeDraftError(introductionMutation.error)}
-            </Notice>
-          </div>
-        )}
-        {introductionMutation.isSuccess && (
-          <div className="mt-3">
-            <Notice tone="success">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="flex-1">
-                  Added under the topic &ldquo;About you&rdquo;, ready to practise. Its key points are approved
-                  already, because they describe your own history.
-                </span>
-                <button type="button" className={secondaryButtonClass} onClick={() => onOpenTab('questions')}>
-                  Review it
-                </button>
-              </div>
-            </Notice>
-          </div>
-        )}
-      </div>
 
       <div className={cardClass}>
         <datalist id={topicsListId}>

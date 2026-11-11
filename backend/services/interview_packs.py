@@ -81,6 +81,10 @@ INTRODUCTION_COUNT = 1
 INTRODUCTION_MIN_KEY_POINTS = 2
 INTRODUCTION_MIN_CV_CHARS = 200
 CV_CHAR_LIMIT = 24_000
+PERSONAL_PACK_TITLE = "About you"
+# An introduction names a project, the decision behind it and a number. Two minutes
+# cuts the recording off mid-sentence, because answer_seconds stops the microphone.
+INTRODUCTION_MIN_SECONDS = 150
 SOURCE_PREVIEW_CHARS = 200
 MAX_VALIDATION_ERRORS_SHOWN = 5
 
@@ -788,6 +792,7 @@ def _summary_fields(pack: InterviewPack, stats: dict[int, _QuestionStats]) -> di
 async def pack_summaries(session: AsyncSession) -> list[InterviewPackSummaryOut]:
     result = await session.execute(
         select(InterviewPack)
+        .where(InterviewPack.personal.is_(False))
         .options(selectinload(InterviewPack.questions))
         .order_by(InterviewPack.updated_at.desc(), InterviewPack.id.desc())
         .execution_options(populate_existing=True)
@@ -992,20 +997,64 @@ def _introduction_upsert(item: dict) -> Optional[InterviewQuestionUpsert]:
         topic=INTRODUCTION_TOPIC,
         kind="behavioural",
         text=text,
-        answer_seconds=_answer_seconds(item.get("answer_seconds"), DEFAULT_QUESTION_SECONDS),
+        answer_seconds=max(
+            INTRODUCTION_MIN_SECONDS, _answer_seconds(item.get("answer_seconds"), INTRODUCTION_MIN_SECONDS)
+        ),
         key_points=key_points,
     )
 
 
+async def load_personal_pack(session: AsyncSession) -> Optional[InterviewPack]:
+    result = await session.execute(_pack_query().where(InterviewPack.personal.is_(True)))
+    return result.scalars().first()
+
+
+async def load_or_create_personal_pack(session: AsyncSession, profile: CandidateProfile) -> InterviewPack:
+    """
+    The candidate's own questionnaire, which holds the questions about them.
+
+    It is kept out of the questionnaire list, because that list is client work and this
+    one belongs to the person practising.
+    """
+    pack = await load_personal_pack(session)
+    if pack is not None:
+        return pack
+    pack = InterviewPack(
+        uid=new_uid(),
+        title=PERSONAL_PACK_TITLE,
+        role="other",
+        level="mid",
+        job_description="",
+        author=profile.full_name.strip(),
+        version=1,
+        personal=True,
+        created_at=utc_now(),
+        updated_at=utc_now(),
+    )
+    session.add(pack)
+    await session.flush()
+    await session.refresh(pack, ["questions", "sources", "glossary_terms"])
+    return pack
+
+
 async def draft_introduction(
-    session: AsyncSession, pack: InterviewPack, profile: CandidateProfile, count: int = INTRODUCTION_COUNT
+    session: AsyncSession,
+    pack: InterviewPack,
+    profile: CandidateProfile,
+    job: Optional[InterviewPack] = None,
+    count: int = INTRODUCTION_COUNT,
 ) -> list[int]:
     """
-    Add the opening "introduce yourself" question to this questionnaire, keyed to the CV.
+    Add the opening "introduce yourself" question, keyed to the CV.
+
+    job is the client questionnaire the candidate is preparing for, when they picked one:
+    only its role, level and job description are read, so the question can ask them to
+    connect their own history to what that client wants.
 
     The CV is sent to the drafter and nothing else keeps it: it is never written into the
     questionnaire, so exporting the file does not carry the candidate's history with it.
     """
+    aimed_at = job or pack
     cv = profile.cv_text.strip()
     if len(cv) < INTRODUCTION_MIN_CV_CHARS:
         raise InterviewPackError(
@@ -1014,10 +1063,10 @@ async def draft_introduction(
         )
     settings = get_settings()
     prompt = interview_prompts.build_introduction_prompt(
-        role=pack.role,
-        level=pack.level,
+        role=aimed_at.role,
+        level=aimed_at.level,
         cv=cv[:CV_CHAR_LIMIT],
-        job_description=pack.job_description,
+        job_description=aimed_at.job_description,
         count=count,
     )
     output = await llm_client.generate_json(

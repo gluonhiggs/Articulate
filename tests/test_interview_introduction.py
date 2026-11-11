@@ -6,7 +6,11 @@ arrive as a question the grader can score: behavioural, with approved key points
 from __future__ import annotations
 
 from backend.services import interview_prompts
-from backend.services.interview_packs import INTRODUCTION_TOPIC, _introduction_upsert
+from backend.services.interview_packs import (
+    INTRODUCTION_MIN_SECONDS,
+    INTRODUCTION_TOPIC,
+    _introduction_upsert,
+)
 
 KEY_POINTS = [
     {"text": "names the project and what it was for", "importance": "core"},
@@ -57,7 +61,12 @@ class TestIntroductionUpsert:
 
     def test_clamps_an_answer_time_outside_the_allowed_range(self) -> None:
         assert _introduction_upsert(item(answer_seconds=9999)).answer_seconds == 600
-        assert _introduction_upsert(item(answer_seconds=None)).answer_seconds == 120
+
+    def test_never_cuts_the_recording_shorter_than_an_introduction_takes(self) -> None:
+        # answer_seconds stops the microphone, so a short value truncates the answer.
+        assert _introduction_upsert(item(answer_seconds=90)).answer_seconds == INTRODUCTION_MIN_SECONDS
+        assert _introduction_upsert(item(answer_seconds=None)).answer_seconds == INTRODUCTION_MIN_SECONDS
+        assert _introduction_upsert(item(answer_seconds=180)).answer_seconds == 180
 
 
 class TestBehaviouralGrading:

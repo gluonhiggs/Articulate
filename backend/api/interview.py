@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile
 from fastapi.responses import FileResponse, Response
@@ -40,6 +40,7 @@ from backend.schemas import (
     InterviewQuestionUpsert,
     InterviewSourceIn,
     InterviewSourceOut,
+    IntroductionRequest,
 )
 from backend.services import audio as audio_service
 from backend.services import cv_import, interview_grading, interview_packs, interview_sentences
@@ -153,6 +154,47 @@ async def read_cv_file(file: UploadFile) -> CvFileOut:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     logger.info("CV file %r read: %d bytes -> %d characters", filename, len(data), len(text))
     return CvFileOut(filename=filename, text=text, characters=len(text), truncated=truncated)
+
+
+@router.get("/about-you", response_model=Optional[InterviewPackDetailOut])
+async def get_about_you(db: AsyncSession = Depends(get_db)) -> Optional[InterviewPackDetailOut]:
+    """The candidate's own questions, or null before the first one is written."""
+    pack = await interview_packs.load_personal_pack(db)
+    return None if pack is None else await _detail(db, pack.id)
+
+
+@router.post("/about-you/introduction", response_model=InterviewPackDetailOut)
+async def draft_introduction(
+    body: IntroductionRequest, db: AsyncSession = Depends(get_db)
+) -> InterviewPackDetailOut:
+    """Write an introduction question from the CV, into the candidate's own questionnaire."""
+    profile = await _profile(db)
+    job = await _pack_or_404(db, body.job_pack_id) if body.job_pack_id is not None else None
+    pack = await interview_packs.load_or_create_personal_pack(db, profile)
+    logger.info(
+        "About you: writing the introduction question from a %d character CV, aimed at %s, with %s",
+        len(profile.cv_text),
+        job.title if job else "no job",
+        get_settings().interview_drafter_model,
+    )
+    try:
+        question_ids = await interview_packs.draft_introduction(db, pack, profile, job)
+    except InterviewPackError as exc:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except LLMRateLimitError as exc:
+        await db.rollback()
+        raise HTTPException(
+            status_code=429,
+            detail="The Gemini drafter's free-tier quota is reached for now. Please try again later.",
+        ) from exc
+    except RuntimeError as exc:
+        logger.exception("About you: the introduction question failed")
+        await db.rollback()
+        raise HTTPException(status_code=502, detail=f"Writing the question failed: {exc}") from exc
+    await db.commit()
+    logger.info("About you: introduction question id(s) %s", question_ids)
+    return await _detail(db, pack.id)
 
 
 @router.get("/packs", response_model=List[InterviewPackSummaryOut])
@@ -354,37 +396,6 @@ async def draft_questions(
         raise HTTPException(status_code=502, detail=f"Drafting failed: {exc}") from exc
     await db.commit()
     logger.info("Interview pack %d: drafted question id(s) %s", pack_id, question_ids)
-    return [await _question_out(db, question_id) for question_id in question_ids]
-
-
-@router.post("/packs/{pack_id}/introduction", response_model=List[InterviewQuestionOut])
-async def draft_introduction(pack_id: int, db: AsyncSession = Depends(get_db)) -> List[InterviewQuestionOut]:
-    """Write the opening question of this questionnaire from the CV saved on this computer."""
-    pack = await _pack_or_404(db, pack_id)
-    profile = await _profile(db)
-    logger.info(
-        "Interview pack %d: writing the introduction question from a %d character CV with %s",
-        pack_id,
-        len(profile.cv_text),
-        get_settings().interview_drafter_model,
-    )
-    try:
-        question_ids = await interview_packs.draft_introduction(db, pack, profile)
-    except InterviewPackError as exc:
-        await db.rollback()
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except LLMRateLimitError as exc:
-        await db.rollback()
-        raise HTTPException(
-            status_code=429,
-            detail="The Gemini drafter's free-tier quota is reached for now. Please try again later.",
-        ) from exc
-    except RuntimeError as exc:
-        logger.exception("Interview pack %d: the introduction question failed", pack_id)
-        await db.rollback()
-        raise HTTPException(status_code=502, detail=f"Writing the question failed: {exc}") from exc
-    await db.commit()
-    logger.info("Interview pack %d: introduction question id(s) %s", pack_id, question_ids)
     return [await _question_out(db, question_id) for question_id in question_ids]
 
 @router.post("/packs/{pack_id}/questions", response_model=InterviewQuestionOut, status_code=201)

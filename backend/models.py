@@ -101,6 +101,7 @@ class InterviewPack(Base):
     job_description: Mapped[str] = mapped_column(Text, default="")
     author: Mapped[str] = mapped_column(String(100), default="")
     version: Mapped[int] = mapped_column(Integer, default=1)
+    personal: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
 
