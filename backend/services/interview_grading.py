@@ -381,20 +381,35 @@ async def _propose(
     shuffled = list(key_points)
     # Shuffled so the model cannot lean on the coach's ordering; seeded so a retry sends the same prompt.
     random.Random(sha256_text(transcript)).shuffle(shuffled)
-    prompt = interview_prompts.build_grade_prompt(
-        role=pack.role,
-        level=pack.level,
-        question=question.text,
-        key_points=[(kp.uid, kp.weight, kp.text) for kp in shuffled],
-        misconceptions=[(m.uid, m.text) for m in question.misconceptions],
-        transcript=transcript,
-    )
+    listed = [(kp.uid, kp.weight, kp.text) for kp in shuffled]
+    behavioural = question.kind == "behavioural"
+    if behavioural:
+        prompt = interview_prompts.build_behavioural_grade_prompt(
+            question=question.text,
+            key_points=listed,
+            transcript=transcript,
+        )
+        verdicts = interview_prompts.BEHAVIOURAL_VERDICTS
+    else:
+        prompt = interview_prompts.build_grade_prompt(
+            role=pack.role,
+            level=pack.level,
+            question=question.text,
+            key_points=listed,
+            misconceptions=[(m.uid, m.text) for m in question.misconceptions],
+            transcript=transcript,
+        )
+        verdicts = interview_prompts.PROPOSER_VERDICTS
     return await llm_client.generate_json(
         base_url=settings.llm_base_url,
         model=settings.interview_grader_model,
         prompt=prompt,
         api_key=settings.llm_api_key,
-        schema=interview_prompts.grade_schema([kp.uid for kp in shuffled], [m.uid for m in question.misconceptions]),
+        schema=interview_prompts.grade_schema(
+            [kp.uid for kp in shuffled],
+            [] if behavioural else [m.uid for m in question.misconceptions],
+            verdicts,
+        ),
         schema_name="interview_answer_grade",
     )
 

@@ -206,6 +206,7 @@ class SetTranscriptionModeRequest(BaseModel):
 
 InterviewRole = Literal["swe", "be", "fe", "de", "da", "ds", "other"]
 InterviewLevel = Literal["junior", "mid", "senior"]
+InterviewQuestionKind = Literal["technical", "behavioural"]
 KeyPointVerdict = Literal["covered", "partial", "missing", "incorrect"]
 ContentBand = Literal["strong", "developing", "weak", "incorrect", "ungraded"]
 InterviewAnswerStatus = Literal[
@@ -274,6 +275,7 @@ class PackFileFollowUp(BaseModel):
 class PackFileQuestion(BaseModel):
     id: Optional[str] = Field(None, max_length=36)
     topic: str = Field("", max_length=100)
+    kind: InterviewQuestionKind = "technical"
     text: str = Field(min_length=1, max_length=QUESTION_TEXT_MAX)
     answer_seconds: int = Field(DEFAULT_QUESTION_SECONDS, ge=ANSWER_SECONDS_MIN, le=ANSWER_SECONDS_MAX)
     key_points: List[PackFileKeyPoint] = Field(default_factory=list, max_length=MAX_KEY_POINTS)
@@ -312,6 +314,31 @@ class PackFile(BaseModel):
     glossary: List[PackFileGlossaryTerm] = Field(default_factory=list, max_length=500)
     sources: List[PackFileSource] = Field(default_factory=list, max_length=50)
     questions: List[PackFileQuestion] = Field(default_factory=list, max_length=300)
+
+
+CV_TEXT_MAX = 60_000
+
+
+class CandidateProfileIn(BaseModel):
+    full_name: str = Field("", max_length=120)
+    target_role: str = Field("", max_length=120)
+    cv_text: str = Field("", max_length=CV_TEXT_MAX)
+    cv_filename: str = Field("", max_length=260)
+
+
+class CandidateProfileOut(BaseModel):
+    full_name: str
+    target_role: str
+    cv_text: str
+    cv_filename: str
+    has_cv: bool
+
+
+class CvFileOut(BaseModel):
+    filename: str
+    text: str
+    characters: int
+    truncated: bool
 
 
 class InterviewPackCreate(BaseModel):
@@ -389,6 +416,7 @@ class InterviewFollowUpIn(BaseModel):
 
 class InterviewQuestionUpsert(BaseModel):
     topic: str = Field("", max_length=100)
+    kind: InterviewQuestionKind = "technical"
     text: str = Field(min_length=1, max_length=QUESTION_TEXT_MAX)
     answer_seconds: int = Field(DEFAULT_QUESTION_SECONDS, ge=ANSWER_SECONDS_MIN, le=ANSWER_SECONDS_MAX)
     key_points: List[InterviewKeyPointIn] = Field(default_factory=list, max_length=MAX_KEY_POINTS)
@@ -403,6 +431,7 @@ class InterviewQuestionOut(BaseModel):
     parent_question_id: Optional[int] = None
     trigger_key_point_uid: Optional[str] = None
     topic: str
+    kind: InterviewQuestionKind = "technical"
     text: str
     answer_seconds: int
     retired: bool = False

@@ -21,6 +21,7 @@ from sqlalchemy.orm import selectinload
 from backend.config import get_settings
 from backend.constants import PROJECT_ROOT
 from backend.models import (
+    CandidateProfile,
     InterviewAnswer,
     InterviewGlossaryTerm,
     InterviewKeyPoint,
@@ -75,6 +76,11 @@ MAX_PACK_FILE_BYTES = 5 * 1024 * 1024
 SEED_PACKS_DIR = PROJECT_ROOT / "data" / "interview_packs"
 DRAFT_SOURCES_CHAR_LIMIT = 24_000
 DRAFT_EXISTING_QUESTIONS_CHAR_LIMIT = 8_000
+INTRODUCTION_TOPIC = "About you"
+INTRODUCTION_COUNT = 1
+INTRODUCTION_MIN_KEY_POINTS = 2
+INTRODUCTION_MIN_CV_CHARS = 200
+CV_CHAR_LIMIT = 24_000
 SOURCE_PREVIEW_CHARS = 200
 MAX_VALIDATION_ERRORS_SHOWN = 5
 
@@ -382,6 +388,7 @@ class _PackWriter:
         question.trigger_key_point_uid = None
         question.retired = False
         question.topic = payload.topic.strip()
+        question.kind = payload.kind
         question.text = payload.text.strip()
         question.answer_seconds = payload.answer_seconds
         question.position = position
@@ -400,6 +407,7 @@ class _PackWriter:
             follow_up.trigger_key_point_uid = trigger if trigger in own_key_point_uids else None
             follow_up.retired = False
             follow_up.topic = question.topic
+            follow_up.kind = question.kind
             follow_up.text = item.text.strip()
             follow_up.answer_seconds = item.answer_seconds
             follow_up.position = follow_up_position
@@ -492,6 +500,7 @@ def _misconception_in(item: PackFileMisconception) -> InterviewMisconceptionIn:
 def _question_upsert(item: PackFileQuestion) -> InterviewQuestionUpsert:
     return InterviewQuestionUpsert(
         topic=item.topic,
+        kind=item.kind,
         text=item.text,
         answer_seconds=item.answer_seconds,
         key_points=[_key_point_in(kp) for kp in item.key_points],
@@ -597,6 +606,7 @@ def export_pack(pack: InterviewPack) -> PackFile:
             PackFileQuestion(
                 id=question.uid,
                 topic=question.topic,
+                kind=question.kind,
                 text=question.text,
                 answer_seconds=question.answer_seconds,
                 key_points=key_points(question),
@@ -717,6 +727,7 @@ def _question_out(
         parent_question_id=question.parent_question_id,
         trigger_key_point_uid=question.trigger_key_point_uid,
         topic=question.topic,
+        kind=question.kind,
         text=question.text,
         answer_seconds=question.answer_seconds,
         retired=question.retired,
@@ -956,6 +967,87 @@ async def draft_questions(session: AsyncSession, pack: InterviewPack, request: I
 
     return await create_questions(session, pack, payloads[: request.count])
 
+
+def _introduction_upsert(item: dict) -> Optional[InterviewQuestionUpsert]:
+    """
+    One behavioural question with its key points approved as written.
+
+    A technical answer key waits for a coach, who knows the subject better than the
+    candidate. This one is about the candidate's own history, so they are the reviewer,
+    and the question is practisable the moment it is written.
+    """
+    text = str(item.get("text") or "").strip()[:QUESTION_TEXT_MAX]
+    key_points = []
+    for point in item.get("key_points") if isinstance(item.get("key_points"), list) else []:
+        if not isinstance(point, dict):
+            continue
+        point_text = str(point.get("text") or "").strip()[:KEY_POINT_TEXT_MAX]
+        if not point_text:
+            continue
+        weight = interview_prompts.WEIGHT_BY_IMPORTANCE.get(str(point.get("importance")), 2)
+        key_points.append(InterviewKeyPointIn(text=point_text, weight=weight, approved=True))
+    if not text or len(key_points) < INTRODUCTION_MIN_KEY_POINTS:
+        return None
+    return InterviewQuestionUpsert(
+        topic=INTRODUCTION_TOPIC,
+        kind="behavioural",
+        text=text,
+        answer_seconds=_answer_seconds(item.get("answer_seconds"), DEFAULT_QUESTION_SECONDS),
+        key_points=key_points,
+    )
+
+
+async def draft_introduction(
+    session: AsyncSession, pack: InterviewPack, profile: CandidateProfile, count: int = INTRODUCTION_COUNT
+) -> list[int]:
+    """
+    Add the opening "introduce yourself" question to this questionnaire, keyed to the CV.
+
+    The CV is sent to the drafter and nothing else keeps it: it is never written into the
+    questionnaire, so exporting the file does not carry the candidate's history with it.
+    """
+    cv = profile.cv_text.strip()
+    if len(cv) < INTRODUCTION_MIN_CV_CHARS:
+        raise InterviewPackError(
+            f"Add your CV first. It has {len(cv)} characters and at least "
+            f"{INTRODUCTION_MIN_CV_CHARS} are needed to write an answer key from."
+        )
+    settings = get_settings()
+    prompt = interview_prompts.build_introduction_prompt(
+        role=pack.role,
+        level=pack.level,
+        cv=cv[:CV_CHAR_LIMIT],
+        job_description=pack.job_description,
+        count=count,
+    )
+    output = await llm_client.generate_json(
+        base_url=settings.llm_base_url,
+        model=settings.interview_drafter_model,
+        prompt=prompt,
+        api_key=settings.llm_api_key,
+        schema=interview_prompts.introduction_schema(),
+        schema_name="interview_introduction",
+        temperature=0.3,
+        max_tokens=8192,
+        timeout=150.0,
+    )
+
+    payloads = []
+    for item in output.get("questions") if isinstance(output.get("questions"), list) else []:
+        if not isinstance(item, dict):
+            continue
+        try:
+            upsert = _introduction_upsert(item)
+        except ValidationError as exc:
+            logger.warning("Skipping introduction question that failed validation: %s", exc)
+            continue
+        if upsert is not None:
+            payloads.append(upsert)
+    logger.info("INTERVIEW INTRODUCTION: cv=%d chars, asked for %d, kept %d", len(cv), count, len(payloads))
+    if not payloads:
+        raise llm_client.LLMOutputError("The drafter returned no usable question. Add more detail to your CV.")
+
+    return await create_questions(session, pack, payloads[:count])
 
 async def seed_sample_packs(session: AsyncSession, packs_dir: Path = SEED_PACKS_DIR) -> None:
     """Import bundled sample packs whose uid is not in the database yet (additive; never overwrites)."""

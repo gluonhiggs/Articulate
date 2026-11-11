@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.config import get_settings
 from backend.database import get_db
 from backend.models import (
+    CandidateProfile,
     InterviewAnswer,
     InterviewGlossaryTerm,
     InterviewKeyPoint,
@@ -22,6 +23,10 @@ from backend.models import (
     InterviewSource,
 )
 from backend.schemas import (
+    CV_TEXT_MAX,
+    CandidateProfileIn,
+    CandidateProfileOut,
+    CvFileOut,
     InterviewAnswerOut,
     InterviewDraftRequest,
     InterviewGlossaryTermIn,
@@ -37,8 +42,9 @@ from backend.schemas import (
     InterviewSourceOut,
 )
 from backend.services import audio as audio_service
-from backend.services import interview_grading, interview_packs, interview_sentences
+from backend.services import cv_import, interview_grading, interview_packs, interview_sentences
 from backend.services.audio import EXT_TO_MIME
+from backend.services.cv_import import CvReadError
 from backend.services.interview_packs import InterviewPackError, utc_now
 from backend.services.llm_client import LLMRateLimitError
 from backend.services.tts import get_or_generate_tts
@@ -91,6 +97,62 @@ def _json_download(payload: object, filename: str) -> Response:
         media_type="application/json",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+PROFILE_ID = 1
+
+
+async def _profile(db: AsyncSession) -> CandidateProfile:
+    """The one profile row on this computer, created empty the first time it is asked for."""
+    profile = await db.get(CandidateProfile, PROFILE_ID)
+    if profile is None:
+        profile = CandidateProfile(id=PROFILE_ID)
+        db.add(profile)
+        await db.commit()
+        await db.refresh(profile)
+    return profile
+
+
+def _profile_out(profile: CandidateProfile) -> CandidateProfileOut:
+    return CandidateProfileOut(
+        full_name=profile.full_name,
+        target_role=profile.target_role,
+        cv_text=profile.cv_text,
+        cv_filename=profile.cv_filename,
+        has_cv=bool(profile.cv_text.strip()),
+    )
+
+
+@router.get("/profile", response_model=CandidateProfileOut)
+async def get_profile(db: AsyncSession = Depends(get_db)) -> CandidateProfileOut:
+    return _profile_out(await _profile(db))
+
+
+@router.put("/profile", response_model=CandidateProfileOut)
+async def update_profile(body: CandidateProfileIn, db: AsyncSession = Depends(get_db)) -> CandidateProfileOut:
+    profile = await _profile(db)
+    profile.full_name = body.full_name.strip()
+    profile.target_role = body.target_role.strip()
+    profile.cv_text = cv_import.tidy(body.cv_text)
+    profile.cv_filename = body.cv_filename.strip()
+    profile.updated_at = utc_now()
+    await db.commit()
+    logger.info("Candidate profile saved: cv=%d chars from %r", len(profile.cv_text), profile.cv_filename)
+    return _profile_out(profile)
+
+
+@router.post("/profile/cv-file", response_model=CvFileOut)
+async def read_cv_file(file: UploadFile) -> CvFileOut:
+    """Turn an uploaded CV into text without storing it; the candidate saves it themselves."""
+    data = await file.read()
+    filename = file.filename or ""
+    try:
+        text, truncated = cv_import.read_cv(filename, data, CV_TEXT_MAX)
+    except CvReadError as exc:
+        logger.info("CV file %r rejected: %s", filename, exc)
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    logger.info("CV file %r read: %d bytes -> %d characters", filename, len(data), len(text))
+    return CvFileOut(filename=filename, text=text, characters=len(text), truncated=truncated)
 
 
 @router.get("/packs", response_model=List[InterviewPackSummaryOut])
@@ -294,6 +356,36 @@ async def draft_questions(
     logger.info("Interview pack %d: drafted question id(s) %s", pack_id, question_ids)
     return [await _question_out(db, question_id) for question_id in question_ids]
 
+
+@router.post("/packs/{pack_id}/introduction", response_model=List[InterviewQuestionOut])
+async def draft_introduction(pack_id: int, db: AsyncSession = Depends(get_db)) -> List[InterviewQuestionOut]:
+    """Write the opening question of this questionnaire from the CV saved on this computer."""
+    pack = await _pack_or_404(db, pack_id)
+    profile = await _profile(db)
+    logger.info(
+        "Interview pack %d: writing the introduction question from a %d character CV with %s",
+        pack_id,
+        len(profile.cv_text),
+        get_settings().interview_drafter_model,
+    )
+    try:
+        question_ids = await interview_packs.draft_introduction(db, pack, profile)
+    except InterviewPackError as exc:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except LLMRateLimitError as exc:
+        await db.rollback()
+        raise HTTPException(
+            status_code=429,
+            detail="The Gemini drafter's free-tier quota is reached for now. Please try again later.",
+        ) from exc
+    except RuntimeError as exc:
+        logger.exception("Interview pack %d: the introduction question failed", pack_id)
+        await db.rollback()
+        raise HTTPException(status_code=502, detail=f"Writing the question failed: {exc}") from exc
+    await db.commit()
+    logger.info("Interview pack %d: introduction question id(s) %s", pack_id, question_ids)
+    return [await _question_out(db, question_id) for question_id in question_ids]
 
 @router.post("/packs/{pack_id}/questions", response_model=InterviewQuestionOut, status_code=201)
 async def create_question(

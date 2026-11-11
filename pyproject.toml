@@ -24,6 +24,9 @@ dependencies = [
     # Falls back gracefully if Java is not installed.
     "language-tool-python>=2.7",
     "simplemma>=1.0",
+    # CV import: pure Python, no native build. Word files are read with the standard
+    # library, so only PDF needs a package.
+    "pypdf>=5.0",
 ]
 
 [build-system]

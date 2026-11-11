@@ -111,6 +111,19 @@ class InterviewPack(Base):
     sources: Mapped[List["InterviewSource"]] = relationship(back_populates="pack", cascade="all, delete-orphan")
 
 
+class CandidateProfile(Base):
+    """The person practising on this computer. One row, never exported with a questionnaire."""
+
+    __tablename__ = "candidate_profiles"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    full_name: Mapped[str] = mapped_column(String(120), default="")
+    target_role: Mapped[str] = mapped_column(String(120), default="")
+    cv_text: Mapped[str] = mapped_column(Text, default="")
+    cv_filename: Mapped[str] = mapped_column(String(260), default="")
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+
+
 class InterviewSource(Base):
     __tablename__ = "interview_sources"
 
@@ -147,6 +160,7 @@ class InterviewQuestion(Base):
     )
     trigger_key_point_uid: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
     topic: Mapped[str] = mapped_column(String(100), default="")
+    kind: Mapped[str] = mapped_column(String(20), default="technical")
     text: Mapped[str] = mapped_column(Text)
     answer_seconds: Mapped[int] = mapped_column(Integer, default=120)
     position: Mapped[int] = mapped_column(Integer, default=0)

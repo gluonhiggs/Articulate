@@ -21,6 +21,8 @@ IMPORTANCE_BY_WEIGHT = {3: "core", 2: "supporting", 1: "detail"}
 WEIGHT_BY_IMPORTANCE = {label: weight for weight, label in IMPORTANCE_BY_WEIGHT.items()}
 
 PROPOSER_VERDICTS = ["covered", "partial", "missing", "incorrect"]
+# A claim about the candidate's own history cannot be wrong, only unsaid or vague.
+BEHAVIOURAL_VERDICTS = ["covered", "partial", "missing"]
 VERIFIER_VERDICTS = ["supported", "partial", "not_supported", "contradicted"]
 
 _PLACEHOLDER_RE = re.compile(r"\{\{([A-Z_]+)\}\}")
@@ -126,7 +128,11 @@ def _id_schema(ids: Sequence[str]) -> dict:
     return {"type": "string", "enum": list(ids)} if ids else {"type": "string"}
 
 
-def grade_schema(key_point_uids: Sequence[str], misconception_uids: Sequence[str]) -> dict:
+def grade_schema(
+    key_point_uids: Sequence[str],
+    misconception_uids: Sequence[str],
+    verdicts: Sequence[str] = PROPOSER_VERDICTS,
+) -> dict:
     # Quote and reason come before the verdict so the model commits to evidence first.
     return {
         "type": "object",
@@ -139,7 +145,7 @@ def grade_schema(key_point_uids: Sequence[str], misconception_uids: Sequence[str
                         "id": _id_schema(key_point_uids),
                         "quote": {"type": "string"},
                         "reason": {"type": "string"},
-                        "verdict": {"type": "string", "enum": PROPOSER_VERDICTS},
+                        "verdict": {"type": "string", "enum": list(verdicts)},
                     },
                     "required": ["id", "quote", "reason", "verdict"],
                 },
@@ -162,6 +168,77 @@ def grade_schema(key_point_uids: Sequence[str], misconception_uids: Sequence[str
         "required": ["key_points", "misconceptions", "content_tips", "english_tip"],
     }
 
+
+def build_behavioural_grade_prompt(
+    *,
+    question: str,
+    key_points: Sequence[tuple[str, int, str]],
+    transcript: str,
+) -> str:
+    """key_points: (uid, weight, text) in the order to show."""
+    return _fill(
+        "interview_grade_behavioural.txt",
+        {
+            "QUESTION": as_data(question),
+            "KEY_POINTS": as_data(
+                "\n".join(
+                    f"{uid} | {IMPORTANCE_BY_WEIGHT[weight]} | {_one_line(text)}" for uid, weight, text in key_points
+                )
+            ),
+            "TRANSCRIPT": as_data(transcript),
+        },
+    )
+
+
+def build_introduction_prompt(
+    *,
+    role: str,
+    level: str,
+    cv: str,
+    job_description: str,
+    count: int,
+) -> str:
+    return _fill(
+        "interview_introduction.txt",
+        {
+            "ROLE": ROLE_LABELS.get(role, role),
+            "LEVEL": level,
+            "CV": as_data(cv),
+            "JOB_DESCRIPTION": as_data(job_description),
+            "COUNT": str(count),
+        },
+    )
+
+
+def introduction_schema() -> dict:
+    return {
+        "type": "object",
+        "properties": {
+            "questions": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "text": {"type": "string"},
+                        "answer_seconds": {"type": "integer"},
+                        "key_points": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "text": {"type": "string"},
+                                    "importance": {"type": "string", "enum": list(WEIGHT_BY_IMPORTANCE)},
+                                },
+                                "required": ["text", "importance"],
+                            },
+                        },
+                    },
+                    "required": ["text", "answer_seconds", "key_points"],
+                },
+            },
+        },
+        "required": ["questions"],
+    }
 
 def verify_schema(key_point_uids: Sequence[str], misconception_uids: Sequence[str]) -> dict:
     """Strict-mode schema: every object closed and every property required."""
