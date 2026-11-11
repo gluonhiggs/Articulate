@@ -26,11 +26,12 @@ export function grammarSpans(text: string, issues: InterviewGrammarIssue[]): Spa
   return spans
 }
 
-function hint(issue: InterviewGrammarIssue): string {
-  const suggestion = issue.replacements.slice(0, 3).join(' / ')
-  return suggestion ? `${suggestion} - ${issue.message}` : issue.message
-}
-
+/**
+ * Every issue that reaches here is a real mistake: is_speech_artifact in
+ * backend/services/grammar.py drops style, repetition, dialect and punctuation rules
+ * before an issue is stored. So the wrong words are always struck through, and the
+ * replacement is shown beside them whenever LanguageTool offers one.
+ */
 export function HighlightedTranscript({
   text,
   issues,
@@ -47,14 +48,17 @@ export function HighlightedTranscript({
   let cursor = 0
   spans.forEach((span, i) => {
     if (span.start > cursor) parts.push(text.slice(cursor, span.start))
+    const fix = span.issue.replacements[0]
     parts.push(
-      <mark
-        key={i}
-        title={hint(span.issue)}
-        className="bg-red-500/10 text-gray-100 rounded-sm px-0.5 underline decoration-wavy decoration-red-400/70 underline-offset-4 cursor-help"
-      >
-        {text.slice(span.start, span.end)}
-      </mark>,
+      <span key={i} title={span.issue.message} className="cursor-help">
+        <span className="correction-wrong">{text.slice(span.start, span.end)}</span>
+        {fix && (
+          <>
+            {' '}
+            <span className="correction-right">{fix}</span>
+          </>
+        )}
+      </span>,
     )
     cursor = span.end
   })
@@ -63,7 +67,9 @@ export function HighlightedTranscript({
   return (
     <>
       <p className="text-sm text-gray-300 leading-loose whitespace-pre-line">{parts}</p>
-      <p className="text-[11px] text-gray-500 mt-3">Underlined words carry a grammar note. Hover one to read it.</p>
+      <p className="text-[11px] text-gray-500 mt-3">
+        A struck word is a grammar mistake, with the fix beside it. Hover one to read why.
+      </p>
     </>
   )
 }

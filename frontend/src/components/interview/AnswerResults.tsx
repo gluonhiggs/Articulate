@@ -3,7 +3,7 @@ import type { InterviewAnswer, InterviewKeyPointResult } from '../../types/inter
 import { AnswerAudioButton } from './AnswerAudioButton'
 import { DeliveryDetails, deliverySummary } from './DeliveryCard'
 import { Disclosure } from './Disclosure'
-import { HighlightedTranscript } from './HighlightedTranscript'
+import { HighlightedTranscript, grammarSpans } from './HighlightedTranscript'
 import { ScoreRing } from './ScoreRing'
 import { SentenceFixes, sentenceFixSummary } from './SentenceFixes'
 import { outlineButtonClass } from './ui'
@@ -83,6 +83,8 @@ export function AnswerResults({
   const gaps = results.filter(needsWork).sort(byNeed)
   const covered = results.filter((result) => !needsWork(result))
   const ungraded = answer.content_band === 'ungraded' || answer.content_score === null
+  const grammarIssues = answer.delivery?.grammar_issues ?? []
+  const markedWords = answer.transcript ? grammarSpans(answer.transcript, grammarIssues).length : 0
 
   return (
     <div className="space-y-3">
@@ -187,8 +189,9 @@ export function AnswerResults({
         <Disclosure
           title={answer.transcript_edited ? 'Graded transcript (edited by you)' : 'Graded transcript'}
           summary={plural(countWords(answer.transcript), 'word')}
+          defaultOpen={markedWords > 0}
         >
-          <HighlightedTranscript text={answer.transcript} issues={answer.delivery?.grammar_issues ?? []} />
+          <HighlightedTranscript text={answer.transcript} issues={grammarIssues} />
         </Disclosure>
       )}
 
@@ -216,7 +219,7 @@ export function AnswerResults({
         ) : (
           packId !== null && (
             <Link to={`/interview/packs/${packId}`} className={outlineButtonClass}>
-              Back to pack
+              Back to questionnaire
             </Link>
           )
         )}
