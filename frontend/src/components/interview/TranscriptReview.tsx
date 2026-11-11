@@ -49,7 +49,7 @@ export function TranscriptReview({
 
       {corrections.length > 0 && (
         <div>
-          <p className="text-xs text-textSecondary mb-2">Technical terms corrected from the pack glossary</p>
+          <p className="text-xs text-textSecondary mb-2">Technical terms corrected from the questionnaire glossary</p>
           <div className="flex flex-wrap gap-2">
             {corrections.map((c, i) => (
               <span

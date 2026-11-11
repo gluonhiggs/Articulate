@@ -99,7 +99,7 @@ export function DraftTab({ pack, onDrafted, onOpenTab }: DraftTabProps) {
 
       {!pack.job_description.trim() && (
         <Notice tone="warning">
-          This pack has no job description. Add one in Details so the questions match the client role.
+          This questionnaire has no job description. Add one in Details so the questions match the client role.
         </Notice>
       )}
 

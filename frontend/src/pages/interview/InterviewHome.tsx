@@ -47,16 +47,16 @@ export function InterviewHome() {
           <button
             onClick={importPack.open}
             disabled={importPack.pending}
-            title="Add a pack from a pack file someone shared with you"
+            title="Add a questionnaire from a questionnaire file someone shared with you"
             className={outlineButtonClass}
           >
-            {importPack.pending ? 'Uploading...' : 'Upload pack'}
+            {importPack.pending ? 'Uploading...' : 'Upload questionnaire'}
           </button>
           <button
             onClick={() => setShowNewPack(true)}
             className="px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-semibold text-sm hover:opacity-90 transition-opacity"
           >
-            New pack
+            New questionnaire
           </button>
         </div>
       </div>
@@ -65,7 +65,7 @@ export function InterviewHome() {
         {importPack.error && (
           <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-4 flex items-start justify-between gap-4">
             <div>
-              <p className="text-red-400 text-sm font-medium">Could not read this pack file</p>
+              <p className="text-red-400 text-sm font-medium">Could not read this questionnaire file</p>
               <p className="text-red-400/80 text-xs mt-1 whitespace-pre-line break-words">
                 {apiErrorDetail(importPack.error)}
               </p>
@@ -96,26 +96,26 @@ export function InterviewHome() {
           </div>
         ) : isError ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <p className="text-red-400 text-lg">Could not load interview packs</p>
+            <p className="text-red-400 text-lg">Could not load questionnaires</p>
             <p className="text-textSecondary text-sm mt-2">{apiErrorDetail(error)}</p>
           </div>
         ) : !packs || packs.length === 0 ? (
           <div className="bg-card/50 border border-dashed border-white/10 rounded-xl p-10 text-center max-w-2xl mx-auto">
-            <p className="text-textPrimary font-medium">No interview packs yet</p>
+            <p className="text-textPrimary font-medium">No questionnaires yet</p>
             <p className="text-textSecondary text-sm mt-2 leading-relaxed">
-              A senior developer or coach prepares a pack for a client interview: the questions, the approved
-              key points a good answer must cover, common misconceptions and follow-up questions. Upload the pack
-              file they shared with you, or create a new pack and build it yourself.
+              A senior developer or coach prepares a questionnaire for a client interview: the questions, the
+              approved key points a good answer must cover, common misconceptions and follow-up questions. Upload
+              the questionnaire file they shared with you, or create a new one and build it yourself.
             </p>
             <div className="mt-5 flex items-center justify-center gap-2">
               <button onClick={importPack.open} disabled={importPack.pending} className={outlineButtonClass}>
-                {importPack.pending ? 'Uploading...' : 'Upload pack'}
+                {importPack.pending ? 'Uploading...' : 'Upload questionnaire'}
               </button>
               <button
                 onClick={() => setShowNewPack(true)}
                 className="px-4 py-2 rounded-lg bg-accent/10 text-accent border border-accent/30 text-sm hover:bg-accent/20 transition-colors"
               >
-                New pack
+                New questionnaire
               </button>
             </div>
           </div>

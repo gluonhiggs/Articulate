@@ -321,7 +321,7 @@ function PracticeSession({ questionId }: { questionId: number }) {
               {validId ? apiErrorDetail(questionError) : 'Invalid question link.'}
             </p>
             <Link to="/interview" className="inline-block mt-3 text-sm text-accent hover:underline">
-              Back to packs
+              Back to questionnaires
             </Link>
           </div>
         ) : (
@@ -378,7 +378,7 @@ function PracticeSession({ questionId }: { questionId: number }) {
               <div className="rounded-xl border border-amber-500/30 bg-amber-900/20 px-4 py-3">
                 <p className="text-amber-400 text-sm">This question has no approved key points yet.</p>
                 <p className="text-amber-300/70 text-xs mt-1">
-                  Content cannot be graded until the answer key is approved in the pack editor. Delivery is still
+                  Content cannot be graded until the answer key is approved in the questionnaire editor. Delivery is still
                   measured.
                 </p>
               </div>
@@ -386,7 +386,7 @@ function PracticeSession({ questionId }: { questionId: number }) {
 
             {activeAnswerId === null && question.retired ? (
               <div className="rounded-xl border border-amber-500/30 bg-amber-900/20 px-4 py-3">
-                <p className="text-amber-400 text-sm">This question has been retired from the pack.</p>
+                <p className="text-amber-400 text-sm">This question has been retired from the questionnaire.</p>
                 <p className="text-amber-300/70 text-xs mt-1">
                   New answers cannot be recorded. Your previous answers are still listed below.
                 </p>

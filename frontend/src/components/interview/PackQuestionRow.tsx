@@ -27,7 +27,7 @@ export function PackQuestionRow({ question }: { question: InterviewQuestion }) {
           {!hasAnswerKey && (
             <span
               className="text-amber-400 border border-amber-400/30 rounded px-1.5 py-0.5"
-              title="Content cannot be graded until key points are approved in the pack editor"
+              title="Content cannot be graded until key points are approved in the questionnaire editor"
             >
               {'\u26A0'} No approved key points
             </span>

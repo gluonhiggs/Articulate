@@ -13,20 +13,20 @@ export function ExportTab({ pack, hasUnsavedChanges }: ExportTabProps) {
     <div className="space-y-4">
       {hasUnsavedChanges && (
         <Notice tone="warning">
-          You have unsaved changes in the pack editor. Save them first to include them in the file.
+          You have unsaved changes in the questionnaire editor. Save them first to include them in the file.
         </Notice>
       )}
 
       <div className={cardClass}>
-        <h3 className="text-sm font-semibold text-textPrimary">Pack file</h3>
+        <h3 className="text-sm font-semibold text-textPrimary">Questionnaire file</h3>
         <p className="text-sm text-textSecondary mt-1">
           Version v{pack.version} with {plural(pack.questions.length, 'question')},{' '}
           {plural(pack.sources.length, 'source')} and {plural(pack.glossary.length, 'glossary term')}. Candidates
-          upload this JSON file from the Interview page; uploading a newer version of the same pack updates it in
-          place and keeps their answers.
+          upload this JSON file from the Interview page; uploading a newer version of the same questionnaire
+          updates it in place and keeps their answers.
         </p>
         <a href={interviewPackExportUrl(pack.id)} download className={`${primaryButtonClass} mt-4`}>
-          Download pack file
+          Download questionnaire file
         </a>
       </div>
 

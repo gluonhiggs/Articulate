@@ -63,7 +63,7 @@ export function PackStudio() {
   )
 
   const hasUnsavedChanges = Object.values(dirtyTabs).some(Boolean)
-  useUnsavedChangesGuard(hasUnsavedChanges, 'The pack editor has unsaved changes. Leave without saving them?')
+  useUnsavedChangesGuard(hasUnsavedChanges, 'The questionnaire editor has unsaved changes. Leave without saving them?')
 
   function panelClass(tab: StudioTab): string {
     return activeTab === tab ? '' : 'hidden'
@@ -85,10 +85,10 @@ export function PackStudio() {
               {pack.title}
             </Link>
           ) : (
-            <span className="line-clamp-1">{isLoading ? 'Loading...' : 'Pack'}</span>
+            <span className="line-clamp-1">{isLoading ? 'Loading...' : 'Questionnaire'}</span>
           )}
           <span className="text-[10px]">/</span>
-          <span className="text-textPrimary font-medium shrink-0">Edit pack</span>
+          <span className="text-textPrimary font-medium shrink-0">Edit questionnaire</span>
           {hasUnsavedChanges && (
             <span className="ml-auto text-xs text-amber-300 border border-amber-500/30 bg-amber-500/10 rounded-full px-2 py-0.5 shrink-0">
               Unsaved changes
@@ -99,7 +99,7 @@ export function PackStudio() {
         {pack && (
           <div
             role="tablist"
-            aria-label="Pack editor sections"
+            aria-label="Questionnaire editor sections"
             className="flex items-center gap-1 bg-background rounded-lg p-1 w-fit max-w-full overflow-x-auto"
           >
             {TABS.map((tab) => (
@@ -134,12 +134,12 @@ export function PackStudio() {
           </div>
         ) : isError || isNaN(packId) || !pack ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <p className="text-red-400 text-lg">Could not load this pack</p>
+            <p className="text-red-400 text-lg">Could not load this questionnaire</p>
             <p className="text-textSecondary text-sm mt-2">
-              {isNaN(packId) ? 'Invalid pack link.' : apiErrorDetail(error)}
+              {isNaN(packId) ? 'Invalid questionnaire link.' : apiErrorDetail(error)}
             </p>
             <Link to="/interview" className={`mt-4 ${outlineButtonClass}`}>
-              Back to packs
+              Back to questionnaires
             </Link>
           </div>
         ) : (

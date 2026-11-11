@@ -36,9 +36,9 @@ export function NewPackForm({
   return (
     <form onSubmit={handleSubmit} className="bg-card border border-cardBorder rounded-xl p-5 space-y-4">
       <div>
-        <p className="text-textPrimary font-semibold text-sm">New interview pack</p>
+        <p className="text-textPrimary font-semibold text-sm">New questionnaire</p>
         <p className="text-textSecondary text-xs mt-1">
-          You can add sources, questions and the approved answer key next, in the pack editor.
+          You can add sources, questions and the approved answer key next, in the questionnaire editor.
         </p>
       </div>
 
@@ -86,7 +86,7 @@ export function NewPackForm({
           <input
             value={input.author}
             onChange={(e) => update('author', e.target.value)}
-            placeholder="Who prepares this pack"
+            placeholder="Who prepares this questionnaire"
             maxLength={100}
             className={inputClass}
           />

@@ -124,7 +124,7 @@ export function DetailsTab({ pack, onDirtyChange }: DetailsTabProps) {
               Discard changes
             </button>
           )}
-          <span className="ml-auto text-xs text-textSecondary">Pack version v{pack.version}</span>
+          <span className="ml-auto text-xs text-textSecondary">Questionnaire version v{pack.version}</span>
         </div>
       </fieldset>
     </div>

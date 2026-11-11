@@ -39,7 +39,7 @@ export function InterviewPackOverview() {
           Interview
         </Link>
         <span className="text-[10px]">/</span>
-        <span className="text-textPrimary font-medium line-clamp-1">{pack?.title ?? (isLoading ? 'Loading...' : 'Pack')}</span>
+        <span className="text-textPrimary font-medium line-clamp-1">{pack?.title ?? (isLoading ? 'Loading...' : 'Questionnaire')}</span>
       </div>
 
       <div className="p-6 flex-1 space-y-6 max-w-5xl w-full mx-auto">
@@ -51,18 +51,18 @@ export function InterviewPackOverview() {
           </>
         ) : isError || isNaN(packId) || !pack ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <p className="text-red-400 text-lg">Could not load this pack</p>
+            <p className="text-red-400 text-lg">Could not load this questionnaire</p>
             <p className="text-textSecondary text-sm mt-2">
-              {isNaN(packId) ? 'Invalid pack link.' : apiErrorDetail(error)}
+              {isNaN(packId) ? 'Invalid questionnaire link.' : apiErrorDetail(error)}
             </p>
             <Link to="/interview" className={`mt-4 ${outlineButtonClass}`}>
-              Back to packs
+              Back to questionnaires
             </Link>
           </div>
         ) : (
           <>
             <div className="bg-card border border-cardBorder rounded-xl p-5">
-              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+              <div className="flex flex-col gap-4">
                 <div className="min-w-0">
                   <h1 className="text-2xl font-bold text-textPrimary leading-tight">{pack.title}</h1>
                   <div className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -79,11 +79,11 @@ export function InterviewPackOverview() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     onClick={() => practiceQuestion && navigate(`/interview/questions/${practiceQuestion.id}`)}
                     disabled={!practiceQuestion}
-                    title={practiceQuestion ? practiceQuestion.text : 'This pack has no questions yet'}
+                    title={practiceQuestion ? practiceQuestion.text : 'This questionnaire has no questions yet'}
                     className="px-5 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Practice
@@ -93,7 +93,7 @@ export function InterviewPackOverview() {
                     title="Write questions, approve the answer key, add sources and the glossary"
                     className={outlineButtonClass}
                   >
-                    Edit pack
+                    Edit questionnaire
                   </Link>
                   <a
                     href={interviewPackExportUrl(pack.id)}
@@ -101,12 +101,12 @@ export function InterviewPackOverview() {
                     title="Save the questions and answer key as a file you can share"
                     className={outlineButtonClass}
                   >
-                    Download pack
+                    Download questionnaire
                   </a>
                   <a
                     href={interviewPackReportUrl(pack.id)}
                     download
-                    title="Save your transcripts and scores for every answer in this pack"
+                    title="Save your transcripts and scores for every answer in this questionnaire"
                     className={outlineButtonClass}
                   >
                     Download my results
@@ -122,10 +122,10 @@ export function InterviewPackOverview() {
                   <button
                     onClick={importPack.open}
                     disabled={importPack.pending}
-                    title="Add a different pack from a pack file someone shared with you"
+                    title="Add a different questionnaire from a questionnaire file someone shared with you"
                     className={outlineButtonClass}
                   >
-                    {importPack.pending ? 'Uploading...' : 'Upload another pack'}
+                    {importPack.pending ? 'Uploading...' : 'Upload another questionnaire'}
                   </button>
                 </div>
               </div>
@@ -151,7 +151,7 @@ export function InterviewPackOverview() {
             {importPack.error && (
               <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-4 flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-red-400 text-sm font-medium">Could not import this pack file</p>
+                  <p className="text-red-400 text-sm font-medium">Could not import this questionnaire file</p>
                   <p className="text-red-400/80 text-xs mt-1 whitespace-pre-line break-words">
                     {apiErrorDetail(importPack.error)}
                   </p>
@@ -166,8 +166,8 @@ export function InterviewPackOverview() {
 
             {pack.questions.length === 0 ? (
               <div className="bg-card/50 border border-dashed border-white/10 rounded-xl p-8 text-center">
-                <p className="text-gray-400 text-sm">No questions in this pack yet</p>
-                <p className="text-gray-500 text-xs mt-1">Use Edit pack to write or draft questions.</p>
+                <p className="text-gray-400 text-sm">No questions in this questionnaire yet</p>
+                <p className="text-gray-500 text-xs mt-1">Use Edit questionnaire to write or draft questions.</p>
               </div>
             ) : (
               <div className="space-y-6">
