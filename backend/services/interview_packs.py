@@ -1018,6 +1018,82 @@ def _introduction_upsert(item: dict) -> Optional[InterviewQuestionUpsert]:
     )
 
 
+IMPORTED_TOPIC = "Imported"
+
+
+def imported_question_upserts(questions: Sequence[str], output: object) -> list[InterviewQuestionUpsert]:
+    """
+    One question per line of the coach's list, in their wording, with the model's key
+    points attached where it answered that number.
+
+    The question text always comes from the list, never from the model, so a model that
+    rephrases or drops a question cannot change what the coach uploaded. Key points stay
+    unapproved for the coach to review, as every drafted answer key does.
+    """
+    answers = output.get("answers") if isinstance(output, dict) else None
+    by_number = {
+        item.get("number"): item
+        for item in (answers if isinstance(answers, list) else [])
+        if isinstance(item, dict) and isinstance(item.get("number"), int)
+    }
+    upserts = []
+    for number, text in enumerate(questions, start=1):
+        item = by_number.get(number, {})
+        topic = str(item.get("topic") or "").strip()[:100] or IMPORTED_TOPIC
+        upserts.append(
+            InterviewQuestionUpsert(
+                topic=topic,
+                text=text[:QUESTION_TEXT_MAX],
+                answer_seconds=_answer_seconds(item.get("answer_seconds"), DEFAULT_QUESTION_SECONDS),
+                key_points=_draft_key_points(item.get("key_points")),
+                misconceptions=_draft_misconceptions(item.get("misconceptions")),
+            )
+        )
+    return upserts
+
+
+async def import_question_list(session: AsyncSession, title: str, questions: Sequence[str]) -> tuple[int, bool]:
+    """
+    A new questionnaire holding these questions; returns its id and whether keys were written.
+
+    When the drafter fails, the questions are still created without answer keys, so the
+    coach never loses the list they uploaded and can draft the keys later.
+    """
+    settings = get_settings()
+    output: object = {}
+    keys_written = False
+    try:
+        output = await llm_client.generate_json(
+            base_url=settings.llm_base_url,
+            model=settings.interview_drafter_model,
+            prompt=interview_prompts.build_answer_keys_prompt(questions),
+            api_key=settings.llm_api_key,
+            schema=interview_prompts.answer_keys_schema(),
+            schema_name="interview_answer_keys",
+            temperature=0.3,
+            max_tokens=16384,
+            timeout=150.0,
+        )
+        keys_written = True
+    except (llm_client.LLMRateLimitError, RuntimeError) as exc:
+        logger.warning("Imported questions keep no answer keys: %s", exc)
+
+    pack = InterviewPack(
+        uid=new_uid(),
+        title=title[:200] or "Imported questions",
+        role="other",
+        level="mid",
+        version=1,
+        created_at=utc_now(),
+        updated_at=utc_now(),
+    )
+    session.add(pack)
+    await session.flush()
+    await session.refresh(pack, ["questions", "sources", "glossary_terms"])
+    await create_questions(session, pack, imported_question_upserts(questions, output))
+    return pack.id, keys_written
+
+
 async def retire_introductions(session: AsyncSession) -> int:
     """
     Retire every introduction question, the personal ones and those written for a job.
@@ -1036,6 +1112,20 @@ async def retire_introductions(session: AsyncSession) -> int:
     for question in questions:
         question.retired = True
     return len(questions)
+
+
+async def has_personal_introduction(session: AsyncSession) -> bool:
+    result = await session.execute(
+        select(InterviewQuestion.id)
+        .join(InterviewPack, InterviewQuestion.pack_id == InterviewPack.id)
+        .where(
+            InterviewPack.personal.is_(True),
+            InterviewQuestion.kind == "behavioural",
+            InterviewQuestion.retired.is_(False),
+        )
+        .limit(1)
+    )
+    return result.scalar_one_or_none() is not None
 
 
 async def load_personal_pack(session: AsyncSession) -> Optional[InterviewPack]:

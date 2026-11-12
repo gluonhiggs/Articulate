@@ -65,7 +65,7 @@ export function InterviewHome() {
           <button
             onClick={startUpload}
             disabled={importPack.pending}
-            title="Add a questionnaire from a questionnaire file someone shared with you"
+            title="A questionnaire file someone shared with you, or a plain list of questions (.txt, .docx, .pdf)"
             className={outlineButtonClass}
           >
             {importPack.pending ? 'Uploading...' : 'Upload questionnaire'}

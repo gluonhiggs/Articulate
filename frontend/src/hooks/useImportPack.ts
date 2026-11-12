@@ -1,12 +1,18 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { importInterviewPack } from '../api/interview'
+import { importInterviewPack, importQuestionList } from '../api/interview'
 import { createLogger, errorData } from '../lib/log'
 
 const log = createLogger('interview/import')
 
-export const PACK_FILE_ACCEPT = '.json,application/json'
+// A .json file is a questionnaire exported from this app; anything else is a plain
+// list of questions whose answer keys are drafted on upload.
+export const PACK_FILE_ACCEPT = '.json,application/json,.txt,.md,.docx,.pdf'
+
+export function isQuestionnaireFile(file: File): boolean {
+  return file.name.toLowerCase().endsWith('.json')
+}
 
 /**
  * Importing a pack file, shared by every page that offers it.
@@ -22,9 +28,9 @@ export function useImportPack() {
   const mutation = useMutation({
     mutationFn: (file: File) => {
       log.info('pack import start', { name: file.name, bytes: file.size })
-      return importInterviewPack(file)
+      return isQuestionnaireFile(file) ? importInterviewPack(file) : importQuestionList(file)
     },
-    onSuccess: (pack) => {
+    onSuccess: (pack, file) => {
       log.info('pack import ok', {
         packId: pack.id,
         title: pack.title,
@@ -33,7 +39,8 @@ export function useImportPack() {
         glossary: pack.glossary.length,
       })
       void queryClient.invalidateQueries({ queryKey: ['interview'] })
-      navigate(`/interview/packs/${pack.id}`)
+      // A list arrives with unapproved answer keys, so it opens where they are reviewed.
+      navigate(isQuestionnaireFile(file) ? `/interview/packs/${pack.id}` : `/interview/packs/${pack.id}/studio?tab=questions`)
     },
     onError: (err) => log.error('pack import failed', errorData(err)),
   })

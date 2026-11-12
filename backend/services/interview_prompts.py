@@ -210,6 +210,34 @@ def build_introduction_prompt(
     )
 
 
+def build_answer_keys_prompt(questions: Sequence[str]) -> str:
+    numbered = "\n".join(f"{index}. {_one_line(text)}" for index, text in enumerate(questions, start=1))
+    return _fill("interview_answer_keys.txt", {"QUESTIONS": as_data(numbered)})
+
+
+def answer_keys_schema() -> dict:
+    return {
+        "type": "object",
+        "properties": {
+            "answers": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "number": {"type": "integer"},
+                        "topic": {"type": "string"},
+                        "answer_seconds": {"type": "integer"},
+                        "key_points": {"type": "array", "items": _DRAFT_KEY_POINT},
+                        "misconceptions": {"type": "array", "items": _DRAFT_MISCONCEPTION},
+                    },
+                    "required": ["number", "topic", "answer_seconds", "key_points", "misconceptions"],
+                },
+            }
+        },
+        "required": ["answers"],
+    }
+
+
 def introduction_schema() -> dict:
     return {
         "type": "object",

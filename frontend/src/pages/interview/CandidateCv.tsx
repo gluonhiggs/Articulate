@@ -28,7 +28,7 @@ export function savedMessage(saved: CandidateProfileSaved): string {
       ? ` ${plural(saved.introductions_retired, 'introduction question')} from the old CV retired.`
       : ''
   const written = !saved.introduction_written
-    ? ' Write a new one on the CV tab when the quota allows.'
+    ? ' No new introduction could be written yet. Save again later to retry.'
     : saved.introductions_retired > 0
       ? ' A new one was written from this CV.'
       : ' An introduction question was written from this CV.'

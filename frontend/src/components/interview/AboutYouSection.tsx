@@ -1,18 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import {
-  draftIntroductionQuestion,
-  fetchAboutYou,
-  fetchCandidateProfile,
-  fetchSkillList,
-} from '../../api/interview'
-import { createLogger, errorData } from '../../lib/log'
+import { fetchAboutYou, fetchCandidateProfile, fetchSkillList } from '../../api/interview'
 import type { InterviewQuestion } from '../../types/interview'
 import { SkillRows } from './SkillRows'
-import { outlineButtonClass } from './ui'
-import { apiErrorDetail, plural, scoreBand, bandStyle } from './utils'
-
-const log = createLogger('interview/about-you')
+import { plural, scoreBand, bandStyle } from './utils'
 
 function QuestionRow({ question }: { question: InterviewQuestion }) {
   const content = bandStyle(scoreBand(question.latest_content_score))
@@ -35,8 +26,6 @@ function QuestionRow({ question }: { question: InterviewQuestion }) {
 }
 
 export function AboutYouSection() {
-  const queryClient = useQueryClient()
-
   const { data: profile } = useQuery({ queryKey: ['interview', 'profile'], queryFn: fetchCandidateProfile })
   const { data: aboutYou } = useQuery({ queryKey: ['interview', 'about-you'], queryFn: fetchAboutYou })
   const { data: skillList } = useQuery({
@@ -44,19 +33,6 @@ export function AboutYouSection() {
     queryFn: () => fetchSkillList(null),
   })
   const cvSkills = (skillList?.rows ?? []).filter((row) => row.in_cv)
-
-  const draftMutation = useMutation({
-    mutationFn: () => {
-      log.info('introduction start')
-      return draftIntroductionQuestion()
-    },
-    onSuccess: (pack) => {
-      log.info('introduction ok', { questions: pack.questions.length })
-      void queryClient.invalidateQueries({ queryKey: ['interview'] })
-    },
-    onError: (error) => log.error('introduction failed', errorData(error)),
-  })
-
   const questions = aboutYou?.questions.filter((question) => !question.retired) ?? []
   const hasCv = profile?.has_cv ?? false
 
@@ -69,36 +45,25 @@ export function AboutYouSection() {
         </p>
       </div>
 
-      {questions.length > 0 && <div className="space-y-2">{questions.map((question) => (
-        <QuestionRow key={question.id} question={question} />
-      ))}</div>}
-
-      <div className="flex flex-wrap items-center gap-2 pt-1">
-        <button
-          type="button"
-          onClick={() => draftMutation.mutate()}
-          disabled={!hasCv || draftMutation.isPending}
-          title={hasCv ? 'Write one question from your CV' : 'Add your CV first'}
-          className={outlineButtonClass}
-        >
-          {draftMutation.isPending ? 'Writing...' : questions.length > 0 ? 'Write another' : 'Write from my CV'}
-        </button>
-        {!hasCv && (
-          <span className="text-xs text-textSecondary">
-            Add your CV first so the answer key can name your own projects.
-          </span>
-        )}
-      </div>
+      {questions.length > 0 ? (
+        <div className="space-y-2">
+          {questions.map((question) => (
+            <QuestionRow key={question.id} question={question} />
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-textSecondary">
+          {hasCv
+            ? 'No introduction yet. Save your CV and one is written from it.'
+            : 'Add your CV and an introduction question is written from it.'}
+        </p>
+      )}
 
       {cvSkills.length > 0 && (
         <div className="space-y-2 pt-3">
           <p className="text-xs text-textSecondary">Skills your CV claims, so the ones you will be asked to defend.</p>
           <SkillRows rows={cvSkills} />
         </div>
-      )}
-
-      {draftMutation.isError && (
-        <p className="text-red-400 text-sm">{apiErrorDetail(draftMutation.error)}</p>
       )}
     </section>
   )

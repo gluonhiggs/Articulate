@@ -34,7 +34,7 @@ describe('savedMessage', () => {
 
   it('tells the reader to write one later when the quota stopped it', () => {
     expect(savedMessage(saved({ introductions_retired: 1, introduction_written: false }))).toBe(
-      'Saved. 1 introduction question from the old CV retired. Write a new one on the CV tab when the quota allows.',
+      'Saved. 1 introduction question from the old CV retired. No new introduction could be written yet. Save again later to retry.',
     )
   })
 

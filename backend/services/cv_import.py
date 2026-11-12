@@ -94,7 +94,7 @@ def read_cv(filename: str, data: bytes, limit: Optional[int] = None) -> tuple[st
 
     text = tidy(text)
     if not text:
-        raise CvReadError("No text was found in the file. A scanned or image-only CV has to be typed in by hand.")
+        raise CvReadError("No text was found in the file. A scanned or image-only file has to be typed in by hand.")
     if limit is not None and len(text) > limit:
         return text[:limit], True
     return text, False

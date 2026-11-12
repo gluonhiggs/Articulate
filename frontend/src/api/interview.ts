@@ -55,6 +55,16 @@ export function importInterviewPack(file: File): Promise<InterviewPackDetail> {
   })
 }
 
+export function importQuestionList(file: File): Promise<InterviewPackDetail> {
+  const formData = new FormData()
+  formData.append('file', file)
+  return apiFetch<InterviewPackDetail>('/interview/packs/import-list', {
+    method: 'POST',
+    body: formData,
+    signal: AbortSignal.timeout(LLM_TIMEOUT_MS),
+  })
+}
+
 export function interviewPackExportUrl(packId: number): string {
   return `${API_BASE}/interview/packs/${packId}/export`
 }
@@ -114,13 +124,6 @@ export function fetchSkillSet(skills: string[]): Promise<SkillSet> {
 
 export function fetchAboutYou(): Promise<InterviewPackDetail | null> {
   return apiFetch<InterviewPackDetail | null>('/interview/about-you')
-}
-
-export function draftIntroductionQuestion(): Promise<InterviewPackDetail> {
-  return apiFetch<InterviewPackDetail>('/interview/about-you/introduction', {
-    method: 'POST',
-    signal: AbortSignal.timeout(LLM_TIMEOUT_MS),
-  })
 }
 
 export function draftJobIntroduction(packId: number): Promise<InterviewPackDetail> {

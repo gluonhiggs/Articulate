@@ -48,7 +48,7 @@ from backend.schemas import (
 )
 from backend.services import audio as audio_service
 from backend.services import cv_import, interview_grading, interview_packs, interview_sentences
-from backend.services import interview_skills, skills
+from backend.services import interview_skills, question_list, skills
 from backend.services.audio import EXT_TO_MIME
 from backend.services.cv_import import CvReadError
 from backend.services.interview_packs import InterviewPackError, utc_now
@@ -171,7 +171,9 @@ async def update_profile(body: CandidateProfileIn, db: AsyncSession = Depends(ge
         cv_changed,
         retired,
     )
-    written = await _replace_introduction(db, profile) if cv_changed and cv_text else False
+    # Writing also covers a save with no introduction yet, so a failed attempt is retried by saving.
+    needs_introduction = cv_changed or not await interview_packs.has_personal_introduction(db)
+    written = await _replace_introduction(db, profile) if cv_text and needs_introduction else False
     return CandidateProfileSavedOut(
         **_profile_out(profile).model_dump(), introductions_retired=retired, introduction_written=written
     )
@@ -229,14 +231,6 @@ async def _write_introduction(db: AsyncSession, pack: InterviewPack) -> list[int
     await db.commit()
     logger.info("Introduction question id(s) %s in %r", question_ids, pack.title)
     return question_ids
-
-
-@router.post("/about-you/introduction", response_model=InterviewPackDetailOut)
-async def draft_personal_introduction(db: AsyncSession = Depends(get_db)) -> InterviewPackDetailOut:
-    """A plain introduction from the CV, into the candidate's own questionnaire."""
-    pack = await interview_packs.load_or_create_personal_pack(db, await _profile(db))
-    await _write_introduction(db, pack)
-    return await _detail(db, pack.id)
 
 
 @router.post("/packs/{pack_id}/introduction", response_model=InterviewPackDetailOut)
@@ -329,6 +323,28 @@ async def create_pack(body: InterviewPackCreate, db: AsyncSession = Depends(get_
     await db.commit()
     logger.info("Interview pack %d created: %r (%s/%s) by %s", pack.id, pack.title, pack.role, pack.level, pack.author)
     return await _detail(db, pack.id)
+
+
+@router.post("/packs/import-list", response_model=InterviewPackDetailOut, status_code=201)
+async def import_question_list(file: UploadFile, db: AsyncSession = Depends(get_db)) -> InterviewPackDetailOut:
+    """A new questionnaire from a plain list of questions, with answer keys drafted for review."""
+    filename = file.filename or ""
+    try:
+        text, _ = cv_import.read_cv(filename, await file.read())
+    except CvReadError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    questions = question_list.find_questions(text)
+    if not questions:
+        raise HTTPException(
+            status_code=400,
+            detail="No questions were found. Put one question per line, numbered or ending with a question mark.",
+        )
+    title = Path(filename).stem.replace("_", " ").replace("-", " ").strip()
+    logger.info("Question list %r: %d question(s) found", filename, len(questions))
+    pack_id, keys_written = await interview_packs.import_question_list(db, title, questions)
+    await db.commit()
+    logger.info("Question list %r became pack %d (answer keys written=%s)", filename, pack_id, keys_written)
+    return await _detail(db, pack_id)
 
 
 @router.post("/packs/import", response_model=InterviewPackDetailOut)

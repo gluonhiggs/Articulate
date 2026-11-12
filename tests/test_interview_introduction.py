@@ -11,6 +11,7 @@ from backend.services.interview_packs import (
     INTRODUCTION_MIN_SECONDS,
     INTRODUCTION_TOPIC,
     _introduction_upsert,
+    has_personal_introduction,
     retire_introductions,
 )
 
@@ -147,3 +148,19 @@ class TestIntroductionPrompt:
             role="de", level="mid", cv="Tran Minh Quang", job_description="", count=1
         )
         assert "Never address the candidate by name" in prompt
+
+
+class TestHasPersonalIntroduction:
+    async def test_true_only_for_an_active_introduction_in_the_personal_questionnaire(self, db_session) -> None:
+        job = InterviewPack(uid="job-h", title="Job", role="de", level="mid")
+        personal = InterviewPack(uid="me-h", title="About you", role="other", level="mid", personal=True)
+        db_session.add_all([job, personal])
+        await db_session.flush()
+        db_session.add(InterviewQuestion(uid="q-job", pack_id=job.id, text="intro", kind="behavioural"))
+        db_session.add(InterviewQuestion(uid="q-old", pack_id=personal.id, text="old", kind="behavioural", retired=True))
+        await db_session.flush()
+        assert await has_personal_introduction(db_session) is False
+
+        db_session.add(InterviewQuestion(uid="q-new", pack_id=personal.id, text="new", kind="behavioural"))
+        await db_session.flush()
+        assert await has_personal_introduction(db_session) is True
