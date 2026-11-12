@@ -1,6 +1,25 @@
 # run.ps1 - Start Articulate on Windows
 # Usage: .\run.ps1
 
+# --- Stop a previous run ---
+# Without this, a second run finds port 5173 taken, Vite moves to 5174 and prints that,
+# while the first server and any browser tab on it stay alive on the old port.
+#
+# Matched by command line rather than by port alone, because uvicorn --reload runs a
+# parent and a child and only one of them holds the socket. Only processes whose
+# command line names this project are touched.
+$ours = Get-CimInstance Win32_Process -Filter "Name = 'node.exe' OR Name = 'python.exe'" -ErrorAction SilentlyContinue |
+    Where-Object {
+        $_.CommandLine -like "*Articulate*" -and
+        ($_.CommandLine -like "*vite*" -or $_.CommandLine -like "*uvicorn*")
+    } |
+    Sort-Object ProcessId -Unique
+
+foreach ($process in $ours) {
+    Write-Host "Stopping the previous server (pid $($process.ProcessId))..." -ForegroundColor Yellow
+    Stop-Process -Id $process.ProcessId -Force -ErrorAction SilentlyContinue
+}
+
 # --- Load config ---
 if (-not (Test-Path ".env")) {
     Write-Error ".env not found. Copy .env.example to .env and fill in your API keys."
@@ -106,11 +125,15 @@ if ($mustBuild) {
 }
 
 # --- Frontend dev server in a new terminal window ---
+# strictPort, so the script fails loudly instead of quietly moving to another port.
 $frontendDir = Join-Path $PSScriptRoot "frontend"
-Write-Host "Starting frontend dev server (port 5173) in new window..." -ForegroundColor Cyan
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$frontendDir'; bun run dev"
+Write-Host "Starting frontend dev server in new window..." -ForegroundColor Cyan
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$frontendDir'; bun run dev --port 5173 --strictPort"
 
-Write-Host "Starting Articulate..." -ForegroundColor Green
+Write-Host ""
+Write-Host "  Open http://localhost:5173" -ForegroundColor Green
+Write-Host "  API docs at http://localhost:8000/docs" -ForegroundColor DarkGray
+Write-Host ""
 # --reload-dir scopes the watcher to backend/ only. Without it, uvicorn watches
 # CWD (which includes .venv/), so when the UI mode switcher runs `uv sync` to
 # install faster-whisper, hundreds of site-packages writes trigger a restart
