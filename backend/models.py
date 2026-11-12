@@ -162,6 +162,7 @@ class InterviewQuestion(Base):
     trigger_key_point_uid: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
     topic: Mapped[str] = mapped_column(String(100), default="")
     kind: Mapped[str] = mapped_column(String(20), default="technical")
+    tags: Mapped[str] = mapped_column(Text, default="[]")  # JSON list of skill slugs
     text: Mapped[str] = mapped_column(Text)
     answer_seconds: Mapped[int] = mapped_column(Integer, default=120)
     position: Mapped[int] = mapped_column(Integer, default=0)

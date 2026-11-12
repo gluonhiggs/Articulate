@@ -345,6 +345,44 @@ class CvFileOut(BaseModel):
     truncated: bool
 
 
+class SkillRowOut(BaseModel):
+    skill: str
+    label: str
+    question_count: int
+    in_job: bool
+    in_cv: bool
+    best_score: Optional[int] = None
+    answered: int
+    state: str
+
+
+class SkillListOut(BaseModel):
+    job_pack_id: Optional[int] = None
+    job_title: Optional[str] = None
+    job_skills: List[str] = Field(default_factory=list)
+    cv_skills: List[str] = Field(default_factory=list)
+    rows: List[SkillRowOut] = Field(default_factory=list)
+
+
+class SkillQuestionOut(BaseModel):
+    id: int
+    pack_id: int
+    pack_title: str
+    topic: str
+    kind: InterviewQuestionKind
+    text: str
+    answer_seconds: int
+    tags: List[str] = Field(default_factory=list)
+    matched: List[str] = Field(default_factory=list)
+    latest_content_score: Optional[int] = None
+
+
+class SkillSetOut(BaseModel):
+    skills: List[str] = Field(default_factory=list)
+    labels: List[str] = Field(default_factory=list)
+    questions: List[SkillQuestionOut] = Field(default_factory=list)
+
+
 class InterviewPackCreate(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     role: InterviewRole
@@ -436,6 +474,7 @@ class InterviewQuestionOut(BaseModel):
     trigger_key_point_uid: Optional[str] = None
     topic: str
     kind: InterviewQuestionKind = "technical"
+    tags: List[str] = Field(default_factory=list)
     text: str
     answer_seconds: int
     retired: bool = False

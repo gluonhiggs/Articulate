@@ -152,6 +152,7 @@ async def _ensure_indexes() -> None:
             "ALTER TABLE interview_answers ADD COLUMN sentence_fixes TEXT",
             "ALTER TABLE interview_questions ADD COLUMN kind TEXT DEFAULT 'technical'",
             "ALTER TABLE interview_packs ADD COLUMN personal BOOLEAN DEFAULT 0",
+            "ALTER TABLE interview_questions ADD COLUMN tags TEXT DEFAULT '[]'",
         ]:
             try:
                 await conn.execute(text(col_sql))

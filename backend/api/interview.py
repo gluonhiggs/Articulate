@@ -5,7 +5,7 @@ import logging
 from pathlib import Path
 from typing import List, Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse, Response
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -41,9 +41,14 @@ from backend.schemas import (
     InterviewSourceIn,
     InterviewSourceOut,
     IntroductionRequest,
+    SkillListOut,
+    SkillQuestionOut,
+    SkillRowOut,
+    SkillSetOut,
 )
 from backend.services import audio as audio_service
 from backend.services import cv_import, interview_grading, interview_packs, interview_sentences
+from backend.services import interview_skills, skills
 from backend.services.audio import EXT_TO_MIME
 from backend.services.cv_import import CvReadError
 from backend.services.interview_packs import InterviewPackError, utc_now
@@ -195,6 +200,69 @@ async def draft_introduction(
     await db.commit()
     logger.info("About you: introduction question id(s) %s", question_ids)
     return await _detail(db, pack.id)
+
+
+async def _all_questions(db: AsyncSession) -> list[tuple[InterviewQuestion, InterviewPack]]:
+    result = await db.execute(
+        select(InterviewQuestion, InterviewPack)
+        .join(InterviewPack, InterviewQuestion.pack_id == InterviewPack.id)
+        .where(InterviewQuestion.retired.is_(False), InterviewQuestion.parent_question_id.is_(None))
+    )
+    return list(result.all())
+
+
+async def _tags_and_scores(db: AsyncSession) -> tuple[dict[int, list[str]], dict[int, list[int]]]:
+    rows = await _all_questions(db)
+    tags = {question.id: interview_packs.json_or(question.tags, []) for question, _ in rows}
+    answers = await db.execute(select(InterviewAnswer).where(InterviewAnswer.content_score.is_not(None)))
+    return tags, interview_skills.latest_scores(answers.scalars().all())
+
+
+@router.get("/skills", response_model=SkillListOut)
+async def list_skills(job_pack_id: Optional[int] = None, db: AsyncSession = Depends(get_db)) -> SkillListOut:
+    """Every skill the questions, the job or the CV name, worst first."""
+    job = await interview_packs.load_pack(db, job_pack_id) if job_pack_id is not None else None
+    profile = await _profile(db)
+    job_skills = interview_skills.job_skills_of(job)
+    cv_skills = skills.find_skills(profile.cv_text, limit=20)
+    tags, scores = await _tags_and_scores(db)
+    rows = interview_skills.build_rows(tags, scores, job_skills, cv_skills)
+    return SkillListOut(
+        job_pack_id=job.id if job else None,
+        job_title=job.title if job else None,
+        job_skills=job_skills,
+        cv_skills=cv_skills,
+        rows=[SkillRowOut(**{**row.__dict__, "state": row.state}) for row in rows],
+    )
+
+
+@router.get("/skills/questions", response_model=SkillSetOut)
+async def list_skill_questions(skills_query: str = Query("", alias="skills"), db: AsyncSession = Depends(get_db)):
+    """The questions carrying any of these skills, across every questionnaire."""
+    wanted = skills.known_skills(skills_query.split(","))
+    rows = await _all_questions(db)
+    tags, scores = await _tags_and_scores(db)
+    packs = {question.id: pack for question, pack in rows}
+    matched = interview_skills.matching_questions([question for question, _ in rows], tags, wanted)
+    return SkillSetOut(
+        skills=wanted,
+        labels=[skills.label_of(skill) for skill in wanted],
+        questions=[
+            SkillQuestionOut(
+                id=question.id,
+                pack_id=question.pack_id,
+                pack_title=packs[question.id].title,
+                topic=question.topic,
+                kind=question.kind,
+                text=question.text,
+                answer_seconds=question.answer_seconds,
+                tags=tags.get(question.id, []),
+                matched=[tag for tag in tags.get(question.id, []) if tag in wanted],
+                latest_content_score=max(scores[question.id]) if scores.get(question.id) else None,
+            )
+            for question in matched
+        ],
+    )
 
 
 @router.get("/packs", response_model=List[InterviewPackSummaryOut])

@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import {
   fetchInterviewAnswer,
   fetchInterviewAnswers,
   fetchInterviewPack,
   fetchInterviewQuestion,
+  fetchSkillSet,
   gradeInterviewAnswer,
   interviewQuestionTtsUrl,
   submitInterviewAnswer,
@@ -34,6 +35,13 @@ import type {
 } from '../../types/interview'
 
 const log = createLogger('interview/practice')
+
+
+function nextQuestionIdInSet(questions: { id: number }[], currentId: number): number | null {
+  const at = questions.findIndex((question) => question.id === currentId)
+  if (at === -1 || at + 1 >= questions.length) return null
+  return questions[at + 1].id
+}
 
 export function InterviewPractice() {
   const { questionId } = useParams<{ questionId: string }>()
@@ -64,6 +72,7 @@ function PracticeSession({ questionId }: { questionId: number }) {
   })
 
   const packId = question?.pack_id ?? null
+  const [searchParams] = useSearchParams()
   const { data: pack } = useQuery<InterviewPackDetail>({
     queryKey: ['interview', 'pack', packId],
     queryFn: () => fetchInterviewPack(packId as number),
@@ -281,8 +290,21 @@ function PracticeSession({ questionId }: { questionId: number }) {
     gradeMutation.isError && gradeMutation.variables?.answerId === activeAnswerId
       ? apiErrorDetail(gradeMutation.error)
       : null
+  // Reached from a skill set, the forward arrow has to walk that set: the next question
+  // in the questionnaire is one the candidate did not ask for.
+  const setSkills = searchParams.get('set') ?? ''
+  const { data: skillSet } = useQuery({
+    queryKey: ['interview', 'skill-set', setSkills],
+    queryFn: () => fetchSkillSet(setSkills.split(',').filter(Boolean)),
+    enabled: setSkills !== '',
+  })
+  const nextInSet = nextQuestionIdInSet(skillSet?.questions ?? [], questionId)
   const nextQuestionId =
-    pack && question ? nextTopLevelQuestionId(pack.questions, question.parent_question_id ?? question.id) : null
+    setSkills !== ''
+      ? nextInSet
+      : pack && question
+        ? nextTopLevelQuestionId(pack.questions, question.parent_question_id ?? question.id)
+        : null
   const hasAnswerKey = question ? approvedKeyPointCount(question) > 0 : true
 
   return (

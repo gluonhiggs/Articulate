@@ -102,6 +102,7 @@ export interface InterviewQuestion {
   trigger_key_point_uid: string | null
   topic: string
   kind: InterviewQuestionKind
+  tags: string[]
   text: string
   answer_seconds: number
   retired: boolean
@@ -252,4 +253,44 @@ export interface CvFile {
   text: string
   characters: number
   truncated: boolean
+}
+
+export type SkillState = 'no_questions' | 'weak' | 'unpractised' | 'ready'
+
+export interface SkillRow {
+  skill: string
+  label: string
+  question_count: number
+  in_job: boolean
+  in_cv: boolean
+  best_score: number | null
+  answered: number
+  state: SkillState
+}
+
+export interface SkillList {
+  job_pack_id: number | null
+  job_title: string | null
+  job_skills: string[]
+  cv_skills: string[]
+  rows: SkillRow[]
+}
+
+export interface SkillQuestion {
+  id: number
+  pack_id: number
+  pack_title: string
+  topic: string
+  kind: InterviewQuestionKind
+  text: string
+  answer_seconds: number
+  tags: string[]
+  matched: string[]
+  latest_content_score: number | null
+}
+
+export interface SkillSet {
+  skills: string[]
+  labels: string[]
+  questions: SkillQuestion[]
 }

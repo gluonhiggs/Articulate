@@ -46,6 +46,13 @@ export function InterviewHome() {
             className="hidden"
           />
           <Link
+            to="/interview/skills"
+            title="Rank the skills this job asks for and practise the weakest"
+            className={outlineButtonClass}
+          >
+            Practice by skill
+          </Link>
+          <Link
             to="/interview/cv"
             title="Your CV, used to write the introduction question about your own projects"
             className={outlineButtonClass}

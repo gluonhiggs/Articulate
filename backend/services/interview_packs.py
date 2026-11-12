@@ -67,6 +67,7 @@ from backend.schemas import (
     PackFileSource,
 )
 from backend.services import interview_prompts, llm_client
+from backend.services.skills import find_skills
 from backend.services.interview_glossary import GlossaryEntry
 from backend.services.interview_scoring import QuoteIndex
 
@@ -287,6 +288,15 @@ def _payload_quotes(payloads: Iterable[InterviewQuestionUpsert]) -> list[Optiona
     ]
 
 
+def question_skills(text: str, key_points: Sequence[InterviewKeyPointIn]) -> list[str]:
+    """
+    The technologies a question is about, read from its own words and its answer key.
+
+    Derived rather than authored, so every question carries them without a coach having
+    to fill a field, and so the same text always produces the same tags.
+    """
+    return find_skills(" ".join([text, *(key_point.text for key_point in key_points)]))
+
 class _UidPool:
     def __init__(self, used: Iterable[str]) -> None:
         self._used = set(used)
@@ -394,6 +404,7 @@ class _PackWriter:
         question.topic = payload.topic.strip()
         question.kind = payload.kind
         question.text = payload.text.strip()
+        question.tags = json.dumps(question_skills(payload.text, payload.key_points))
         question.answer_seconds = payload.answer_seconds
         question.position = position
         key_point_uid_map = self._sync_key_points(question, payload.key_points)
@@ -413,6 +424,7 @@ class _PackWriter:
             follow_up.topic = question.topic
             follow_up.kind = question.kind
             follow_up.text = item.text.strip()
+            follow_up.tags = json.dumps(question_skills(item.text, item.key_points))
             follow_up.answer_seconds = item.answer_seconds
             follow_up.position = follow_up_position
             self._sync_key_points(follow_up, item.key_points)
@@ -432,6 +444,7 @@ class _PackWriter:
 
     async def write_follow_up_only(self, question: InterviewQuestion, payload: InterviewQuestionUpsert) -> None:
         question.text = payload.text.strip()
+        question.tags = json.dumps(question_skills(payload.text, payload.key_points))
         question.answer_seconds = payload.answer_seconds
         self._sync_key_points(question, payload.key_points)
         self._sync_misconceptions(question, payload.misconceptions)
@@ -732,6 +745,7 @@ def _question_out(
         trigger_key_point_uid=question.trigger_key_point_uid,
         topic=question.topic,
         kind=question.kind,
+        tags=json_or(question.tags, []),
         text=question.text,
         answer_seconds=question.answer_seconds,
         retired=question.retired,

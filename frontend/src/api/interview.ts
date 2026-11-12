@@ -12,6 +12,8 @@ import type {
   InterviewQuestionInput,
   InterviewSource,
   InterviewSourceInput,
+  SkillList,
+  SkillSet,
 } from '../types/interview'
 import { apiFetch } from './client'
 
@@ -95,6 +97,15 @@ export function readCvFile(file: File): Promise<CvFile> {
     body: formData,
     signal: AbortSignal.timeout(60_000),
   })
+}
+
+export function fetchSkillList(jobPackId: number | null): Promise<SkillList> {
+  const query = jobPackId === null ? '' : `?job_pack_id=${jobPackId}`
+  return apiFetch<SkillList>(`/interview/skills${query}`)
+}
+
+export function fetchSkillSet(skills: string[]): Promise<SkillSet> {
+  return apiFetch<SkillSet>(`/interview/skills/questions?skills=${encodeURIComponent(skills.join(','))}`)
 }
 
 export function fetchAboutYou(): Promise<InterviewPackDetail | null> {
