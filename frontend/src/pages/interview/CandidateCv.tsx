@@ -160,7 +160,12 @@ export function CandidateCv() {
             )}
             {saveMutation.isSuccess && (
               <Notice tone="success">
-                Saved. Open a questionnaire, go to Draft with AI, and add the introduction question.
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="flex-1">Saved. Write your introduction question from it under About you.</span>
+                  <Link to="/interview" className={secondaryButtonClass}>
+                    Back to practice
+                  </Link>
+                </div>
               </Notice>
             )}
           </div>
