@@ -334,10 +334,6 @@ class CandidateProfileOut(BaseModel):
     has_cv: bool
 
 
-class IntroductionRequest(BaseModel):
-    job_pack_id: Optional[int] = None
-
-
 class CvFileOut(BaseModel):
     filename: str
     text: str

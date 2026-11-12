@@ -310,7 +310,7 @@ function PracticeSession({ questionId }: { questionId: number }) {
   return (
     <div className="flex flex-col min-h-screen">
       <div className="bg-sidebar border-b border-cardBorder px-6 py-4 sticky top-0 z-10 flex items-center gap-2 text-sm text-textSecondary min-w-0">
-        <Link to="/interview" className="hover:text-textPrimary transition-colors shrink-0">
+        <Link to="/interview?tab=jobs" className="hover:text-textPrimary transition-colors shrink-0">
           Interview
         </Link>
         <span className="text-[10px]">/</span>
@@ -342,7 +342,7 @@ function PracticeSession({ questionId }: { questionId: number }) {
             <p className="text-gray-400 text-sm mt-1">
               {validId ? apiErrorDetail(questionError) : 'Invalid question link.'}
             </p>
-            <Link to="/interview" className="inline-block mt-3 text-sm text-accent hover:underline">
+            <Link to="/interview?tab=jobs" className="inline-block mt-3 text-sm text-accent hover:underline">
               Back to questionnaires
             </Link>
           </div>

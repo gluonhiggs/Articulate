@@ -112,9 +112,16 @@ export function fetchAboutYou(): Promise<InterviewPackDetail | null> {
   return apiFetch<InterviewPackDetail | null>('/interview/about-you')
 }
 
-export function draftIntroductionQuestion(jobPackId: number | null): Promise<InterviewPackDetail> {
+export function draftIntroductionQuestion(): Promise<InterviewPackDetail> {
   return apiFetch<InterviewPackDetail>('/interview/about-you/introduction', {
-    ...jsonBody('POST', { job_pack_id: jobPackId }),
+    method: 'POST',
+    signal: AbortSignal.timeout(LLM_TIMEOUT_MS),
+  })
+}
+
+export function draftJobIntroduction(packId: number): Promise<InterviewPackDetail> {
+  return apiFetch<InterviewPackDetail>(`/interview/packs/${packId}/introduction`, {
+    method: 'POST',
     signal: AbortSignal.timeout(LLM_TIMEOUT_MS),
   })
 }

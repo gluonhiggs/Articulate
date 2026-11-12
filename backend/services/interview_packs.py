@@ -1055,20 +1055,18 @@ async def draft_introduction(
     session: AsyncSession,
     pack: InterviewPack,
     profile: CandidateProfile,
-    job: Optional[InterviewPack] = None,
     count: int = INTRODUCTION_COUNT,
 ) -> list[int]:
     """
-    Add the opening "introduce yourself" question, keyed to the CV.
+    Add the opening "introduce yourself" question to *pack*, keyed to the CV.
 
-    job is the client questionnaire the candidate is preparing for, when they picked one:
-    only its role, level and job description are read, so the question can ask them to
-    connect their own history to what that client wants.
+    In a job's questionnaire, its role, level and job description shape the question, so
+    it asks the candidate to connect their history to that job. In the personal
+    questionnaire they are empty, and the question is about the candidate alone.
 
     The CV is sent to the drafter and nothing else keeps it: it is never written into the
     questionnaire, so exporting the file does not carry the candidate's history with it.
     """
-    aimed_at = job or pack
     cv = profile.cv_text.strip()
     if len(cv) < INTRODUCTION_MIN_CV_CHARS:
         raise InterviewPackError(
@@ -1077,10 +1075,10 @@ async def draft_introduction(
         )
     settings = get_settings()
     prompt = interview_prompts.build_introduction_prompt(
-        role=aimed_at.role,
-        level=aimed_at.level,
+        role=pack.role,
+        level=pack.level,
         cv=cv[:CV_CHAR_LIMIT],
-        job_description=aimed_at.job_description,
+        job_description=pack.job_description,
         count=count,
     )
     output = await llm_client.generate_json(

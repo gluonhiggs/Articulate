@@ -19,12 +19,8 @@ export function SkillSetPage() {
   return (
     <div className="flex flex-col min-h-screen">
       <div className="bg-sidebar border-b border-cardBorder px-6 py-4 sticky top-0 z-10 flex items-center gap-2 text-sm text-textSecondary">
-        <Link to="/interview" className="hover:text-textPrimary transition-colors">
+        <Link to="/interview?tab=skills" className="hover:text-textPrimary transition-colors">
           Interview
-        </Link>
-        <span className="text-[10px]">/</span>
-        <Link to="/interview/skills" className="hover:text-textPrimary transition-colors">
-          Practice by skill
         </Link>
         <span className="text-[10px]">/</span>
         <span className="text-textPrimary font-medium">{data?.labels.join(', ') || 'Set'}</span>

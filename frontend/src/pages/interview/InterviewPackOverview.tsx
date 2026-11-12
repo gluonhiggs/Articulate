@@ -1,9 +1,15 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { fetchInterviewPack, interviewPackExportUrl, interviewPackReportUrl } from '../../api/interview'
+import {
+  fetchInterviewPack,
+  fetchSkillList,
+  interviewPackExportUrl,
+  interviewPackReportUrl,
+} from '../../api/interview'
 import { PackQuestionRow } from '../../components/interview/PackQuestionRow'
-import { TopicReadiness } from '../../components/interview/TopicReadiness'
+import { JobIntroduction } from '../../components/interview/JobIntroduction'
+import { SkillRows } from '../../components/interview/SkillRows'
 import { outlineButtonClass } from '../../components/interview/ui'
 import {
   apiErrorDetail,
@@ -29,13 +35,20 @@ export function InterviewPackOverview() {
     staleTime: 0,
   })
 
+  const { data: skillList } = useQuery({
+    queryKey: ['interview', 'skills', packId],
+    queryFn: () => fetchSkillList(packId),
+    enabled: !isNaN(packId),
+  })
+  const jobSkills = (skillList?.rows ?? []).filter((row) => row.in_job)
+
   const topicGroups = useMemo(() => groupByTopic(pack?.questions ?? []), [pack])
   const practiceQuestion = useMemo(() => pickPracticeQuestion(pack?.questions ?? []), [pack])
 
   return (
     <div className="flex flex-col min-h-screen">
       <div className="bg-sidebar border-b border-cardBorder px-6 py-4 sticky top-0 z-10 flex items-center gap-2 text-sm text-textSecondary">
-        <Link to="/interview" className="hover:text-textPrimary transition-colors">
+        <Link to="/interview?tab=jobs" className="hover:text-textPrimary transition-colors">
           Interview
         </Link>
         <span className="text-[10px]">/</span>
@@ -55,7 +68,7 @@ export function InterviewPackOverview() {
             <p className="text-textSecondary text-sm mt-2">
               {isNaN(packId) ? 'Invalid questionnaire link.' : apiErrorDetail(error)}
             </p>
-            <Link to="/interview" className={`mt-4 ${outlineButtonClass}`}>
+            <Link to="/interview?tab=jobs" className={`mt-4 ${outlineButtonClass}`}>
               Back to questionnaires
             </Link>
           </div>
@@ -162,7 +175,24 @@ export function InterviewPackOverview() {
               </div>
             )}
 
-            <TopicReadiness topics={pack.topics} />
+            <JobIntroduction
+              packId={pack.id}
+              hasIntroduction={pack.questions.some((question) => question.kind === 'behavioural' && !question.retired)}
+            />
+
+            <section className="space-y-2">
+              <div className="flex items-baseline gap-2">
+                <h2 className="text-textPrimary font-semibold">Skills for this job</h2>
+                <p className="text-xs text-textSecondary">Hardest first. Practice now runs every question on that skill.</p>
+              </div>
+              {jobSkills.length > 0 ? (
+                <SkillRows rows={jobSkills} draftHref={`/interview/packs/${pack.id}/studio`} />
+              ) : (
+                <p className="text-sm text-textSecondary">
+                  The job description names no skills yet. Add one under Edit questionnaire, Details.
+                </p>
+              )}
+            </section>
 
             {pack.questions.length === 0 ? (
               <div className="bg-card/50 border border-dashed border-white/10 rounded-xl p-8 text-center">

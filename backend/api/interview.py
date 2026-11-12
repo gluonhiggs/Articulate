@@ -40,7 +40,6 @@ from backend.schemas import (
     InterviewQuestionUpsert,
     InterviewSourceIn,
     InterviewSourceOut,
-    IntroductionRequest,
     SkillListOut,
     SkillQuestionOut,
     SkillRowOut,
@@ -168,22 +167,16 @@ async def get_about_you(db: AsyncSession = Depends(get_db)) -> Optional[Intervie
     return None if pack is None else await _detail(db, pack.id)
 
 
-@router.post("/about-you/introduction", response_model=InterviewPackDetailOut)
-async def draft_introduction(
-    body: IntroductionRequest, db: AsyncSession = Depends(get_db)
-) -> InterviewPackDetailOut:
-    """Write an introduction question from the CV, into the candidate's own questionnaire."""
+async def _write_introduction(db: AsyncSession, pack: InterviewPack) -> list[int]:
     profile = await _profile(db)
-    job = await _pack_or_404(db, body.job_pack_id) if body.job_pack_id is not None else None
-    pack = await interview_packs.load_or_create_personal_pack(db, profile)
     logger.info(
-        "About you: writing the introduction question from a %d character CV, aimed at %s, with %s",
+        "Introduction question: from a %d character CV, into %r, with %s",
         len(profile.cv_text),
-        job.title if job else "no job",
+        pack.title,
         get_settings().interview_drafter_model,
     )
     try:
-        question_ids = await interview_packs.draft_introduction(db, pack, profile, job)
+        question_ids = await interview_packs.draft_introduction(db, pack, profile)
     except InterviewPackError as exc:
         await db.rollback()
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -194,11 +187,27 @@ async def draft_introduction(
             detail="The Gemini drafter's free-tier quota is reached for now. Please try again later.",
         ) from exc
     except RuntimeError as exc:
-        logger.exception("About you: the introduction question failed")
+        logger.exception("Introduction question failed for %r", pack.title)
         await db.rollback()
         raise HTTPException(status_code=502, detail=f"Writing the question failed: {exc}") from exc
     await db.commit()
-    logger.info("About you: introduction question id(s) %s", question_ids)
+    logger.info("Introduction question id(s) %s in %r", question_ids, pack.title)
+    return question_ids
+
+
+@router.post("/about-you/introduction", response_model=InterviewPackDetailOut)
+async def draft_personal_introduction(db: AsyncSession = Depends(get_db)) -> InterviewPackDetailOut:
+    """A plain introduction from the CV, into the candidate's own questionnaire."""
+    pack = await interview_packs.load_or_create_personal_pack(db, await _profile(db))
+    await _write_introduction(db, pack)
+    return await _detail(db, pack.id)
+
+
+@router.post("/packs/{pack_id}/introduction", response_model=InterviewPackDetailOut)
+async def draft_job_introduction(pack_id: int, db: AsyncSession = Depends(get_db)) -> InterviewPackDetailOut:
+    """An introduction aimed at this job's description, added to this job's questions."""
+    pack = await _pack_or_404(db, pack_id)
+    await _write_introduction(db, pack)
     return await _detail(db, pack.id)
 
 

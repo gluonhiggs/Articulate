@@ -1,15 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { draftIntroductionQuestion, fetchAboutYou, fetchCandidateProfile } from '../../api/interview'
+import {
+  draftIntroductionQuestion,
+  fetchAboutYou,
+  fetchCandidateProfile,
+  fetchSkillList,
+} from '../../api/interview'
 import { createLogger, errorData } from '../../lib/log'
-import type { InterviewPackSummary, InterviewQuestion } from '../../types/interview'
+import type { InterviewQuestion } from '../../types/interview'
+import { SkillRows } from './SkillRows'
 import { outlineButtonClass } from './ui'
 import { apiErrorDetail, plural, scoreBand, bandStyle } from './utils'
 
 const log = createLogger('interview/about-you')
-
-const NO_JOB = ''
 
 function QuestionRow({ question }: { question: InterviewQuestion }) {
   const content = bandStyle(scoreBand(question.latest_content_score))
@@ -31,17 +34,21 @@ function QuestionRow({ question }: { question: InterviewQuestion }) {
   )
 }
 
-export function AboutYouSection({ jobs }: { jobs: InterviewPackSummary[] }) {
+export function AboutYouSection() {
   const queryClient = useQueryClient()
-  const [jobPackId, setJobPackId] = useState<string>(NO_JOB)
 
   const { data: profile } = useQuery({ queryKey: ['interview', 'profile'], queryFn: fetchCandidateProfile })
   const { data: aboutYou } = useQuery({ queryKey: ['interview', 'about-you'], queryFn: fetchAboutYou })
+  const { data: skillList } = useQuery({
+    queryKey: ['interview', 'skills', null],
+    queryFn: () => fetchSkillList(null),
+  })
+  const cvSkills = (skillList?.rows ?? []).filter((row) => row.in_cv)
 
   const draftMutation = useMutation({
     mutationFn: () => {
-      log.info('introduction start', { jobPackId })
-      return draftIntroductionQuestion(jobPackId === NO_JOB ? null : Number(jobPackId))
+      log.info('introduction start')
+      return draftIntroductionQuestion()
     },
     onSuccess: (pack) => {
       log.info('introduction ok', { questions: pack.questions.length })
@@ -60,9 +67,6 @@ export function AboutYouSection({ jobs }: { jobs: InterviewPackSummary[] }) {
         <p className="text-xs text-textSecondary flex-1">
           Questions about your own background, with an answer key written from your CV.
         </p>
-        <Link to="/interview/cv" className="text-xs text-accent hover:underline shrink-0">
-          {hasCv ? 'Edit my CV' : 'Add my CV'}
-        </Link>
       </div>
 
       {questions.length > 0 && <div className="space-y-2">{questions.map((question) => (
@@ -70,22 +74,6 @@ export function AboutYouSection({ jobs }: { jobs: InterviewPackSummary[] }) {
       ))}</div>}
 
       <div className="flex flex-wrap items-center gap-2 pt-1">
-        {jobs.length > 0 && (
-          <select
-            value={jobPackId}
-            onChange={(event) => setJobPackId(event.target.value)}
-            disabled={!hasCv || draftMutation.isPending}
-            title="Aim the question at one client, so it asks you to connect your history to what they want"
-            className="bg-card border border-cardBorder rounded-lg px-3 py-2 text-sm text-textPrimary disabled:opacity-50"
-          >
-            <option value={NO_JOB}>No specific job</option>
-            {jobs.map((job) => (
-              <option key={job.id} value={String(job.id)}>
-                {job.title}
-              </option>
-            ))}
-          </select>
-        )}
         <button
           type="button"
           onClick={() => draftMutation.mutate()}
@@ -101,6 +89,13 @@ export function AboutYouSection({ jobs }: { jobs: InterviewPackSummary[] }) {
           </span>
         )}
       </div>
+
+      {cvSkills.length > 0 && (
+        <div className="space-y-2 pt-3">
+          <p className="text-xs text-textSecondary">Skills your CV claims, so the ones you will be asked to defend.</p>
+          <SkillRows rows={cvSkills} />
+        </div>
+      )}
 
       {draftMutation.isError && (
         <p className="text-red-400 text-sm">{apiErrorDetail(draftMutation.error)}</p>

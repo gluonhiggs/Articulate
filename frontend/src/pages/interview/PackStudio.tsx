@@ -73,7 +73,7 @@ export function PackStudio() {
     <div className="flex flex-col min-h-screen">
       <div className="bg-sidebar border-b border-cardBorder px-6 py-4 sticky top-0 z-10 space-y-3">
         <div className="flex items-center gap-2 text-sm text-textSecondary">
-          <Link to="/interview" className="hover:text-textPrimary transition-colors shrink-0">
+          <Link to="/interview?tab=jobs" className="hover:text-textPrimary transition-colors shrink-0">
             Interview
           </Link>
           <span className="text-[10px]">/</span>
@@ -138,7 +138,7 @@ export function PackStudio() {
             <p className="text-textSecondary text-sm mt-2">
               {isNaN(packId) ? 'Invalid questionnaire link.' : apiErrorDetail(error)}
             </p>
-            <Link to="/interview" className={`mt-4 ${outlineButtonClass}`}>
+            <Link to="/interview?tab=jobs" className={`mt-4 ${outlineButtonClass}`}>
               Back to questionnaires
             </Link>
           </div>

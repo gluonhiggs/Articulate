@@ -72,7 +72,7 @@ export function CandidateCv() {
   return (
     <div className="flex flex-col min-h-screen">
       <div className="bg-sidebar border-b border-cardBorder px-6 py-4 sticky top-0 z-10 flex items-center gap-2 text-sm text-textSecondary">
-        <Link to="/interview" className="hover:text-textPrimary transition-colors">
+        <Link to="/interview?tab=cv" className="hover:text-textPrimary transition-colors">
           Interview
         </Link>
         <span className="text-[10px]">/</span>
@@ -161,15 +161,16 @@ export function CandidateCv() {
             {saveMutation.isSuccess && (
               <Notice tone="success">
                 <div className="flex flex-wrap items-center gap-3">
-                  <span className="flex-1">Saved. Write your introduction question from it under About you.</span>
-                  <Link to="/interview" className={secondaryButtonClass}>
-                    Back to practice
+                  <span className="flex-1">Saved.</span>
+                  <Link to="/interview?tab=cv" className={secondaryButtonClass}>
+                    Back to interview
                   </Link>
                 </div>
               </Notice>
             )}
           </div>
         )}
+
       </div>
     </div>
   )
