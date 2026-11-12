@@ -16,7 +16,9 @@ FUZZY_CANDIDATE_STARTS = 10
 MAX_VOTE_WORK = 200_000
 MAX_KEY_POINTS_PER_QUOTE = 2
 CORE_WEIGHT = 3
-INCORRECT_CAP = 39
+# A stated misconception costs a fixed amount instead of capping the whole answer:
+# a cap made trying and being slightly wrong score far below saying nothing.
+MISCONCEPTION_PENALTY = 10
 CORE_NOT_COVERED_CAP = 69
 STRONG_MIN = 70
 DEVELOPING_MIN = 40
@@ -210,6 +212,10 @@ def content_score(results: Iterable[tuple[int, str]], misconception_count: int) 
     Weighted key point credit as 0-100 plus a band.
 
     results: (weight, verdict) per approved key point; must not be empty.
+
+    A key point stated wrongly earns nothing, exactly like one left out, so attempting a
+    point can never score below staying silent on it. The verdict still reaches the
+    candidate as incorrect, with its correction; it just is not punished twice.
     """
     results = list(results)
     total_weight = sum(weight for weight, _ in results)
@@ -219,10 +225,9 @@ def content_score(results: Iterable[tuple[int, str]], misconception_count: int) 
     score = int(100 * earned / total_weight + 0.5)
 
     core_verdicts = [verdict for weight, verdict in results if weight == CORE_WEIGHT]
-    if misconception_count > 0 or "incorrect" in core_verdicts:
-        return min(score, INCORRECT_CAP), "incorrect"
     if any(verdict != "covered" for verdict in core_verdicts):
         score = min(score, CORE_NOT_COVERED_CAP)
+    score = max(0, score - MISCONCEPTION_PENALTY * misconception_count)
     if score >= STRONG_MIN:
         return score, "strong"
     if score >= DEVELOPING_MIN:

@@ -13,7 +13,10 @@ export const MIN_GRADED_WORDS = 15
 export const MIN_DELIVERY_WORDS = 20
 export const STRONG_MIN_SCORE = 70
 export const DEVELOPING_MIN_SCORE = 40
+// Answers graded before the fair-scoring change were capped here; their band says incorrect.
 export const INCORRECT_SCORE_CAP = 39
+// Kept in step with MISCONCEPTION_PENALTY in backend/services/interview_scoring.py.
+export const MISCONCEPTION_PENALTY = 10
 
 export const ROLE_LABELS: Record<InterviewRole, string> = {
   swe: 'Software Engineer',

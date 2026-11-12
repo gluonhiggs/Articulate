@@ -170,14 +170,23 @@ class TestContentScore:
     def test_all_core_covered_is_strong(self):
         assert content_score([(3, "covered"), (3, "covered"), (2, "partial"), (1, "missing")], 0) == (78, "strong")
 
-    def test_fluent_but_wrong_answer_is_capped_as_incorrect(self):
-        score, band = content_score([(3, "covered"), (2, "covered"), (1, "covered")], misconception_count=1)
-        assert band == "incorrect"
-        assert score <= 39
+    def test_a_stated_misconception_costs_a_fixed_penalty(self):
+        assert content_score([(3, "covered"), (2, "covered"), (1, "covered")], misconception_count=1) == (90, "strong")
+        assert content_score([(3, "covered"), (2, "covered"), (1, "covered")], misconception_count=2) == (80, "strong")
 
-    def test_core_key_point_incorrect_caps_at_39(self):
+    def test_the_penalty_never_takes_a_score_below_zero(self):
+        assert content_score([(3, "missing"), (1, "partial")], misconception_count=3) == (0, "weak")
+
+    def test_a_wrong_core_point_scores_exactly_like_a_missing_one(self):
+        # Trying and being slightly wrong must never score below staying silent.
+        wrong = content_score([(3, "incorrect"), (3, "covered"), (3, "covered"), (2, "covered"), (1, "covered")], 0)
+        silent = content_score([(3, "missing"), (3, "covered"), (3, "covered"), (2, "covered"), (1, "covered")], 0)
+        assert wrong == silent == (69, "developing")
+
+    def test_a_wrong_core_point_still_keeps_the_answer_out_of_strong(self):
         score, band = content_score([(3, "incorrect"), (2, "covered"), (2, "covered"), (1, "covered")], 0)
-        assert (score, band) == (39, "incorrect")
+        assert band != "strong"
+        assert score <= 69
 
     def test_core_key_point_missing_caps_at_69(self):
         score, band = content_score([(3, "missing"), (2, "covered"), (2, "covered"), (2, "covered"), (2, "covered")], 0)

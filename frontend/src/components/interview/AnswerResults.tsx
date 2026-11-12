@@ -13,6 +13,7 @@ import {
   countWords,
   coverageHeadline,
   INCORRECT_SCORE_CAP,
+  MISCONCEPTION_PENALTY,
   needsWork,
   plural,
   scoreBand,
@@ -119,7 +120,12 @@ export function AnswerResults({
 
       {answer.misconceptions_found.length > 0 && (
         <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-5">
-          <p className="text-red-400 font-semibold text-sm mb-3">Fix this first</p>
+          <p className="text-red-400 font-semibold text-sm">Fix this first</p>
+          <p className="text-xs text-red-300/70 mt-0.5 mb-3">
+            {answer.content_band === 'incorrect'
+              ? 'Graded under the earlier rule, shown above.'
+              : `Each wrong belief stated takes ${MISCONCEPTION_PENALTY} points off the content score.`}
+          </p>
           <ul className="space-y-3">
             {answer.misconceptions_found.map((m) => (
               <li key={m.uid} className="text-sm">

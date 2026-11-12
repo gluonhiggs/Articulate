@@ -1,5 +1,5 @@
 import type { InterviewMisconceptionInput } from '../../../types/interview'
-import { INCORRECT_SCORE_CAP } from '../utils'
+import { MISCONCEPTION_PENALTY } from '../utils'
 import { MAX_MISCONCEPTIONS, newMisconceptionInput } from './studioModel'
 import { PlusIcon, RemoveButton, inputClass, secondaryButtonClass } from './studioUi'
 
@@ -18,7 +18,7 @@ export function MisconceptionsEditor({ misconceptions, onChange }: Misconception
       <div>
         <h4 className="text-sm font-semibold text-textPrimary">Misconceptions</h4>
         <p className="text-xs text-textSecondary">
-          Wrong statements candidates often make. Stating one caps the content score at {INCORRECT_SCORE_CAP}.
+          Wrong statements candidates often make. Stating one takes {MISCONCEPTION_PENALTY} points off the content score.
         </p>
       </div>
 
