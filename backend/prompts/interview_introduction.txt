@@ -22,6 +22,7 @@ Requirements:
 - Where the job description asks for something the CV also shows, make one key point ask the candidate to connect the two.
 - importance is "core" for what the answer fails without (at least one per question), "supporting" for what a good answer includes, "detail" for extra depth.
 - answer_seconds: 150 to 180. An introduction that names a project, the decision behind it and a number cannot be said in less.
+- Never address the candidate by name or put their name in the question. The question must read the same whoever answers it.
 - Use plain, clear English.
 
 Return only JSON that matches the schema.

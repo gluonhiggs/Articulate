@@ -26,6 +26,7 @@ from backend.schemas import (
     CV_TEXT_MAX,
     CandidateProfileIn,
     CandidateProfileOut,
+    CandidateProfileSavedOut,
     CvFileOut,
     InterviewAnswerOut,
     InterviewDraftRequest,
@@ -133,17 +134,47 @@ async def get_profile(db: AsyncSession = Depends(get_db)) -> CandidateProfileOut
     return _profile_out(await _profile(db))
 
 
-@router.put("/profile", response_model=CandidateProfileOut)
-async def update_profile(body: CandidateProfileIn, db: AsyncSession = Depends(get_db)) -> CandidateProfileOut:
+async def _replace_introduction(db: AsyncSession, profile: CandidateProfile) -> bool:
+    """
+    Write a fresh introduction from the CV just saved; False when it could not be written.
+
+    A failure here never fails the save: the CV is stored either way, and the candidate
+    can press Write from my CV once the quota is back.
+    """
+    pack = await interview_packs.load_or_create_personal_pack(db, profile)
+    try:
+        await interview_packs.draft_introduction(db, pack, profile)
+    except (InterviewPackError, LLMRateLimitError, RuntimeError) as exc:
+        await db.rollback()
+        logger.warning("No new introduction after the CV change: %s", exc)
+        return False
+    await db.commit()
+    return True
+
+
+@router.put("/profile", response_model=CandidateProfileSavedOut)
+async def update_profile(body: CandidateProfileIn, db: AsyncSession = Depends(get_db)) -> CandidateProfileSavedOut:
     profile = await _profile(db)
-    profile.full_name = body.full_name.strip()
+    cv_text = cv_import.tidy(body.cv_text)
+    cv_changed = cv_text != profile.cv_text
     profile.target_role = body.target_role.strip()
-    profile.cv_text = cv_import.tidy(body.cv_text)
+    profile.cv_text = cv_text
+    profile.full_name = cv_import.guess_name(cv_text)
     profile.cv_filename = body.cv_filename.strip()
     profile.updated_at = utc_now()
+    retired = await interview_packs.retire_introductions(db) if cv_changed else 0
     await db.commit()
-    logger.info("Candidate profile saved: cv=%d chars from %r", len(profile.cv_text), profile.cv_filename)
-    return _profile_out(profile)
+    logger.info(
+        "Candidate profile saved: cv=%d chars from %r, changed=%s, introductions retired=%d",
+        len(cv_text),
+        profile.cv_filename,
+        cv_changed,
+        retired,
+    )
+    written = await _replace_introduction(db, profile) if cv_changed and cv_text else False
+    return CandidateProfileSavedOut(
+        **_profile_out(profile).model_dump(), introductions_retired=retired, introduction_written=written
+    )
 
 
 @router.post("/profile/cv-file", response_model=CvFileOut)
@@ -157,7 +188,12 @@ async def read_cv_file(file: UploadFile) -> CvFileOut:
         logger.info("CV file %r rejected: %s", filename, exc)
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     logger.info("CV file %r read: %d bytes -> %d characters", filename, len(data), len(text))
-    return CvFileOut(filename=filename, text=text, characters=len(text), truncated=truncated)
+    return CvFileOut(
+        filename=filename,
+        text=text,
+        characters=len(text),
+        truncated=truncated,
+    )
 
 
 @router.get("/about-you", response_model=Optional[InterviewPackDetailOut])

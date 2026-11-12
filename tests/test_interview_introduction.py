@@ -5,11 +5,13 @@ arrive as a question the grader can score: behavioural, with approved key points
 
 from __future__ import annotations
 
+from backend.models import InterviewPack, InterviewQuestion
 from backend.services import interview_prompts
 from backend.services.interview_packs import (
     INTRODUCTION_MIN_SECONDS,
     INTRODUCTION_TOPIC,
     _introduction_upsert,
+    retire_introductions,
 )
 
 KEY_POINTS = [
@@ -102,3 +104,46 @@ class TestBehaviouralGrading:
         )
         assert "kp1 | core | names the project" in prompt
         assert "i worked on a spark pipeline" in prompt
+
+
+class TestRetireIntroductions:
+    """A new CV makes every introduction written from the old one wrong."""
+
+    async def _question(self, session, pack_id: int, kind: str, retired: bool = False) -> InterviewQuestion:
+        question = InterviewQuestion(
+            uid=f"q-{kind}-{retired}-{pack_id}", pack_id=pack_id, text=f"{kind} question", kind=kind, retired=retired
+        )
+        session.add(question)
+        await session.flush()
+        return question
+
+    async def test_retires_every_introduction_and_keeps_technical_questions(self, db_session) -> None:
+        pack = InterviewPack(uid="job-1", title="Job", role="de", level="mid")
+        personal = InterviewPack(uid="me-1", title="About you", role="other", level="mid", personal=True)
+        db_session.add_all([pack, personal])
+        await db_session.flush()
+        job_intro = await self._question(db_session, pack.id, "behavioural")
+        own_intro = await self._question(db_session, personal.id, "behavioural")
+        technical = await self._question(db_session, pack.id, "technical")
+
+        retired = await retire_introductions(db_session)
+
+        assert retired == 2
+        assert job_intro.retired and own_intro.retired
+        assert not technical.retired
+
+    async def test_does_not_count_an_introduction_already_retired(self, db_session) -> None:
+        pack = InterviewPack(uid="job-2", title="Job", role="de", level="mid")
+        db_session.add(pack)
+        await db_session.flush()
+        await self._question(db_session, pack.id, "behavioural", retired=True)
+
+        assert await retire_introductions(db_session) == 0
+
+
+class TestIntroductionPrompt:
+    def test_tells_the_model_never_to_use_the_candidate_s_name(self) -> None:
+        prompt = interview_prompts.build_introduction_prompt(
+            role="de", level="mid", cv="Tran Minh Quang", job_description="", count=1
+        )
+        assert "Never address the candidate by name" in prompt

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchCandidateProfile, readCvFile, saveCandidateProfile } from '../../api/interview'
 import { createLogger, errorData } from '../../lib/log'
-import { apiErrorDetail } from '../../components/interview/utils'
+import { apiErrorDetail, plural } from '../../components/interview/utils'
 import {
   Field,
   Notice,
@@ -13,13 +13,27 @@ import {
   primaryButtonClass,
   secondaryButtonClass,
 } from '../../components/interview/studio/studioUi'
-import type { CandidateProfileInput } from '../../types/interview'
+import type { CandidateProfileInput, CandidateProfileSaved } from '../../types/interview'
 
 const log = createLogger('interview/cv')
 
 export const CV_FILE_ACCEPT = '.pdf,.docx,.txt,.md,.markdown,.rst'
 export const CV_TEXT_MAX = 60_000
-const EMPTY: CandidateProfileInput = { full_name: '', target_role: '', cv_text: '', cv_filename: '' }
+const EMPTY: CandidateProfileInput = { target_role: '', cv_text: '', cv_filename: '' }
+
+export function savedMessage(saved: CandidateProfileSaved): string {
+  if (saved.introductions_retired === 0 && !saved.introduction_written) return 'Saved.'
+  const retired =
+    saved.introductions_retired > 0
+      ? ` ${plural(saved.introductions_retired, 'introduction question')} from the old CV retired.`
+      : ''
+  const written = !saved.introduction_written
+    ? ' Write a new one on the CV tab when the quota allows.'
+    : saved.introductions_retired > 0
+      ? ' A new one was written from this CV.'
+      : ' An introduction question was written from this CV.'
+  return `Saved.${retired}${written}`
+}
 
 export function CandidateCv() {
   const queryClient = useQueryClient()
@@ -34,7 +48,6 @@ export function CandidateCv() {
   useEffect(() => {
     if (profile && form === null) {
       setForm({
-        full_name: profile.full_name,
         target_role: profile.target_role,
         cv_text: profile.cv_text,
         cv_filename: profile.cv_filename,
@@ -58,7 +71,8 @@ export function CandidateCv() {
 
   const saveMutation = useMutation({
     mutationFn: (input: CandidateProfileInput) => saveCandidateProfile(input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['interview', 'profile'] }),
+    // A changed CV retires the old introductions and writes a new one, so every interview list is stale.
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['interview'] }),
   })
 
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -85,28 +99,16 @@ export function CandidateCv() {
         ) : (
           <div className={cardClass}>
             <fieldset disabled={saveMutation.isPending || readMutation.isPending} className="space-y-4 min-w-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Field label="Your name">
-                  <input
-                    type="text"
-                    maxLength={120}
-                    value={current.full_name}
-                    onChange={(e) => setForm({ ...current, full_name: e.target.value })}
-                    placeholder="As the client will see it"
-                    className={inputClass}
-                  />
-                </Field>
-                <Field label="Role you are interviewing for">
-                  <input
-                    type="text"
-                    maxLength={120}
-                    value={current.target_role}
-                    onChange={(e) => setForm({ ...current, target_role: e.target.value })}
-                    placeholder="e.g. Senior data engineer"
-                    className={inputClass}
-                  />
-                </Field>
-              </div>
+              <Field label="Role you are interviewing for">
+                <input
+                  type="text"
+                  maxLength={120}
+                  value={current.target_role}
+                  onChange={(e) => setForm({ ...current, target_role: e.target.value })}
+                  placeholder="e.g. Senior data engineer"
+                  className={inputClass}
+                />
+              </Field>
 
               <Field
                 label="CV"
@@ -161,7 +163,7 @@ export function CandidateCv() {
             {saveMutation.isSuccess && (
               <Notice tone="success">
                 <div className="flex flex-wrap items-center gap-3">
-                  <span className="flex-1">Saved.</span>
+                  <span className="flex-1">{savedMessage(saveMutation.data)}</span>
                   <Link to="/interview?tab=cv" className={secondaryButtonClass}>
                     Back to interview
                   </Link>

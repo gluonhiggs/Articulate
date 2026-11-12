@@ -7,7 +7,7 @@ from io import BytesIO
 
 import pytest
 
-from backend.services.cv_import import CvReadError, read_cv, suffix_of, tidy
+from backend.services.cv_import import CvReadError, guess_name, read_cv, suffix_of, tidy
 
 CV = "Nguyen Van A\n\nData engineer, 5 years.\n\nProjects\n- Spark pipeline for 2 TB a day."
 
@@ -73,3 +73,46 @@ class TestReadCv:
         text, truncated = read_cv("cv.txt", ("word " * 500).encode("utf-8"), limit=100)
         assert len(text) == 100
         assert truncated is True
+
+
+class TestGuessName:
+    @pytest.mark.parametrize(
+        "first_line",
+        ["Duong H. D. Tran", "Tran Minh Quang", "Nguyen Van A", "Mary-Jane O'Neil", "Tran Thi Hoa"],
+    )
+    def test_reads_a_name_from_the_first_line(self, first_line: str) -> None:
+        assert guess_name(f"{first_line}\nData Engineer\n") == first_line
+
+    def test_skips_blank_lines_before_the_name(self) -> None:
+        assert guess_name("\n\n  Tran Minh Quang  \nData Engineer") == "Tran Minh Quang"
+
+    @pytest.mark.parametrize(
+        "first_line",
+        [
+            "quang.tran@example.com",
+            "Data Engineer - Ho Chi Minh City",
+            "Phone: 0901 234 567",
+            "Tran",
+            "Data Engineer",
+            "Senior Software Developer",
+            "Senior Data Engineer with five years of experience in Spark",
+        ],
+    )
+    def test_returns_nothing_for_a_first_line_that_is_not_a_name(self, first_line: str) -> None:
+        assert guess_name(f"{first_line}\nmore text") == ""
+
+    def test_returns_nothing_for_an_empty_cv(self) -> None:
+        assert guess_name("") == ""
+
+    def test_reads_the_name_after_a_heading(self) -> None:
+        assert guess_name("CURRICULUM VITAE\nDuong H. D. Tran\nData Engineer") == "Duong H. D. Tran"
+
+    def test_a_heading_followed_by_no_name_gives_nothing(self) -> None:
+        assert guess_name("CURRICULUM VITAE\nquang.tran@example.com") == ""
+
+    def test_reads_the_name_after_two_headings(self) -> None:
+        assert guess_name("Resume\nCV\nTran Minh Quang") == "Tran Minh Quang"
+
+    def test_does_not_look_past_a_line_that_is_not_a_heading(self) -> None:
+        # The company on line two must not be taken for the person.
+        assert guess_name("quang@example.com\nVela Outsourcing\nTran Minh Quang") == ""

@@ -1018,6 +1018,26 @@ def _introduction_upsert(item: dict) -> Optional[InterviewQuestionUpsert]:
     )
 
 
+async def retire_introductions(session: AsyncSession) -> int:
+    """
+    Retire every introduction question, the personal ones and those written for a job.
+
+    Each was written from the CV that was saved at the time, so it names that CV's
+    projects. Retired rather than deleted, so answers already recorded stay in history.
+    Every behavioural question counts, because writing an introduction is the only way
+    one is created.
+    """
+    result = await session.execute(
+        select(InterviewQuestion).where(
+            InterviewQuestion.kind == "behavioural", InterviewQuestion.retired.is_(False)
+        )
+    )
+    questions = list(result.scalars().all())
+    for question in questions:
+        question.retired = True
+    return len(questions)
+
+
 async def load_personal_pack(session: AsyncSession) -> Optional[InterviewPack]:
     result = await session.execute(_pack_query().where(InterviewPack.personal.is_(True)))
     return result.scalars().first()

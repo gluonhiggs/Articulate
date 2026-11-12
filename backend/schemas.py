@@ -320,7 +320,6 @@ CV_TEXT_MAX = 60_000
 
 
 class CandidateProfileIn(BaseModel):
-    full_name: str = Field("", max_length=120)
     target_role: str = Field("", max_length=120)
     cv_text: str = Field("", max_length=CV_TEXT_MAX)
     cv_filename: str = Field("", max_length=260)
@@ -332,6 +331,11 @@ class CandidateProfileOut(BaseModel):
     cv_text: str
     cv_filename: str
     has_cv: bool
+
+
+class CandidateProfileSavedOut(CandidateProfileOut):
+    introductions_retired: int = 0
+    introduction_written: bool = False
 
 
 class CvFileOut(BaseModel):

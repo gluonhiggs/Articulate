@@ -98,3 +98,46 @@ def read_cv(filename: str, data: bytes, limit: Optional[int] = None) -> tuple[st
     if limit is not None and len(text) > limit:
         return text[:limit], True
     return text, False
+
+
+_NOT_A_NAME = {"cv", "resume", "curriculum vitae", "profile", "summary"}
+# A CV that opens with its title instead of a name would otherwise read as one.
+_ROLE_WORDS = {
+    "engineer", "developer", "analyst", "scientist", "manager", "architect", "consultant",
+    "intern", "lead", "designer", "administrator", "specialist", "programmer", "tester",
+}
+_NAME_MAX_WORDS = 5
+_NAME_MAX_CHARS = 60
+_HEADINGS_TO_SKIP = 2
+
+
+def _looks_like_a_word_of_a_name(word: str) -> bool:
+    return word[0].isalpha() and all(char.isalpha() or char in ".-'" for char in word)
+
+
+def _name_or_empty(line: str) -> str:
+    words = line.split()
+    if not 2 <= len(words) <= _NAME_MAX_WORDS or len(line) > _NAME_MAX_CHARS:
+        return ""
+    if any(word.lower() in _ROLE_WORDS for word in words):
+        return ""
+    if not all(_looks_like_a_word_of_a_name(word) for word in words):
+        return ""
+    return line
+
+
+def guess_name(text: str) -> str:
+    """
+    The candidate's name, from the line a CV opens with, as nearly every CV does.
+
+    Up to two headings such as "Curriculum Vitae" are skipped first. Any other line is
+    taken as the opening line: if it is not a short run of name-like words, with no job
+    title, digit or email in it, the result is empty. Looking further down would accept
+    a company or a project name as a person's.
+    """
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    skipped = 0
+    while lines and skipped < _HEADINGS_TO_SKIP and lines[0].lower() in _NOT_A_NAME:
+        lines.pop(0)
+        skipped += 1
+    return _name_or_empty(lines[0]) if lines else ""

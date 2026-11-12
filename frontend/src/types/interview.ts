@@ -241,8 +241,12 @@ export interface CandidateProfile {
   has_cv: boolean
 }
 
+export interface CandidateProfileSaved extends CandidateProfile {
+  introductions_retired: number
+  introduction_written: boolean
+}
+
 export interface CandidateProfileInput {
-  full_name: string
   target_role: string
   cv_text: string
   cv_filename: string

@@ -1,6 +1,7 @@
 import type {
   CandidateProfile,
   CandidateProfileInput,
+  CandidateProfileSaved,
   CvFile,
   InterviewAnswer,
   InterviewDraftRequest,
@@ -85,8 +86,11 @@ export function fetchCandidateProfile(): Promise<CandidateProfile> {
   return apiFetch<CandidateProfile>('/interview/profile')
 }
 
-export function saveCandidateProfile(input: CandidateProfileInput): Promise<CandidateProfile> {
-  return apiFetch<CandidateProfile>('/interview/profile', jsonBody('PUT', input))
+export function saveCandidateProfile(input: CandidateProfileInput): Promise<CandidateProfileSaved> {
+  return apiFetch<CandidateProfileSaved>('/interview/profile', {
+    ...jsonBody('PUT', input),
+    signal: AbortSignal.timeout(LLM_TIMEOUT_MS),
+  })
 }
 
 export function readCvFile(file: File): Promise<CvFile> {
